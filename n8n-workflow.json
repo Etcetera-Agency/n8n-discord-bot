@@ -1,0 +1,284 @@
+{
+    "name": "Discord AI Agent",
+    "nodes": [
+      {
+        "parameters": {
+          "options": {}
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1860,
+          300
+        ],
+        "id": "28f4a1ea-cb69-4e1d-a4ba-ef35f2f91926",
+        "name": "Respond to Webhook"
+      },
+      {
+        "parameters": {
+          "content": "## Tool Calling\nConnect any tool you want to the AI agent.\nUpdate the prompt according to the specific tools you want to use.\nThis **allows the AI** to **interact with external services and APIs**.",
+          "height": 400,
+          "width": 260,
+          "color": 7
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          1500,
+          500
+        ],
+        "id": "36740007-c900-48b7-bd1f-a71869140bc1",
+        "name": "Sticky Note"
+      },
+      {
+        "parameters": {
+          "content": "## Discord AI Agent\n\n### Update the prompt\n**Modify the prompt** according to your specific use case and requirements.\n\n### Variables used\n- **date_message**: `{{ $now }}`\n- **userId**: `<{{ $json.body.userId }}>`\n- **discord_message**: `{{ $json.body.content.replace(\"<@botid>\", \"\") }}` *Note: On the text field, replace **@botid** with the actual ID of your Discord bot*.",
+          "height": 460,
+          "width": 980,
+          "color": 7
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          780,
+          20
+        ],
+        "id": "5f8df7e8-d8da-438a-8bfd-82b8d9b7233e",
+        "name": "Sticky Note1"
+      },
+      {
+        "parameters": {},
+        "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+        "typeVersion": 1.1,
+        "position": [
+          1560,
+          760
+        ],
+        "id": "27a82c0b-9bea-4d27-84de-faa900162408",
+        "name": "HTTP Request"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=date_message : {{ $now }}\nuserId : <{{ $json.body.userId }}>\ndiscord_message : {{ $json.body.content.replace(\"<@botid>\", \"\") }}",
+          "options": {
+            "systemMessage": "=You are a Discord assistant that…\n[Provide instructions to the Discord AI Agent in Markdown or XML format, detailing how to use the available tools.]\n\n**Always include the author by mentioning them with the provided <@userId> in your answer**."
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1.7,
+        "position": [
+          1160,
+          300
+        ],
+        "id": "4d2b41b6-7931-41c7-8a7d-73227a462e13",
+        "name": "Discord AI Agent"
+      },
+      {
+        "parameters": {
+          "content": "## Memory\n\nThis component gives the AI agent more context by remembering conversation history.\nYou can replace this with the memory node of your choice (e.g., Postgres for more persistent storage).\n\nThe variable `{{ $('Webhook').item.json.body.sessionId }}` is used to maintain conversations based on the **sessionId** generated from the Discord `bot.py` file.",
+          "height": 400,
+          "width": 420,
+          "color": 7
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          1060,
+          500
+        ],
+        "id": "8ace912c-ad30-4a60-8955-48f7574eab34",
+        "name": "Sticky Note3"
+      },
+      {
+        "parameters": {
+          "sessionIdType": "customKey",
+          "sessionKey": "={{ $('Webhook - Receive message and sessionId').item.json.body.sessionId }}"
+        },
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "typeVersion": 1.3,
+        "position": [
+          1280,
+          760
+        ],
+        "id": "af1d5ae9-e8cc-48f5-95b0-dc51a3bd4ab3",
+        "name": "Window Buffer Memory"
+      },
+      {
+        "parameters": {
+          "content": "## Discord AI Agent Workflow\nThis workflow serves as the foundation for using the Discord n8n AI Agent.\n\n### The Python file \nThe `bot.py` script runs on the service of your choice (e.g., a **[background worker on Render.com](https://render.com/docs/background-workers)**)\n\n### Variables\nThe workflow receives the following variables via webhook:\n- **content**: The message content from Discord\n- **author**: The username of the message sender\n- **userId**: The Discord user ID\n- **sessionId**: Unique identifier for maintaining conversation context\n- **timestamp**: When the message was sent\n\n### Prompt\nUpdate the **prompt** in the **\"Discord AI Agent\"** node to meet your specific needs.\nIf your bot will be used in public channels, ensure your prompt includes **appropriate guardrails**.\n\n### Tool Connection\nConnect **any tools you want the Discord AI agent** to **interact with** to provide answers directly on Discord.\n\n### Character Limitations\nRemember that Discord has a **2000 character limit** per message in its basic version.",
+          "height": 880,
+          "width": 480,
+          "color": 5
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          0,
+          0
+        ],
+        "id": "ea20b288-aa87-40ff-8ba0-eaf8df1b042a",
+        "name": "Sticky Note2"
+      },
+      {
+        "parameters": {
+          "content": "## Webhook\nThis webhook receives the **message content**, **author id** , and a generated **sessionId** from the bot.py script.\n\nIt is only **triggered** when the bot is **mentioned** in a Discord message.\n\nAdd **header authentication** and edit your **.env** file with the same authentication token for security.",
+          "height": 460,
+          "width": 260,
+          "color": 7
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          500,
+          20
+        ],
+        "id": "ff5c669d-7928-4043-a384-11bad7aed4e8",
+        "name": "Sticky Note4"
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "webhook-path",
+          "authentication": "headerAuth",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          580,
+          300
+        ],
+        "id": "a899d460-209b-4709-8791-01fe3d2433ba",
+        "name": "Webhook - Receive message and sessionId",
+        "webhookId": "webhook-id",
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "",
+            "name": ""
+          }
+        }
+      },
+      {
+        "parameters": {
+          "content": "## Chat Model\nThis is the LLM used by the agent.\nThe default is `gpt-4o-mini` for its cost-efficiency.\n\nYou can replace this with **any model** of your choice that supports **tool calling functionality**.",
+          "height": 400,
+          "width": 260,
+          "color": 7
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          780,
+          500
+        ],
+        "id": "faafbcf2-2948-411c-98d6-f418ee182a8f",
+        "name": "Sticky Note5"
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "value": "gpt-4o-mini",
+            "mode": "list",
+            "cachedResultName": "gpt-4o-mini"
+          },
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.2,
+        "position": [
+          860,
+          760
+        ],
+        "id": "1e029c3c-7856-406b-9c1c-419e42ca2288",
+        "name": "OpenAI Chat Model"
+      },
+      {
+        "parameters": {
+          "content": "## Respond to Webhook\n\nThis node sends the **response back to the webhook**.\n\nThe response will be handled by `bot.py` to provide an answer in the Discord channel where the bot was mentioned.",
+          "height": 460,
+          "width": 260,
+          "color": 7
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          1780,
+          20
+        ],
+        "id": "f27228e6-1275-47a2-ae2b-6b2f3a233d37",
+        "name": "Sticky Note6"
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "HTTP Request": {
+        "ai_tool": [
+          [
+            {
+              "node": "Discord AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Discord AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Window Buffer Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "Discord AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook - Receive message and sessionId": {
+        "main": [
+          [
+            {
+              "node": "Discord AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Discord AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "",
+    "meta": {
+      "templateCredsSetupCompleted": true,
+      "instanceId": ""
+    },
+    "id": "",
+    "tags": []
+  }
