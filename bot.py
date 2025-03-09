@@ -722,5 +722,6 @@ async def run_server():
 async def main():     
     server_task = asyncio.create_task(run_server())
     await bot.start(DISCORD_TOKEN)
-    await server_task  if __name__ == "__main__":
+    await server_task  
+if __name__ == "__main__":
     asyncio.run(main())
