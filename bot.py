@@ -13,7 +13,7 @@ import ssl
 from aiohttp import web
 
 ###############################################################################
-# Logging configuration
+# Logging configuration (English)
 ###############################################################################
 logging.basicConfig(
     level=logging.INFO,
@@ -22,7 +22,7 @@ logging.basicConfig(
 logger = logging.getLogger('discord_bot')
 
 ###############################################################################
-# Load environment variables
+# Load environment variables (English)
 ###############################################################################
 load_dotenv()
 
@@ -38,7 +38,77 @@ sessions = TTLCache(maxsize=1024, ttl=SESSION_TTL)
 http_session = None
 
 ###############################################################################
-# Utility: build_payload
+# Global Constants
+###############################################################################
+WORKLOAD_OPTIONS = ["Нічого немає", "2", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50"]
+
+WEEKDAY_OPTIONS = [
+    discord.SelectOption(label="Monday", value="Monday"),
+    discord.SelectOption(label="Tuesday", value="Tuesday"),
+    discord.SelectOption(label="Wednesday", value="Wednesday"),
+    discord.SelectOption(label="Thursday", value="Thursday"),
+    discord.SelectOption(label="Friday", value="Friday"),
+    discord.SelectOption(label="Saturday", value="Saturday"),
+    discord.SelectOption(label="Sunday", value="Sunday")
+]
+
+###############################################################################
+# Helper: create_view_from_components (English)
+###############################################################################
+def create_view_from_components(components: List[dict]) -> discord.ui.View:
+    """Converts a list of component dicts from n8n into a discord.ui.View with buttons."""
+    view = discord.ui.View(timeout=None)
+    row = 0
+    count = 0
+    for comp in components:
+        if count == 5:
+            row += 1
+            count = 0
+        style_str = comp.get("style", "primary").lower()
+        style = discord.ButtonStyle.primary
+        if style_str == "secondary":
+            style = discord.ButtonStyle.secondary
+        elif style_str == "success":
+            style = discord.ButtonStyle.success
+        elif style_str == "danger":
+            style = discord.ButtonStyle.danger
+        elif style_str == "link":
+            style = discord.ButtonStyle.link
+        button = discord.ui.Button(
+            label=comp.get("label", "Button"),
+            style=style,
+            custom_id=comp.get("custom_id"),
+            row=row
+        )
+        view.add_item(button)
+        count += 1
+    return view
+
+###############################################################################
+# Helper: send_n8n_reply for channels and interactions (English)
+###############################################################################
+async def send_n8n_reply_channel(channel, data: dict):
+    """Sends the reply from n8n to a text channel. If 'components' exists, sends buttons."""
+    reply_text = data.get("output", "").strip()
+    if "components" in data:
+        view = create_view_from_components(data["components"])
+        await channel.send(reply_text, view=view)
+    else:
+        if reply_text:
+            await channel.send(reply_text)
+
+async def send_n8n_reply_interaction(interaction, data: dict):
+    """Sends the reply from n8n to an interaction. If 'components' exists, sends buttons."""
+    reply_text = data.get("output", "").strip()
+    if "components" in data:
+        view = create_view_from_components(data["components"])
+        await interaction.response.send_message(reply_text, view=view, ephemeral=False)
+    else:
+        if reply_text:
+            await interaction.response.send_message(reply_text, ephemeral=False)
+
+###############################################################################
+# Utility: build_payload (English)
 ###############################################################################
 def build_payload(
     command: str,
@@ -51,16 +121,7 @@ def build_payload(
     channelId: str,
     channelName: str
 ) -> dict:
-    """
-    Constructs a unified JSON payload to send to n8n.
-    
-    Parameters:
-    - command: Name of the command (e.g. "mention", "prefix-register", "workload_today", "survey", "registred_channel", "unregister")
-    - status: "ok", "step", or "incomplete"
-    - message: Raw text from the user (only used for normal messages)
-    - result: Structured result (for slash commands or survey steps)
-    - author, userId, sessionId, channelId, channelName: Metadata
-    """
+    """Constructs a unified JSON payload to send to n8n."""
     return {
         "command": command,
         "status": status,
@@ -75,7 +136,7 @@ def build_payload(
     }
 
 ###############################################################################
-# Helper: get_session_id
+# Helper: get_session_id (English)
 ###############################################################################
 def get_session_id(user_id: str) -> str:
     """Returns an existing session_id or creates a new one for the given user."""
@@ -86,13 +147,10 @@ def get_session_id(user_id: str) -> str:
     return new_session_id
 
 ###############################################################################
-# Send webhook with retry logic
+# Send webhook with retry logic (English)
 ###############################################################################
 async def send_webhook_with_retry(target_channel, payload, headers, max_retries=3, retry_delay=1):
-    """
-    Sends a POST request to n8n with retry logic.
-    Returns (success, data).
-    """
+    """Sends a POST request to n8n with retry logic. Returns (success, data)."""
     request_id = str(uuid.uuid4())[:8]
     for attempt in range(max_retries):
         try:
@@ -135,7 +193,7 @@ async def send_webhook_with_retry(target_channel, payload, headers, max_retries=
     return False, None
 
 ###############################################################################
-# Discord Bot Setup
+# Discord Bot Setup (English)
 ###############################################################################
 intents = discord.Intents.default()
 intents.message_content = True
@@ -160,9 +218,8 @@ async def on_close():
         await http_session.close()
 
 ###############################################################################
-# Survey Management
+# Survey Management (English)
 ###############################################################################
-# Dictionary to hold dynamic survey state: user_id -> SurveyFlow instance
 SURVEYS = {}
 
 class SurveyFlow:
@@ -175,7 +232,7 @@ class SurveyFlow:
         self.channel_id = channel_id
         self.steps = steps
         self.current_index = 0
-        self.results = {}  # Mapping of stepName -> value
+        self.results = {}
 
     def current_step(self) -> Optional[str]:
         if self.current_index < len(self.steps):
@@ -192,16 +249,14 @@ class SurveyFlow:
         return self.steps[self.current_index:] if not self.is_done() else []
 
 ###############################################################################
-# Discord on_message Event
+# Discord on_message Event (User messages in Ukrainian)
 ###############################################################################
 @bot.event
 async def on_message(message: discord.Message):
     if message.author == bot.user:
         return
 
-    # Only respond when the bot is mentioned
     if bot.user in message.mentions:
-        # Add reaction to indicate processing has started
         await message.add_reaction("⏳")
         user_id = str(message.author.id)
         session_id = get_session_id(user_id)
@@ -222,11 +277,8 @@ async def on_message(message: discord.Message):
         success, data = await send_webhook_with_retry(message, payload, headers)
         await message.add_reaction("✅" if success else "❌")
         if success and data:
-            reply_text = data.get("output", "").strip()
-            if reply_text:
-                await message.channel.send(reply_text)
+            await send_n8n_reply_channel(message.channel, data)
 
-    # Dynamic survey trigger via message (e.g., "start_daily_survey <userId> <channelId> step1 step2 ...")
     if message.content.startswith("start_daily_survey"):
         parts = message.content.split()
         if len(parts) >= 4:
@@ -238,21 +290,14 @@ async def on_message(message: discord.Message):
     await bot.process_commands(message)
 
 ###############################################################################
-# Survey Functions
+# Survey Functions (User messages in Ukrainian)
 ###############################################################################
 async def handle_start_daily_survey(user_id: str, channel_id: str, steps: List[str]):
-    """
-    Initiates a dynamic survey with the provided steps.
-    Before starting the survey, it checks if the channel is registered by sending
-    a request to n8n with the command "registred_channel". If n8n returns false,
-    the survey is not started.
-    """
     channel = bot.get_channel(int(channel_id))
     if not channel:
         logger.warning(f"Channel {channel_id} not found for user {user_id}")
         return
 
-    # Check if the channel is registered via n8n
     payload_check = build_payload(
         command="registred_channel",
         status="ok",
@@ -269,45 +314,40 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, steps: List[s
         headers["Authorization"] = f"Bearer {WEBHOOK_AUTH_TOKEN}"
     success_check, data_check = await send_webhook_with_retry(channel, payload_check, headers)
     if not success_check or not data_check:
-        await channel.send(f"<@{user_id}> Error checking channel registration.")
+        await channel.send(f"<@{user_id}> Помилка перевірки реєстрації каналу.")
         return
     is_registered = str(data_check.get("output", "false")).lower() == "true"
     if not is_registered:
-        await channel.send(f"<@{user_id}> Channel is not registered. Please register before starting survey.")
+        await channel.send(f"<@{user_id}> Канал не зареєстровано. Будь ласка, зареєструйте його перед початком опитування.")
         return
 
-    # If the channel is registered, proceed with the survey
     state = SurveyFlow(user_id, channel_id, steps)
     SURVEYS[user_id] = state
     step = state.current_step()
     if step:
         await ask_dynamic_step(channel, state, step)
     else:
-        await channel.send(f"<@{user_id}> No survey steps provided.")
+        await channel.send(f"<@{user_id}> Не вказано кроків опитування.")
 
 async def ask_dynamic_step(channel: discord.TextChannel, state: SurveyFlow, step_name: str):
-    """
-    Sends the current survey question to the user based on the step type.
-    """
     user_id = state.user_id
     if step_name.startswith("workload") or step_name.startswith("connects"):
-        # Create a workload view for dynamic survey mode
         if step_name == "workload_nextweek":
-            text_q = f"<@{user_id}> How many hours for NEXT week?"
+            text_q = f"<@{user_id}> Скільки годин на НАСТУПНИЙ тиждень?"
         elif step_name == "workload_thisweek":
-            text_q = f"<@{user_id}> How many hours for THIS week?"
+            text_q = f"<@{user_id}> Скільки годин на ЦЬОГО тижня?"
         elif step_name == "connects_thisweek":
-            text_q = f"<@{user_id}> How many CONNECTS for this week?"
+            text_q = f"<@{user_id}> Скільки CONNECTS на ЦЬОГО тижня?"
         else:
-            text_q = f"<@{user_id}> Please choose a number of hours:"
+            text_q = f"<@{user_id}> Будь ласка, оберіть кількість годин:"
         view = create_workload_view(step_name, user_id, dynamic_survey=True)
         await channel.send(text_q, view=view)
     elif step_name.startswith("day_off"):
-        text_q = f"<@{user_id}> Which day(s) off for next week?"
+        text_q = f"<@{user_id}> Які дні вихідних на наступний тиждень?"
         view = create_day_off_view(step_name, user_id, dynamic_survey=True)
         await channel.send(text_q, view=view)
     else:
-        await channel.send(f"<@{user_id}> Unknown survey step: {step_name}. Skipping.")
+        await channel.send(f"<@{user_id}> Невідомий крок опитування: {step_name}. Пропускаємо.")
         state.next_step()
         nxt = state.current_step()
         if nxt:
@@ -316,9 +356,6 @@ async def ask_dynamic_step(channel: discord.TextChannel, state: SurveyFlow, step
             await finish_survey(channel, state)
 
 async def finish_survey(channel: discord.TextChannel, state: SurveyFlow):
-    """
-    Completes the survey and sends the final results via webhook.
-    """
     if state.is_done():
         payload = build_payload(
             command="survey",
@@ -336,17 +373,13 @@ async def finish_survey(channel: discord.TextChannel, state: SurveyFlow):
             headers["Authorization"] = f"Bearer {WEBHOOK_AUTH_TOKEN}"
         success, data = await send_webhook_with_retry(channel, payload, headers)
         if success and data:
-            rtxt = data.get("output", "Survey results saved.").strip()
-            await channel.send(f"<@{state.user_id}> Survey finished!\n{rtxt}")
+            await send_n8n_reply_channel(channel, data)
         else:
-            await channel.send(f"<@{state.user_id}> Survey finished, but there was an error sending results to n8n.")
+            await channel.send("Помилка надсилання результатів до n8n.")
     if state.user_id in SURVEYS:
         del SURVEYS[state.user_id]
 
 async def survey_incomplete_timeout(user_id: str):
-    """
-    Called when the survey times out, sending a timeout message with incomplete steps.
-    """
     state = SURVEYS.get(user_id)
     if not state:
         return
@@ -369,14 +402,15 @@ async def survey_incomplete_timeout(user_id: str):
     if WEBHOOK_AUTH_TOKEN:
         headers["Authorization"] = f"Bearer {WEBHOOK_AUTH_TOKEN}"
     success, data = await send_webhook_with_retry(channel, payload, headers)
-    await channel.send(
-        f"<@{state.user_id}> Survey timed out after 15 minutes. Incomplete steps: {', '.join(incomplete)}"
-    )
+    if success and data:
+        await send_n8n_reply_channel(channel, data)
+    else:
+        await channel.send(f"<@{state.user_id}> {', '.join(incomplete)}")
     if state.user_id in SURVEYS:
         del SURVEYS[state.user_id]
 
 ###############################################################################
-# Factory Functions for UI Views
+# Factory Functions for UI Views (User messages in Ukrainian)
 ###############################################################################
 def create_workload_view(step_or_cmd: str, user_id: str, dynamic_survey: bool = False) -> discord.ui.View:
     if dynamic_survey:
@@ -394,13 +428,11 @@ def create_vacation_view(slash_command_name: str, user_id: str) -> discord.ui.Vi
     return VacationSlashView(slash_command_name, user_id, get_session_id(user_id))
 
 ###############################################################################
-# WORKLOAD VIEWS (Dynamic and Slash)
+# WORKLOAD VIEWS (Dynamic and Slash) (User messages in Ukrainian)
 ###############################################################################
-WORKLOAD_OPTIONS = ["Нічого немає", "2", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50"]
-
 class WorkloadDynamicView(discord.ui.View):
     def __init__(self, step_name: str, user_id: str):
-        super().__init__(timeout=900)  # 15 minutes timeout
+        super().__init__(timeout=900)
         self.step_name = step_name
         self.user_id = user_id
         for opt in WORKLOAD_OPTIONS:
@@ -421,7 +453,7 @@ class WorkloadDynamicButton(discord.ui.Button):
         value = 0 if self.label == "Нічого немає" else int(self.label)
         state = SURVEYS.get(self.parent_view.user_id)
         if not state:
-            await interaction.response.send_message("Survey not found.", ephemeral=False)
+            await interaction.response.send_message("Опитування не знайдено.", ephemeral=False)
             return
         payload = build_payload(
             command="survey",
@@ -439,18 +471,15 @@ class WorkloadDynamicButton(discord.ui.Button):
             headers["Authorization"] = f"Bearer {WEBHOOK_AUTH_TOKEN}"
         success, data = await send_webhook_with_retry(interaction, payload, headers)
         if not success or not data:
-            await interaction.response.send_message("Error calling n8n.", ephemeral=False)
+            await interaction.response.send_message("Помилка виклику n8n.", ephemeral=False)
             return
-        rtxt = data.get("output", "No text from n8n.").strip()
-        await interaction.response.send_message(f"n8n says: {rtxt}", ephemeral=False)
+        await send_n8n_reply_interaction(interaction, data)
         state.results[self.parent_view.step_name] = value
         state.next_step()
         nxt = state.current_step()
         if nxt:
-            await interaction.channel.send(f"Moving on to step: {nxt}")
             await ask_dynamic_step(interaction.channel, state, nxt)
         else:
-            await interaction.channel.send("All steps done!")
             await finish_survey(interaction.channel, state)
         for c in self.parent_view.children:
             c.disabled = True
@@ -493,13 +522,12 @@ class WorkloadSlashButton(discord.ui.Button):
         success, data = await send_webhook_with_retry(interaction, payload, headers)
         if not success or not data:
             return
-        rtxt = data.get("output", "No text from n8n.").strip()
-        await interaction.response.send_message(f"Selected: {hours_value}. {rtxt}", ephemeral=False)
+        await send_n8n_reply_interaction(interaction, data)
         self.parent_view.disable_all_items()
         self.parent_view.stop()
 
 ###############################################################################
-# DAY OFF VIEWS (Dynamic and Slash)
+# DAY OFF VIEWS (Dynamic and Slash) (User messages in Ukrainian)
 ###############################################################################
 class DayOffDynamicView(discord.ui.View):
     def __init__(self, step_name: str, user_id: str):
@@ -519,31 +547,22 @@ class DayOffDynamicView(discord.ui.View):
 class DayOffDynamicSelect(discord.ui.Select):
     def __init__(self, parent_view: DayOffDynamicView):
         self.parent_view = parent_view
-        options = [
-            discord.SelectOption(label="Monday", value="Monday"),
-            discord.SelectOption(label="Tuesday", value="Tuesday"),
-            discord.SelectOption(label="Wednesday", value="Wednesday"),
-            discord.SelectOption(label="Thursday", value="Thursday"),
-            discord.SelectOption(label="Friday", value="Friday"),
-            discord.SelectOption(label="Saturday", value="Saturday"),
-            discord.SelectOption(label="Sunday", value="Sunday")
-        ]
-        super().__init__(placeholder="Select day(s) off", min_values=1, max_values=7, options=options)
+        super().__init__(placeholder="Оберіть день(і) вихідних", min_values=1, max_values=7, options=WEEKDAY_OPTIONS)
     async def callback(self, interaction: discord.Interaction):
         self.parent_view.days_selected = self.values
         await interaction.response.defer()
 
 class DayOffDynamicSubmit(discord.ui.Button):
     def __init__(self, parent_view: DayOffDynamicView):
-        super().__init__(label="Submit days", style=discord.ButtonStyle.primary)
+        super().__init__(label="Відправити дні", style=discord.ButtonStyle.primary)
         self.parent_view = parent_view
     async def callback(self, interaction: discord.Interaction):
         if not self.parent_view.days_selected:
-            await interaction.response.send_message("No days selected.", ephemeral=False)
+            await interaction.response.send_message("Дні не обрано.", ephemeral=False)
             return
         state = SURVEYS.get(self.parent_view.user_id)
         if not state:
-            await interaction.response.send_message("Survey not found.", ephemeral=False)
+            await interaction.response.send_message("Опитування не знайдено.", ephemeral=False)
             return
         payload = build_payload(
             command="survey",
@@ -561,24 +580,20 @@ class DayOffDynamicSubmit(discord.ui.Button):
             headers["Authorization"] = f"Bearer {WEBHOOK_AUTH_TOKEN}"
         success, data = await send_webhook_with_retry(interaction, payload, headers)
         if not success or not data:
-            await interaction.response.send_message("Error calling n8n.", ephemeral=False)
+            await interaction.response.send_message("Помилка виклику n8n.", ephemeral=False)
             return
-        rtxt = data.get("output", "No text from n8n.").strip()
-        await interaction.response.send_message(f"n8n says: {rtxt}", ephemeral=False)
+        await send_n8n_reply_interaction(interaction, data)
         state.results[self.parent_view.step_name] = self.parent_view.days_selected
         state.next_step()
         nxt = state.current_step()
         if nxt:
-            await interaction.channel.send(f"Moving on to step: {nxt}")
             await ask_dynamic_step(interaction.channel, state, nxt)
         else:
-            await interaction.channel.send("All steps done!")
             await finish_survey(interaction.channel, state)
         for c in self.parent_view.children:
             c.disabled = True
         self.parent_view.stop()
 
-# Day Off view for slash commands
 class DayOffSlashView(discord.ui.View):
     def __init__(self, slash_cmd_name: str, user_id: str, session_id: str):
         super().__init__(timeout=None)
@@ -595,27 +610,18 @@ class DayOffSlashView(discord.ui.View):
 class DayOffSlashSelect(discord.ui.Select):
     def __init__(self, parent_view: DayOffSlashView):
         self.parent_view = parent_view
-        options = [
-            discord.SelectOption(label="Monday", value="Monday"),
-            discord.SelectOption(label="Tuesday", value="Tuesday"),
-            discord.SelectOption(label="Wednesday", value="Wednesday"),
-            discord.SelectOption(label="Thursday", value="Thursday"),
-            discord.SelectOption(label="Friday", value="Friday"),
-            discord.SelectOption(label="Saturday", value="Saturday"),
-            discord.SelectOption(label="Sunday", value="Sunday")
-        ]
-        super().__init__(placeholder="Select day(s) off...", min_values=1, max_values=7, options=options)
+        super().__init__(placeholder="Оберіть день(і) вихідних...", min_values=1, max_values=7, options=WEEKDAY_OPTIONS)
     async def callback(self, interaction: discord.Interaction):
         self.parent_view.days_selected = self.values
         await interaction.response.defer()
 
 class DayOffSlashButton(discord.ui.Button):
     def __init__(self, parent_view: DayOffSlashView):
-        super().__init__(label="Submit", style=discord.ButtonStyle.primary)
+        super().__init__(label="Відправити", style=discord.ButtonStyle.primary)
         self.parent_view = parent_view
     async def callback(self, interaction: discord.Interaction):
         if not self.parent_view.days_selected:
-            await interaction.response.send_message("No days selected!", ephemeral=False)
+            await interaction.response.send_message("Дні не обрано!", ephemeral=False)
             return
         payload = build_payload(
             command=self.parent_view.slash_cmd_name,
@@ -634,16 +640,12 @@ class DayOffSlashButton(discord.ui.Button):
         success, data = await send_webhook_with_retry(interaction, payload, headers)
         if not success or not data:
             return
-        rtxt = data.get("output", "No text from n8n.").strip()
-        await interaction.response.send_message(
-            f"You selected: {', '.join(self.parent_view.days_selected)}\n{rtxt}",
-            ephemeral=False
-        )
+        await send_n8n_reply_interaction(interaction, data)
         self.parent_view.disable_all_items()
         self.parent_view.stop()
 
 ###############################################################################
-# VACATION SLASH VIEW (Static)
+# VACATION SLASH VIEW (Static) (User messages in Ukrainian)
 ###############################################################################
 def day_options():
     return [discord.SelectOption(label=str(d), value=str(d)) for d in range(1, 32)]
@@ -674,7 +676,7 @@ class VacationSlashView(discord.ui.View):
 
 class StartDaySelect(discord.ui.Select):
     def __init__(self, parent_view: VacationSlashView):
-        super().__init__(placeholder="Start Day", min_values=1, max_values=1, options=day_options())
+        super().__init__(placeholder="День початку", min_values=1, max_values=1, options=day_options())
         self.parent_view = parent_view
     async def callback(self, interaction: discord.Interaction):
         self.parent_view.start_day = self.values[0]
@@ -682,7 +684,7 @@ class StartDaySelect(discord.ui.Select):
 
 class StartMonthSelect(discord.ui.Select):
     def __init__(self, parent_view: VacationSlashView):
-        super().__init__(placeholder="Start Month", min_values=1, max_values=1, options=month_options())
+        super().__init__(placeholder="Місяць початку", min_values=1, max_values=1, options=month_options())
         self.parent_view = parent_view
     async def callback(self, interaction: discord.Interaction):
         self.parent_view.start_month = self.values[0]
@@ -690,7 +692,7 @@ class StartMonthSelect(discord.ui.Select):
 
 class EndDaySelect(discord.ui.Select):
     def __init__(self, parent_view: VacationSlashView):
-        super().__init__(placeholder="End Day", min_values=1, max_values=1, options=day_options())
+        super().__init__(placeholder="День закінчення", min_values=1, max_values=1, options=day_options())
         self.parent_view = parent_view
     async def callback(self, interaction: discord.Interaction):
         self.parent_view.end_day = self.values[0]
@@ -698,7 +700,7 @@ class EndDaySelect(discord.ui.Select):
 
 class EndMonthSelect(discord.ui.Select):
     def __init__(self, parent_view: VacationSlashView):
-        super().__init__(placeholder="End Month", min_values=1, max_values=1, options=month_options())
+        super().__init__(placeholder="Місяць закінчення", min_values=1, max_values=1, options=month_options())
         self.parent_view = parent_view
     async def callback(self, interaction: discord.Interaction):
         self.parent_view.end_month = self.values[0]
@@ -706,12 +708,12 @@ class EndMonthSelect(discord.ui.Select):
 
 class VacationSlashButton(discord.ui.Button):
     def __init__(self, parent_view: VacationSlashView):
-        super().__init__(label="Submit", style=discord.ButtonStyle.primary)
+        super().__init__(label="Відправити", style=discord.ButtonStyle.primary)
         self.parent_view = parent_view
     async def callback(self, interaction: discord.Interaction):
         if not (self.parent_view.start_day and self.parent_view.start_month and 
                 self.parent_view.end_day and self.parent_view.end_month):
-            await interaction.response.send_message("Please select all fields!", ephemeral=False)
+            await interaction.response.send_message("Будь ласка, оберіть усі поля!", ephemeral=False)
             return
         payload = build_payload(
             command=self.parent_view.slash_cmd_name,
@@ -735,19 +737,14 @@ class VacationSlashButton(discord.ui.Button):
         success, data = await send_webhook_with_retry(interaction, payload, headers)
         if not success or not data:
             return
-        rtxt = data.get("output", "No text from n8n.").strip()
-        await interaction.response.send_message(
-            f"Vacation request submitted!\nStart: {self.parent_view.start_day}.{self.parent_view.start_month}\n"
-            f"End: {self.parent_view.end_day}.{self.parent_view.end_month}\n{rtxt}",
-            ephemeral=False
-        )
+        await send_n8n_reply_interaction(interaction, data)
         self.parent_view.disable_all_items()
         self.parent_view.stop()
 
 ###############################################################################
-# PREFIX COMMAND: !register (Accept any text)
+# PREFIX COMMANDS (User messages in Ukrainian)
 ###############################################################################
-@bot.command(name="register", help="Usage: !register <any text>")
+@bot.command(name="register", help="Використання: !register <будь-який текст>")
 async def register_cmd(ctx: commands.Context, *, text: str):
     user_id = str(ctx.author.id)
     session_id = get_session_id(user_id)
@@ -768,22 +765,17 @@ async def register_cmd(ctx: commands.Context, *, text: str):
     success, data = await send_webhook_with_retry(ctx, payload, headers)
     if not success or not data:
         return
-    reply_text = data.get("output", "No text from n8n.").strip()
-    if reply_text:
-        await ctx.send(reply_text)
+    await send_n8n_reply_channel(ctx.channel, data)
 
-###############################################################################
-# PREFIX COMMAND: !unregister (No input required)
-###############################################################################
-@bot.command(name="unregister", help="Usage: !unregister")
+@bot.command(name="unregister", help="Використання: !unregister")
 async def unregister_cmd(ctx: commands.Context):
     user_id = str(ctx.author.id)
     session_id = get_session_id(user_id)
     payload = build_payload(
-        command="unregister",  # Command to be sent to n8n
+        command="unregister",
         status="ok",
         message="",
-        result={},  # No additional data needed
+        result={},
         author=str(ctx.author),
         userId=user_id,
         sessionId=session_id,
@@ -795,88 +787,64 @@ async def unregister_cmd(ctx: commands.Context):
         headers["Authorization"] = f"Bearer {WEBHOOK_AUTH_TOKEN}"
     success, data = await send_webhook_with_retry(ctx, payload, headers)
     if not success or not data:
-        await ctx.send("Error calling n8n.")
+        await ctx.send("Помилка виклику n8n.")
         return
-    reply_text = data.get("output", "No text from n8n.").strip()
-    await ctx.send(reply_text)
+    await send_n8n_reply_channel(ctx.channel, data)
 
 ###############################################################################
-# SLASH COMMANDS (Static)
+# SLASH COMMANDS (User messages in Ukrainian)
 ###############################################################################
-# /day_off group commands
-day_off_group = app_commands.Group(name="day_off", description="Commands for day(s) off")
+day_off_group = app_commands.Group(name="day_off", description="Команди для вихідних")
 
-@day_off_group.command(name="thisweek", description="Select your day(s) off for THIS week.")
+@day_off_group.command(name="thisweek", description="Оберіть вихідні на ЦЕЙ тиждень.")
 async def day_off_thisweek(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True, ephemeral=False)
     user_id = str(interaction.user.id)
     view = create_day_off_view("day_off_thisweek", user_id, dynamic_survey=False)
-    await interaction.followup.send(
-        "Select your day(s) off (this week), then press Submit:",
-        view=view,
-        ephemeral=False
-    )
+    await interaction.followup.send("Оберіть свої вихідні (цей тиждень), потім натисніть «Відправити»:", view=view, ephemeral=False)
 
-@day_off_group.command(name="nextweek", description="Select your day(s) off for NEXT week.")
+@day_off_group.command(name="nextweek", description="Оберіть вихідні на НАСТУПНИЙ тиждень.")
 async def day_off_nextweek(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True, ephemeral=False)
     user_id = str(interaction.user.id)
     view = create_day_off_view("day_off_nextweek", user_id, dynamic_survey=False)
-    await interaction.followup.send(
-        "Select your day(s) off (next week), then press Submit:",
-        view=view,
-        ephemeral=False
-    )
+    await interaction.followup.send("Оберіть свої вихідні (наступний тиждень), потім натисніть «Відправити»:", view=view, ephemeral=False)
 
 bot.tree.add_command(day_off_group)
 
-# /vacation command
-@bot.tree.command(name="vacation", description="Pick start/end day/month for your vacation.")
+@bot.tree.command(name="vacation", description="Оберіть день/місяць початку та кінця відпустки.")
 async def vacation_slash(interaction: discord.Interaction):
     user_id = str(interaction.user.id)
     view = create_vacation_view("vacation", user_id)
-    await interaction.response.send_message(
-        "Please select start day/month, end day/month, then press Submit:",
-        view=view,
-        ephemeral=False
-    )
+    await interaction.response.send_message("Будь ласка, оберіть день/місяць початку та кінця відпустки, потім натисніть «Відправити»:", view=view, ephemeral=False)
 
-# /workload_today and /workload_nextweek commands
-@bot.tree.command(name="workload_today", description="How many hours from TODAY until end of week?")
+@bot.tree.command(name="workload_today", description="Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?")
 async def slash_workload_today(interaction: discord.Interaction):
     user_id = str(interaction.user.id)
     view = create_workload_view("workload_today", user_id, dynamic_survey=False)
-    await interaction.response.send_message(
-        "How many hours are confirmed from TODAY until end of week?\nIf none, pick 'Нічого немає'.",
-        view=view,
-        ephemeral=False
-    )
+    await interaction.response.send_message("Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?\nЯкщо нічого, оберіть «Нічого немає».", view=view, ephemeral=False)
 
-@bot.tree.command(name="workload_nextweek", description="How many hours for NEXT week?")
+@bot.tree.command(name="workload_nextweek", description="Скільки годин підтверджено на НАСТУПНИЙ тиждень?")
 async def slash_workload_nextweek(interaction: discord.Interaction):
     user_id = str(interaction.user.id)
     view = create_workload_view("workload_nextweek", user_id, dynamic_survey=False)
-    await interaction.response.send_message(
-        "How many hours are confirmed for NEXT week?\nIf none, pick 'Нічого немає'.",
-        view=view,
-        ephemeral=False
-    )
+    await interaction.response.send_message("Скільки годин підтверджено на НАСТУПНИЙ тиждень?\nЯкщо нічого, оберіть «Нічого немає».", view=view, ephemeral=False)
+
+@bot.tree.command(name="connects_thisweek", description="Скільки CONNECTS підтверджено на ЦЬОГО тижня?")
+async def slash_connects_thisweek(interaction: discord.Interaction):
+    user_id = str(interaction.user.id)
+    view = create_workload_view("connects_thisweek", user_id, dynamic_survey=True)
+    await interaction.response.send_message("Скільки CONNECTS підтверджено на ЦЬОГА тижня?\nЯкщо нічого, оберіть «Нічого немає».", view=view, ephemeral=False)
 
 ###############################################################################
-# HTTP/HTTPS Server for Survey Activation (CapRover)
+# HTTP/HTTPS Server for Survey Activation (CapRover) (Responses remain in English)
 ###############################################################################
 async def start_survey_http(request):
-    """
-    HTTP handler for starting a survey via POST request.
-    Expects a JSON payload with userId, channelId, and steps.
-    Also checks for an Authorization header with the correct token.
-    """
-    # Check for the correct Authorization header
     auth_header = request.headers.get("Authorization")
     expected_header = f"Bearer {WEBHOOK_AUTH_TOKEN}"
     if not auth_header or auth_header != expected_header:
         return web.json_response({"error": "Unauthorized"}, status=401)
-
+    
     try:
         data = await request.json()
         user_id = data.get("userId")
@@ -890,19 +858,10 @@ async def start_survey_http(request):
         return web.json_response({"error": str(e)}, status=500)
 
 async def run_server():
-    """
-    Runs the HTTP/HTTPS server.
-    Uses the PORT environment variable (default 3000) as assigned by CapRover.
-    If SSL_CERT_PATH and SSL_KEY_PATH are set, runs an HTTPS server.
-    """
     app = web.Application()
     app.router.add_post('/start_survey', start_survey_http)
-
-    # Get port from environment (default to 3000)
     port = int(os.getenv("PORT", "3000"))
     host = "0.0.0.0"
-
-    # Setup SSL context if SSL certificate and key are provided
     ssl_cert_path = os.getenv("SSL_CERT_PATH")
     ssl_key_path = os.getenv("SSL_KEY_PATH")
     ssl_context = None
@@ -912,19 +871,16 @@ async def run_server():
         logger.info(f"Starting HTTPS server on {host}:{port}")
     else:
         logger.info(f"Starting HTTP server on {host}:{port}")
-
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, host, port, ssl_context=ssl_context)
     await site.start()
 
 ###############################################################################
-# Main function to run both the HTTP/HTTPS server and the Discord Bot
+# Main function to run both the HTTP/HTTPS server and the Discord Bot (English)
 ###############################################################################
 async def main():
-    # Start the HTTP/HTTPS server in a separate task
     server_task = asyncio.create_task(run_server())
-    # Start the Discord bot
     await bot.start(DISCORD_TOKEN)
     await server_task
 
