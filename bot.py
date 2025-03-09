@@ -621,7 +621,16 @@ async def vacation_slash(
             "end_month": end_month
         }
     )
-
+@vacation_slash.autocomplete("start_month")
+@vacation_slash.autocomplete("end_month")
+async def month_autocomplete(interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+    current = current.lower()
+    return [
+        app_commands.Choice(name=month, value=month)
+        for month in MONTHS
+        if current in month.lower()
+    ][:25]  # Limit to 25 choices as per Discord limits
+    
 @bot.tree.command(name="workload_today", description="Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?")
 async def slash_workload_today(interaction: discord.Interaction):
     view = create_view("workload", "workload_today", str(interaction.user.id))
