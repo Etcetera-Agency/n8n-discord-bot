@@ -2,7 +2,6 @@ import os
 import discord
 from discord.ext import commands
 from discord import app_commands
-
 import aiohttp
 import uuid
 import asyncio
@@ -10,6 +9,8 @@ import logging
 from dotenv import load_dotenv
 from cachetools import TTLCache
 from typing import Optional, List
+import ssl
+from aiohttp import web
 
 ###############################################################################
 # Logging configuration
@@ -21,7 +22,7 @@ logging.basicConfig(
 logger = logging.getLogger('discord_bot')
 
 ###############################################################################
-# Environment variables
+# Load environment variables
 ###############################################################################
 load_dotenv()
 
@@ -33,6 +34,7 @@ WEBHOOK_AUTH_TOKEN = os.getenv("WEBHOOK_AUTH_TOKEN")
 SESSION_TTL = 86400
 sessions = TTLCache(maxsize=1024, ttl=SESSION_TTL)
 
+# Global HTTP session for aiohttp requests
 http_session = None
 
 ###############################################################################
@@ -52,11 +54,12 @@ def build_payload(
     """
     Constructs a unified JSON payload to send to n8n.
     
+    Parameters:
     - command: Name of the command (e.g. "mention", "prefix-register", "workload_today", "survey")
     - status: "ok", "step", or "incomplete"
     - message: Raw text from the user (only used for normal messages)
     - result: Structured result (for slash commands or survey steps)
-    - author, userId, sessionId, channelId, channelName, timestamp: Metadata
+    - author, userId, sessionId, channelId, channelName: Metadata
     """
     return {
         "command": command,
@@ -83,7 +86,7 @@ def get_session_id(user_id: str) -> str:
     return new_session_id
 
 ###############################################################################
-# Send webhook with retry
+# Send webhook with retry logic
 ###############################################################################
 async def send_webhook_with_retry(target_channel, payload, headers, max_retries=3, retry_delay=1):
     """
@@ -132,7 +135,7 @@ async def send_webhook_with_retry(target_channel, payload, headers, max_retries=
     return False, None
 
 ###############################################################################
-# Bot setup
+# Discord Bot Setup
 ###############################################################################
 intents = discord.Intents.default()
 intents.message_content = True
@@ -157,22 +160,22 @@ async def on_close():
         await http_session.close()
 
 ###############################################################################
-# ON_MESSAGE: Handle mentions and dynamic survey trigger
+# Survey Management
 ###############################################################################
-# SURVEYS holds dynamic survey state: user_id -> SurveyFlow
+# Dictionary to hold dynamic survey state: user_id -> SurveyFlow instance
 SURVEYS = {}
 
 class SurveyFlow:
     """
     Holds a list of survey steps (for dynamic surveys).
-    E.g., steps = ["workload_nextweek", "connects_thisweek", "day_off_nextweek"]
+    Example: steps = ["workload_nextweek", "connects_thisweek", "day_off_nextweek"]
     """
     def __init__(self, user_id: str, channel_id: str, steps: List[str]):
         self.user_id = user_id
         self.channel_id = channel_id
         self.steps = steps
         self.current_index = 0
-        self.results = {}  # stepName -> value
+        self.results = {}  # Mapping of stepName -> value
 
     def current_step(self) -> Optional[str]:
         if self.current_index < len(self.steps):
@@ -188,12 +191,15 @@ class SurveyFlow:
     def incomplete_steps(self) -> List[str]:
         return self.steps[self.current_index:] if not self.is_done() else []
 
+###############################################################################
+# Discord on_message Event
+###############################################################################
 @bot.event
 async def on_message(message: discord.Message):
     if message.author == bot.user:
         return
 
-    # If user mentions the bot
+    # If the bot is mentioned in a message
     if bot.user in message.mentions:
         user_id = str(message.author.id)
         session_id = get_session_id(user_id)
@@ -218,8 +224,7 @@ async def on_message(message: discord.Message):
             if reply_text:
                 await message.channel.send(reply_text)
 
-    # Dynamic survey trigger (example message):
-    # "start_daily_survey <userId> <channelId> step1 step2 ..."
+    # Dynamic survey trigger via message (e.g., "start_daily_survey <userId> <channelId> step1 step2 ...")
     if message.content.startswith("start_daily_survey"):
         parts = message.content.split()
         if len(parts) >= 4:
@@ -230,7 +235,13 @@ async def on_message(message: discord.Message):
 
     await bot.process_commands(message)
 
+###############################################################################
+# Survey Functions
+###############################################################################
 async def handle_start_daily_survey(user_id: str, channel_id: str, steps: List[str]):
+    """
+    Initiates a dynamic survey with the provided steps.
+    """
     state = SurveyFlow(user_id, channel_id, steps)
     SURVEYS[user_id] = state
     channel = bot.get_channel(int(channel_id))
@@ -244,9 +255,12 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, steps: List[s
         await channel.send(f"<@{user_id}> No survey steps provided.")
 
 async def ask_dynamic_step(channel: discord.TextChannel, state: SurveyFlow, step_name: str):
+    """
+    Sends the current survey question to the user based on the step type.
+    """
     user_id = state.user_id
     if step_name.startswith("workload") or step_name.startswith("connects"):
-        # Create a workload view (dynamic survey mode)
+        # Create a workload view for dynamic survey mode
         if step_name == "workload_nextweek":
             text_q = f"<@{user_id}> How many hours for NEXT week?"
         elif step_name == "workload_thisweek":
@@ -271,6 +285,9 @@ async def ask_dynamic_step(channel: discord.TextChannel, state: SurveyFlow, step
             await finish_survey(channel, state)
 
 async def finish_survey(channel: discord.TextChannel, state: SurveyFlow):
+    """
+    Completes the survey and sends the final results via webhook.
+    """
     if state.is_done():
         payload = build_payload(
             command="survey",
@@ -296,6 +313,9 @@ async def finish_survey(channel: discord.TextChannel, state: SurveyFlow):
         del SURVEYS[state.user_id]
 
 async def survey_incomplete_timeout(user_id: str):
+    """
+    Called when the survey times out, sending a timeout message with incomplete steps.
+    """
     state = SURVEYS.get(user_id)
     if not state:
         return
@@ -325,7 +345,7 @@ async def survey_incomplete_timeout(user_id: str):
         del SURVEYS[state.user_id]
 
 ###############################################################################
-# Factory functions for common UI views
+# Factory Functions for UI Views
 ###############################################################################
 def create_workload_view(step_or_cmd: str, user_id: str, dynamic_survey: bool = False) -> discord.ui.View:
     if dynamic_survey:
@@ -343,9 +363,9 @@ def create_vacation_view(slash_command_name: str, user_id: str) -> discord.ui.Vi
     return VacationSlashView(slash_command_name, user_id, get_session_id(user_id))
 
 ###############################################################################
-# WORKLOAD VIEWS (Static and Dynamic)
+# WORKLOAD VIEWS (Dynamic and Slash)
 ###############################################################################
-WORKLOAD_OPTIONS = ["Нічого немає","2","5","10","15","20","25","30","35","40","45","50"]
+WORKLOAD_OPTIONS = ["Нічого немає", "2", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50"]
 
 class WorkloadDynamicView(discord.ui.View):
     def __init__(self, step_name: str, user_id: str):
@@ -367,10 +387,7 @@ class WorkloadDynamicButton(discord.ui.Button):
         self.parent_view = parent_view
 
     async def callback(self, interaction: discord.Interaction):
-        if self.label == "Нічого немає":
-            value = 0
-        else:
-            value = int(self.label)
+        value = 0 if self.label == "Нічого немає" else int(self.label)
         state = SURVEYS.get(self.parent_view.user_id)
         if not state:
             await interaction.response.send_message("Survey not found.", ephemeral=False)
@@ -427,10 +444,7 @@ class WorkloadSlashButton(discord.ui.Button):
         self.parent_view = parent_view
 
     async def callback(self, interaction: discord.Interaction):
-        if self.label == "Нічого немає":
-            hours_value = 0
-        else:
-            hours_value = int(self.label)
+        hours_value = 0 if self.label == "Нічого немає" else int(self.label)
         payload = build_payload(
             command=self.parent_view.slash_cmd_name,
             status="ok",
@@ -533,7 +547,7 @@ class DayOffDynamicSubmit(discord.ui.Button):
             c.disabled = True
         self.parent_view.stop()
 
-# For static slash commands, a similar DayOffSlashView is created:
+# Day Off view for slash commands
 class DayOffSlashView(discord.ui.View):
     def __init__(self, slash_cmd_name: str, user_id: str, session_id: str):
         super().__init__(timeout=None)
@@ -602,8 +616,10 @@ class DayOffSlashButton(discord.ui.Button):
 ###############################################################################
 def day_options():
     return [discord.SelectOption(label=str(d), value=str(d)) for d in range(1, 32)]
+
 def month_options():
-    month_names = ["January","February","March","April","May","June","July","August","September","October","November","December"]
+    month_names = ["January", "February", "March", "April", "May", "June",
+                   "July", "August", "September", "October", "November", "December"]
     return [discord.SelectOption(label=f"{i} - {n}", value=str(i)) for i, n in enumerate(month_names, start=1)]
 
 class VacationSlashView(discord.ui.View):
@@ -728,8 +744,7 @@ async def register_cmd(ctx: commands.Context, *, text: str):
 ###############################################################################
 # SLASH COMMANDS (Static)
 ###############################################################################
-
-# /day_off group
+# /day_off group commands
 day_off_group = app_commands.Group(name="day_off", description="Commands for day(s) off")
 
 @day_off_group.command(name="thisweek", description="Select your day(s) off for THIS week.")
@@ -767,7 +782,7 @@ async def vacation_slash(interaction: discord.Interaction):
         ephemeral=False
     )
 
-# /workload_today and /workload_nextweek
+# /workload_today and /workload_nextweek commands
 @bot.tree.command(name="workload_today", description="How many hours from TODAY until end of week?")
 async def slash_workload_today(interaction: discord.Interaction):
     user_id = str(interaction.user.id)
@@ -789,24 +804,63 @@ async def slash_workload_nextweek(interaction: discord.Interaction):
     )
 
 ###############################################################################
-# Factory functions for UI views
+# HTTP/HTTPS Server for Survey Activation (CapRover)
 ###############################################################################
-def create_workload_view(step_or_cmd: str, user_id: str, dynamic_survey: bool = False) -> discord.ui.View:
-    if dynamic_survey:
-        return WorkloadDynamicView(step_or_cmd, user_id)
+async def start_survey_http(request):
+    """
+    HTTP handler for starting a survey via POST request.
+    Expects a JSON payload with userId, channelId, and steps.
+    """
+    try:
+        data = await request.json()
+        user_id = data.get("userId")
+        channel_id = data.get("channelId")
+        steps = data.get("steps", [])
+        if not user_id or not channel_id or not steps:
+            return web.json_response({"error": "Missing parameters"}, status=400)
+        await handle_start_daily_survey(user_id, channel_id, steps)
+        return web.json_response({"status": "Survey started"})
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
+
+async def run_server():
+    """
+    Runs the HTTP/HTTPS server.
+    Uses the PORT environment variable (default 3000) as assigned by CapRover.
+    If SSL_CERT_PATH and SSL_KEY_PATH are set, runs an HTTPS server.
+    """
+    app = web.Application()
+    app.router.add_post('/start_survey', start_survey_http)
+
+    # Get port from environment (default to 3000)
+    port = int(os.getenv("PORT", "3000"))
+    host = "0.0.0.0"
+
+    # Setup SSL context if SSL certificate and key are provided
+    ssl_cert_path = os.getenv("SSL_CERT_PATH")
+    ssl_key_path = os.getenv("SSL_KEY_PATH")
+    ssl_context = None
+    if ssl_cert_path and ssl_key_path:
+        ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        ssl_context.load_cert_chain(certfile=ssl_cert_path, keyfile=ssl_key_path)
+        logger.info(f"Starting HTTPS server on {host}:{port}")
     else:
-        return WorkloadSlashView(step_or_cmd, user_id, get_session_id(user_id))
+        logger.info(f"Starting HTTP server on {host}:{port}")
 
-def create_day_off_view(step_or_cmd: str, user_id: str, dynamic_survey: bool = False) -> discord.ui.View:
-    if dynamic_survey:
-        return DayOffDynamicView(step_or_cmd, user_id)
-    else:
-        return DayOffSlashView(step_or_cmd, user_id, get_session_id(user_id))
-
-def create_vacation_view(slash_command_name: str, user_id: str) -> discord.ui.View:
-    return VacationSlashView(slash_command_name, user_id, get_session_id(user_id))
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, host, port, ssl_context=ssl_context)
+    await site.start()
 
 ###############################################################################
-# RUN THE BOT
+# Main function to run both the HTTP/HTTPS server and the Discord Bot
 ###############################################################################
-bot.run(DISCORD_TOKEN)
+async def main():
+    # Start the HTTP/HTTPS server in a separate task
+    server_task = asyncio.create_task(run_server())
+    # Start the Discord bot
+    await bot.start(DISCORD_TOKEN)
+    await server_task
+
+if __name__ == "__main__":
+    asyncio.run(main())
