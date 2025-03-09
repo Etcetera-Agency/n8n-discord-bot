@@ -297,22 +297,6 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, steps: List[s
         logger.warning(f"Channel {channel_id} not found for user {user_id}")
         return
 
-    # Check if channel is registered
-    success_check, data_check = await ResponseHandler.handle_response(
-        channel,
-        command="registred_channel",
-        result={}
-    )
-    
-    if not success_check or not data_check:
-        await channel.send(f"<@{user_id}> Помилка перевірки реєстрації каналу.")
-        return
-        
-    is_registered = str(data_check.get("output", "false")).lower() == "true"
-    if not is_registered:
-        await channel.send(f"<@{user_id}> Канал не зареєстровано. Будь ласка, зареєструйте його перед початком опитування.")
-        return
-
     state = SurveyFlow(user_id, channel_id, steps)
     SURVEYS[user_id] = state
     step = state.current_step()
@@ -671,20 +655,6 @@ async def start_survey_http(request):
         if not channel:
             return web.json_response({"error": "Channel not found"}, status=404)
             
-        # Check if channel is registered
-        payload = {
-            "command": "registered_channel",
-            "status": "ok",
-            "message": "",
-            "result": {},
-            "author": "",
-            "userId": user_id,
-            "sessionId": get_session_id(user_id),
-            "channelId": channel_id,
-            "channelName": getattr(channel, 'name', 'Unknown')
-        }
-        headers = {"Authorization": f"Bearer {WEBHOOK_AUTH_TOKEN}"} if WEBHOOK_AUTH_TOKEN else {}
-        
         success_check, data_check = await send_webhook_with_retry(None, payload, headers)
         if not success_check or str(data_check.get("output", "false")).lower() != "true":
             return web.json_response({"error": "Channel is not registered"}, status=403)
