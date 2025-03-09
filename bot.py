@@ -701,3 +701,26 @@ async def start_survey_http(request):
 async def run_server():
     app = web.Application()
     app.router.add_post('/start_survey', start_survey_http)
+    port = int(os.getenv("PORT", "3000"))
+    host = "0.0.0.0"
+    ssl_cert_path = os.getenv("SSL_CERT_PATH")
+    ssl_key_path = os.getenv("SSL_KEY_PATH")
+    ssl_context = None     
+    if ssl_cert_path and ssl_key_path:         
+        ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        ssl_context.load_cert_chain(certfile=ssl_cert_path, keyfile=ssl_key_path)
+        logger.info(f"Starting HTTPS server on {host}:{port}")     
+    else:
+        logger.info(f"Starting HTTP server on {host}:{port}")
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, host, port, ssl_context=ssl_context)
+        await site.start()
+###############################################################################
+# Main function to run both the HTTP/HTTPS server and the Discord Bot (English) 
+###############################################################################
+async def main():     
+    server_task = asyncio.create_task(run_server())
+    await bot.start(DISCORD_TOKEN)
+    await server_task  if __name__ == "__main__":
+    asyncio.run(main())
