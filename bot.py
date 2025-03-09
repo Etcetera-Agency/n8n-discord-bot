@@ -55,7 +55,7 @@ def build_payload(
     Constructs a unified JSON payload to send to n8n.
     
     Parameters:
-    - command: Name of the command (e.g. "mention", "prefix-register", "workload_today", "survey")
+    - command: Name of the command (e.g. "mention", "prefix-register", "workload_today", "survey", "registred_channel")
     - status: "ok", "step", or "incomplete"
     - message: Raw text from the user (only used for normal messages)
     - result: Structured result (for slash commands or survey steps)
@@ -241,13 +241,42 @@ async def on_message(message: discord.Message):
 async def handle_start_daily_survey(user_id: str, channel_id: str, steps: List[str]):
     """
     Initiates a dynamic survey with the provided steps.
+    Before starting the survey, it checks if the channel is registered by sending
+    a request to n8n with the command "registred_channel". If n8n returns false,
+    the survey is not started.
     """
-    state = SurveyFlow(user_id, channel_id, steps)
-    SURVEYS[user_id] = state
     channel = bot.get_channel(int(channel_id))
     if not channel:
         logger.warning(f"Channel {channel_id} not found for user {user_id}")
         return
+
+    # Check if the channel is registered via n8n
+    payload_check = build_payload(
+        command="registred_channel",
+        status="ok",
+        message="",
+        result={},
+        author="",
+        userId=user_id,
+        sessionId=get_session_id(user_id),
+        channelId=channel_id,
+        channelName=getattr(channel, 'name', 'DM')
+    )
+    headers = {}
+    if WEBHOOK_AUTH_TOKEN:
+        headers["Authorization"] = f"Bearer {WEBHOOK_AUTH_TOKEN}"
+    success_check, data_check = await send_webhook_with_retry(channel, payload_check, headers)
+    if not success_check or not data_check:
+        await channel.send(f"<@{user_id}> Error checking channel registration.")
+        return
+    is_registered = str(data_check.get("output", "false")).lower() == "true"
+    if not is_registered:
+        await channel.send(f"<@{user_id}> Channel is not registered. Please register before starting survey.")
+        return
+
+    # If the channel is registered, proceed with the survey
+    state = SurveyFlow(user_id, channel_id, steps)
+    SURVEYS[user_id] = state
     step = state.current_step()
     if step:
         await ask_dynamic_step(channel, state, step)
