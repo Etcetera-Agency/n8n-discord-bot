@@ -55,7 +55,7 @@ def build_payload(
     Constructs a unified JSON payload to send to n8n.
     
     Parameters:
-    - command: Name of the command (e.g. "mention", "prefix-register", "workload_today", "survey", "registred_channel")
+    - command: Name of the command (e.g. "mention", "prefix-register", "workload_today", "survey", "registred_channel", "unregister")
     - status: "ok", "step", or "incomplete"
     - message: Raw text from the user (only used for normal messages)
     - result: Structured result (for slash commands or survey steps)
@@ -199,8 +199,10 @@ async def on_message(message: discord.Message):
     if message.author == bot.user:
         return
 
-    # If the bot is mentioned in a message
+    # Only respond when the bot is mentioned
     if bot.user in message.mentions:
+        # Add reaction to indicate processing has started
+        await message.add_reaction("⏳")
         user_id = str(message.author.id)
         session_id = get_session_id(user_id)
         payload = build_payload(
@@ -769,6 +771,34 @@ async def register_cmd(ctx: commands.Context, *, text: str):
     reply_text = data.get("output", "No text from n8n.").strip()
     if reply_text:
         await ctx.send(reply_text)
+
+###############################################################################
+# PREFIX COMMAND: !unregister (No input required)
+###############################################################################
+@bot.command(name="unregister", help="Usage: !unregister")
+async def unregister_cmd(ctx: commands.Context):
+    user_id = str(ctx.author.id)
+    session_id = get_session_id(user_id)
+    payload = build_payload(
+        command="unregister",  # Command to be sent to n8n
+        status="ok",
+        message="",
+        result={},  # No additional data needed
+        author=str(ctx.author),
+        userId=user_id,
+        sessionId=session_id,
+        channelId=str(ctx.channel.id),
+        channelName=getattr(ctx.channel, 'name', 'DM')
+    )
+    headers = {}
+    if WEBHOOK_AUTH_TOKEN:
+        headers["Authorization"] = f"Bearer {WEBHOOK_AUTH_TOKEN}"
+    success, data = await send_webhook_with_retry(ctx, payload, headers)
+    if not success or not data:
+        await ctx.send("Error calling n8n.")
+        return
+    reply_text = data.get("output", "No text from n8n.").strip()
+    await ctx.send(reply_text)
 
 ###############################################################################
 # SLASH COMMANDS (Static)
