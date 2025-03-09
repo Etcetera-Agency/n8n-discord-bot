@@ -869,7 +869,14 @@ async def start_survey_http(request):
     """
     HTTP handler for starting a survey via POST request.
     Expects a JSON payload with userId, channelId, and steps.
+    Also checks for an Authorization header with the correct token.
     """
+    # Check for the correct Authorization header
+    auth_header = request.headers.get("Authorization")
+    expected_header = f"Bearer {WEBHOOK_AUTH_TOKEN}"
+    if not auth_header or auth_header != expected_header:
+        return web.json_response({"error": "Unauthorized"}, status=401)
+
     try:
         data = await request.json()
         user_id = data.get("userId")
