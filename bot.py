@@ -52,13 +52,9 @@ WEEKDAY_OPTIONS = [
     discord.SelectOption(label="Sunday", value="Sunday")
 ]
 
-DAY_OPTIONS = [discord.SelectOption(label=str(d), value=str(d)) for d in range(1, 32)]
-MONTH_OPTIONS = [
-    discord.SelectOption(label=f"{i} - {n}", value=str(i)) 
-    for i, n in enumerate([
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ], start=1)
+MONTHS = [
+     "January", "February", "March", "April", "May", "June",
+     "July", "August", "September", "October", "November", "December"
 ]
 
 VIEW_TYPES = {
@@ -378,14 +374,6 @@ def create_view(view_name: str, cmd_or_step: str, user_id: str, view_type: str =
         view.add_item(DayOffSelect(view))
         view.add_item(DayOffSubmitButton(view))
         return view
-    elif view_name == "vacation":
-        view = VacationView(cmd_or_step, user_id, config["timeout"], config["has_survey"])
-        view.add_item(GenericSelect(view, "start_day", "День початку", DAY_OPTIONS))
-        view.add_item(GenericSelect(view, "start_month", "Місяць початку", MONTH_OPTIONS))
-        view.add_item(GenericSelect(view, "end_day", "День закінчення", DAY_OPTIONS))
-        view.add_item(GenericSelect(view, "end_month", "Місяць закінчення", MONTH_OPTIONS))
-        view.add_item(VacationSubmitButton(view))
-        return view
     
     return discord.ui.View(timeout=config["timeout"])
 
@@ -526,10 +514,6 @@ class DayOffSubmitButton(discord.ui.Button):
         self.parent_view.disable_all_items()
         self.parent_view.stop()
 
-class VacationView(BaseView):
-    def __init__(self, cmd_or_step: str, user_id: str, timeout: int = None, has_survey: bool = False):
-        super().__init__(cmd_or_step, user_id, timeout, has_survey)
-
 class GenericSelect(discord.ui.Select):
     def __init__(self, parent_view: BaseView, field_name: str, placeholder: str, options: List[discord.SelectOption]):
         super().__init__(placeholder=placeholder, min_values=1, max_values=1, options=options)
@@ -540,28 +524,6 @@ class GenericSelect(discord.ui.Select):
         await send_button_pressed_info(interaction, self)
         self.parent_view.data[self.field_name] = self.values[0]
         await interaction.response.defer()
-
-class VacationSubmitButton(discord.ui.Button):
-    def __init__(self, parent_view: VacationView):
-        super().__init__(label="Відправити", style=discord.ButtonStyle.primary)
-        self.parent_view = parent_view
-    
-    async def callback(self, interaction: discord.Interaction):
-        await send_button_pressed_info(interaction, self)
-        
-        required_fields = ["start_day", "start_month", "end_day", "end_month"]
-        if not all(field in self.parent_view.data for field in required_fields):
-            await interaction.response.send_message("Будь ласка, оберіть усі поля!", ephemeral=False)
-            return
-        
-        await ResponseHandler.handle_response(
-            interaction,
-            command=self.parent_view.cmd_or_step,
-            result=self.parent_view.data
-        )
-        
-        self.parent_view.disable_all_items()
-        self.parent_view.stop()
 
 ###############################################################################
 # Discord on_message Event
@@ -629,10 +591,36 @@ async def day_off_nextweek(interaction: discord.Interaction):
 
 bot.tree.add_command(day_off_group)
 
-@bot.tree.command(name="vacation", description="Оберіть день/місяць початку та кінця відпустки.")
-async def vacation_slash(interaction: discord.Interaction):
-    view = create_view("vacation", "vacation", str(interaction.user.id))
-    await interaction.response.send_message("Будь ласка, оберіть день/місяць початку та кінця відпустки, потім натисніть «Відправити»:", view=view, ephemeral=False)
+@bot.tree.command(name="vacation", description="Вкажіть день/місяць початку та кінця відпустки.")
+@app_commands.describe(
+    start_day="День початку відпустки (1-31)",
+    start_month="Місяць початку відпустки",
+    end_day="День закінчення відпустки (1-31)",
+    end_month="Місяць закінчення відпустки"
+)
+async def vacation_slash(
+    interaction: discord.Interaction, 
+    start_day: int,
+    start_month: str,
+    end_day: int,
+    end_month: str
+):
+    # Validate inputs
+    if not (1 <= start_day <= 31) or not (1 <= end_day <= 31):
+        await interaction.response.send_message("День повинен бути між 1 та 31.", ephemeral=False)
+        return
+    
+    # Process vacation request
+    await ResponseHandler.handle_response(
+        interaction,
+        command="vacation",
+        result={
+            "start_day": str(start_day),
+            "start_month": start_month,
+            "end_day": str(end_day),
+            "end_month": end_month
+        }
+    )
 
 @bot.tree.command(name="workload_today", description="Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?")
 async def slash_workload_today(interaction: discord.Interaction):
