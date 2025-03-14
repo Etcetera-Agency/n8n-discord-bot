@@ -18,8 +18,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code into the container.
 COPY . .
 
-# Expose a port if your bot uses one (not necessary for Discord bots)
-# EXPOSE 8000
+# Expose the port used by the web server (default is 3000)
+EXPOSE 3000
 
 # Set the command to run your bot.
-CMD ["python", "bot.py"]
+CMD ["python", "main.py"]

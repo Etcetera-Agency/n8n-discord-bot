@@ -28,12 +28,51 @@ The bot follows a clean separation of concerns:
 
 - **Session Management**: Maintains user conversations for 24 hours.
 - **Visual Feedback**: Reaction emojis indicate processing status:
-  - ⌛ : The message is being processed.
-  - ✅ : The message has been answered.
+  - ⌛ : The message is being processed (removed when processing completes).
+  - ✅ : The message has been answered successfully.
   - ❌ : An error occurred while processing the message.
 - **Reliability**: Includes **retry logic** for webhook communication.
 - **Scalability**: Supports **concurrent processing** of multiple user interactions. If your Discord channel has many users, ensure your n8n instance has sufficient performance.
 - **Extensibility**: Modify the n8n workflow **without touching the bot code**.
+- **Modular Architecture**: Well-organized code structure for better maintainability and extensibility.
+
+## Project Structure
+
+The bot has been refactored into a modular architecture:
+
+```
+project_structure/
+├── main.py                  # Entry point
+├── config/                  # Configuration and constants
+│   ├── __init__.py
+│   ├── config.py            # Environment variables and settings
+│   ├── constants.py         # Constant values
+│   └── logger.py            # Logging setup
+├── services/                # Core services
+│   ├── __init__.py
+│   ├── session.py           # Session management
+│   ├── survey.py            # Survey flow management
+│   └── webhook.py           # n8n webhook communication
+├── bot/                     # Discord bot components
+│   ├── __init__.py
+│   ├── client.py            # Bot setup and initialization
+│   ├── commands/            # Command handlers
+│   │   ├── __init__.py
+│   │   ├── events.py        # Event handlers (messages, etc.)
+│   │   ├── prefix.py        # Prefix commands (!)
+│   │   ├── slash.py         # Slash commands (/)
+│   │   └── survey.py        # Survey-related commands
+│   └── views/               # UI components
+│       ├── __init__.py
+│       ├── base.py          # Base view class
+│       ├── day_off.py       # Day off selection view
+│       ├── factory.py       # View factory
+│       ├── generic.py       # Generic UI components
+│       └── workload.py      # Workload selection view
+└── web/                     # Web server for external integrations
+    ├── __init__.py
+    └── server.py            # HTTP/HTTPS server
+```
 
 ## Setup Instructions
 
@@ -67,9 +106,18 @@ N8N_WEBHOOK_URL=https://your-n8n-instance.com/webhook/your_webhook_endpoint
 
 # Webhook Auth Token (optional) - Token to authenticate requests to the n8n webhook
 WEBHOOK_AUTH_TOKEN=YOUR_WEBHOOK_AUTH_TOKEN
+
+# Session TTL in seconds (optional, default: 86400 - 24 hours)
+SESSION_TTL=86400
+
+# Web server configuration (optional)
+PORT=3000
+HOST=0.0.0.0
+SSL_CERT_PATH=/path/to/cert.pem
+SSL_KEY_PATH=/path/to/key.pem
 ```
 
-The webhook authentication token in n8n is optional but highly recommended. The current implementation uses an Authorization header for authentication
+The webhook authentication token in n8n is optional but highly recommended. The current implementation uses an Authorization header for authentication.
 
 ### n8n Workflow Setup
 
@@ -81,17 +129,50 @@ The webhook authentication token in n8n is optional but highly recommended. The 
 4. Connect the bot to the tools you want it to access
 5. Test and activate the workflow
 
+## Running the Bot
+
+### Running Locally
+
+Start the bot with:
+
+```bash
+python main.py
+```
+
+The bot will initialize both the Discord client and a web server for external integrations.
+
+### Running with Docker
+
+The project includes a Dockerfile for easy containerization:
+
+1. Build the Docker image:
+```bash
+docker build -t n8n-discord-bot .
+```
+
+2. Run the container:
+```bash
+docker run -p 3000:3000 --env-file .env n8n-discord-bot
+```
+
+You can also use Docker Compose for more complex setups.
+
 ## Configuration Options
 
-- **SESSION_TTL**: Duration of user sessions in seconds (default: `86400`, i.e., 24 hours).
-- **max_retries**: Number of retry attempts for webhook calls (default: `3`).
-- **retry_delay**: Base delay between retries in seconds (default: `1`).
+Configuration is now managed through the `Config` class in `config/config.py`:
+
+- **DISCORD_TOKEN**: Your Discord bot token
+- **N8N_WEBHOOK_URL**: URL for your n8n webhook endpoint
+- **WEBHOOK_AUTH_TOKEN**: Token for webhook authentication
+- **SESSION_TTL**: Duration of user sessions in seconds (default: `86400`, i.e., 24 hours)
+- **PORT**: Web server port (default: `3000`)
+- **HOST**: Web server host (default: `0.0.0.0`)
+- **SSL_CERT_PATH** and **SSL_KEY_PATH**: Paths to SSL certificate and key files (optional)
 
 ## Interacting with the Discord Bot
 
 Once set up, **users can interact** with the bot by **mentioning it in any channel** where it has access.  
-For example, here’s a simple example if your bot is connected to a weather API:
-
+For example, here's a simple example if your bot is connected to a weather API:
 
 ```
 @YourBot Tell me about the weather today
@@ -108,14 +189,42 @@ The bot **can be deployed on various platforms**:
 - Cloud services (AWS, GCP, Azure)
 - PaaS providers (Heroku, Render.com)
 - Self-hosted servers
+- Docker containers
+
+### Render.com Deployment
 
 A [background worker service](https://render.com/docs/background-workers) like the one on Render.com is easy to set up:
 - **Build command**: `pip install -r requirements.txt`
-- **Start command**: `python bot.py`
+- **Start command**: `python main.py`
 
 ![Render build and start command](assets/render-command-discord-bot-n8n.png)
 
 Additionally, if you're using Render.com, you can easily copy and paste your .env file in the **Environment** tab.
+
+### CapRover Deployment
+
+The project includes a `captain-definition` file for easy deployment on CapRover:
+
+1. Make sure you have the CapRover CLI installed:
+```bash
+npm install -g caprover
+```
+
+2. Log in to your CapRover instance:
+```bash
+caprover login
+```
+
+3. Deploy the application:
+```bash
+caprover deploy
+```
+
+4. Set up the environment variables in the CapRover dashboard:
+   - DISCORD_TOKEN
+   - N8N_WEBHOOK_URL
+   - WEBHOOK_AUTH_TOKEN
+   - Any other optional configuration variables
 
 ## Discord Character Limit
 

@@ -8,9 +8,12 @@ import asyncio
 import logging
 from dotenv import load_dotenv
 from cachetools import TTLCache
-from typing import Optional, List, Dict, Any, Union, Callable
+from typing import Optional, List, Dict, Any, Union, Callable, Tuple
 import ssl
 from aiohttp import web
+from config import Config
+from services.session import SessionManager
+from services.webhook import WebhookService
 
 ###############################################################################
 # Logging configuration
@@ -66,15 +69,19 @@ VIEW_TYPES = {
 # Response Handler Class
 ###############################################################################
 class ResponseHandler:
-    @staticmethod
+    def __init__(self, webhook_service: WebhookService):
+        self.webhook_service = webhook_service
+        self.session_manager = SessionManager()
+    
     async def handle_response(
+        self,
         ctx_or_interaction: Union[commands.Context, discord.Interaction],
         command: str,
         status: str = "ok",
         message: str = "",
-        result: Dict[str, Any] = None,
-        extra_headers: Dict[str, str] = None
-    ) -> tuple:
+        result: Optional[Dict[str, Any]] = None,
+        extra_headers: Optional[Dict[str, str]] = None
+    ) -> Tuple[bool, Optional[Dict[str, Any]]]:
         """
         Unified handler for sending requests to n8n and processing responses.
         Works with both Context and Interaction objects.
@@ -95,7 +102,7 @@ class ResponseHandler:
             channel_id = str(ctx_or_interaction.channel.id)
             
         user_id = str(user.id)
-        session_id = get_session_id(user_id)
+        session_id = self.session_manager.get_session_id(user_id)
         
         # Build the payload
         payload = {
@@ -113,22 +120,43 @@ class ResponseHandler:
         
         # Set up headers
         headers = {}
-        if WEBHOOK_AUTH_TOKEN:
-            headers["Authorization"] = f"Bearer {WEBHOOK_AUTH_TOKEN}"
+        if Config.WEBHOOK_AUTH_TOKEN:
+            headers["Authorization"] = f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"
         if extra_headers:
             headers.update(extra_headers)
             
         # Send webhook and get response
-        success, data = await send_webhook_with_retry(ctx_or_interaction, payload, headers)
+        success, data = await self.webhook_service.send_webhook_with_retry(ctx_or_interaction, payload, headers)
         
         # If successful, send the reply via the appropriate channel
         if success and data:
             if is_interaction:
-                await send_n8n_reply_interaction(ctx_or_interaction, data)
+                await self.webhook_service.send_n8n_reply_interaction(ctx_or_interaction, data)
             else:
-                await send_n8n_reply_channel(channel, data)
+                await self.webhook_service.send_n8n_reply_channel(channel, data)
                 
         return success, data
+
+    async def send_button_pressed_info(
+        self, 
+        interaction: discord.Interaction, 
+        button_or_select: Union[discord.ui.Button, discord.ui.Select]
+    ):
+        """Sends to n8n the information about which button/select was pressed."""
+        # Get appropriate attributes for different UI elements
+        if isinstance(button_or_select, discord.ui.Button):
+            item_info = {"label": button_or_select.label, "custom_id": button_or_select.custom_id}
+        elif isinstance(button_or_select, discord.ui.Select):
+            item_info = {"placeholder": button_or_select.placeholder, "custom_id": button_or_select.custom_id, "values": button_or_select.values}
+        else:
+            item_info = {"type": str(type(button_or_select))}
+        
+        await self.handle_response(
+            interaction,
+            command="button_pressed",
+            result=item_info
+        )
+        logger.info(f"UI element info sent: {item_info}, user: {interaction.user}")
 
 ###############################################################################
 # Session and Webhook Helper Functions
@@ -518,13 +546,21 @@ async def on_message(message: discord.Message):
         return
 
     if bot.user in message.mentions:
+        # Add processing reaction
         await message.add_reaction("⏳")
+        
+        # Process the message
         success, _ = await ResponseHandler.handle_response(
             message,
             command="mention",
             message=message.content,
             result={}
         )
+        
+        # Remove processing reaction
+        await message.remove_reaction("⏳", bot.user)
+        
+        # Add success or error reaction
         await message.add_reaction("✅" if success else "❌")
 
     if message.content.startswith("start_daily_survey"):
