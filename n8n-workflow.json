@@ -522,89 +522,6 @@
     },
     {
       "parameters": {
-        "descriptionType": "manual",
-        "schema": {
-          "__rl": true,
-          "mode": "list",
-          "value": "public"
-        },
-        "table": {
-          "__rl": true,
-          "value": "n8n_chat_histories",
-          "mode": "list",
-          "cachedResultName": "n8n_chat_histories"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "session_id": "={{ $('Discord Webhook').item.json.body.channelId }}",
-            "message": "={{ $fromAI(\"uncomplited_survey_steps\") }}"
-          },
-          "matchingColumns": [
-            "id"
-          ],
-          "schema": [
-            {
-              "id": "id",
-              "displayName": "id",
-              "required": false,
-              "defaultMatch": true,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "removed": true
-            },
-            {
-              "id": "session_id",
-              "displayName": "session_id",
-              "required": true,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "message",
-              "displayName": "message",
-              "required": true,
-              "defaultMatch": false,
-              "display": true,
-              "type": "object",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "created_at",
-              "displayName": "created_at",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "dateTime",
-              "canBeUsedToMatch": true,
-              "removed": true
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.postgresTool",
-      "typeVersion": 2.5,
-      "position": [
-        4980,
-        1700
-      ],
-      "id": "fa44d1e2-bbea-4f8b-a30a-a1ed25da3a45",
-      "name": "insert uncompited survey",
-      "credentials": {
-        "postgres": {
-          "id": "11",
-          "name": "n8n"
-        }
-      }
-    },
-    {
-      "parameters": {
         "rules": {
           "values": [
             {
@@ -993,7 +910,9 @@
           "__rl": true,
           "value": "={{ $fromAI(\"url\", \"Get child blocks from page url\") }}",
           "mode": "url"
-        }
+        },
+        "returnAll": true,
+        "fetchNestedBlocks": true
       },
       "type": "n8n-nodes-base.notionTool",
       "typeVersion": 2.2,
@@ -1050,7 +969,7 @@
       "type": "n8n-nodes-base.notionTool",
       "typeVersion": 2.2,
       "position": [
-        3820,
+        3800,
         840
       ],
       "id": "c0b068ca-9e64-4b32-9c35-ed1d71005af2",
@@ -1102,8 +1021,8 @@
       "type": "n8n-nodes-base.notionTool",
       "typeVersion": 2.2,
       "position": [
-        3800,
-        980
+        3780,
+        1000
       ],
       "id": "4569c15e-bf10-4f59-a032-41598cf6b79c",
       "name": "Notion search page",
@@ -1111,6 +1030,130 @@
         "notionApi": {
           "id": "8",
           "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "={{ $fromAI(\"url\") }}",
+          "mode": "url"
+        },
+        "limit": 100,
+        "filterType": "json",
+        "filterJson": "={{ $fromAI(\"filter_json\", \"json as in notion example\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        3940,
+        1020
+      ],
+      "id": "f48cfe58-a8c5-484d-88fb-db9e3fa51fa6",
+      "name": "Notion get pages from DB",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "n8n_survey_steps_missed",
+          "mode": "list",
+          "cachedResultName": "n8n_survey_steps_missed"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "completed": "={{ $fromAI(\"completed\", \"true if completed, false if incompleted\") }}",
+            "id": 0,
+            "session_id": "={{ $('Discord Webhook').item.json.body.channelId }}",
+            "step_name": "={{ $fromAI(\"step_name\") }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "step_name",
+              "displayName": "step_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "completed",
+              "displayName": "completed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.5,
+      "position": [
+        4980,
+        1700
+      ],
+      "id": "fa44d1e2-bbea-4f8b-a30a-a1ed25da3a45",
+      "name": "insert survey step status",
+      "credentials": {
+        "postgres": {
+          "id": "11",
+          "name": "n8n"
         }
       }
     }
@@ -1295,17 +1338,6 @@
         ]
       ]
     },
-    "insert uncompited survey": {
-      "ai_tool": [
-        [
-          {
-            "node": "Discord AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Switch": {
       "main": [
         [
@@ -1464,6 +1496,28 @@
         [
           {
             "node": "Etcetera AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion get pages from DB": {
+      "ai_tool": [
+        [
+          {
+            "node": "Etcetera AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "insert survey step status": {
+      "ai_tool": [
+        [
+          {
+            "node": "Discord AI Agent",
             "type": "ai_tool",
             "index": 0
           }

@@ -73,11 +73,36 @@
 - **Out**: List of calendar events for the specified period
 - **Use**: Retrieve and summarize calendar events
 
-### 7️⃣ InsertUncompletedSurvey
+### 7️⃣ insert survey step status
 - **In**:
   - `session_id` (from `channelId`)
-  - `uncomplited_survey_steps` (remaining survey steps)
-- **Use**: Store survey state for incomplete surveys
+  - `step_name` (name of the survey step to insert or update)
+  - `completed` (boolean, whether the step has been completed)
+- **Out**: `{success, session_id, step_name, completed}`
+- **Use**: Store or update individual survey step statuses in PostgreSQL database
+- **DB**: Uses PostgreSQL table `n8n_survey_steps_missed` with fields:
+  - `id` (auto-increment)
+  - `session_id` (Discord channel ID)
+  - `step_name` (survey step name)
+  - `completed` (boolean status)
+  - `created_at` (auto timestamp)
+
+**Usage examples**:
+1. Store an incomplete step when user skips it:
+   ```
+   step_name: "workload_nextweek", 
+   completed: false
+   ```
+
+2. Mark a step as completed when user completes it:
+   ```
+   step_name: "workload_nextweek", 
+   completed: true
+   ```
+
+3. Retrieve incomplete steps at the beginning of a new survey:
+   - Query database for all records where `session_id` matches current channel and `completed` is false
+   - Add these steps to the current survey flow
 
 ### 8️⃣ NotionGetPage
 - **In**:
