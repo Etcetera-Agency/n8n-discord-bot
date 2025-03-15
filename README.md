@@ -325,11 +325,26 @@ The request must include an Authorization header with the webhook token:
 Authorization: Bearer YOUR_WEBHOOK_AUTH_TOKEN
 ```
 
-The bot will:
+Before starting the survey, the bot will:
 1. Validate the request and check if the channel exists
-2. Create a new survey flow with the specified steps
-3. Send the first question to the user in the specified channel
-4. Process each step as the user responds
+2. Verify channel registration by sending a check_channel request to n8n:
+```json
+{
+  "command": "check_channel",
+  "status": "ok",
+  "message": "",
+  "result": {},
+  "author": "system",
+  "userId": "123456789012345678",
+  "sessionId": "system",
+  "channelId": "987654321098765432",
+  "channelName": "general",
+  "timestamp": 1620000000
+}
+```
+3. Create a new survey flow with the specified steps if the channel is registered
+4. Send the first question to the user in the specified channel
+5. Process each step as the user responds
 
 This allows for automated survey scheduling, such as weekly workload reports or periodic check-ins.
 

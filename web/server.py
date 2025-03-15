@@ -3,7 +3,7 @@ import asyncio
 from aiohttp import web
 from typing import Optional, Dict, Any
 from config import Config, logger
-from services import webhook_service, survey_manager
+from services import webhook_service, survey_manager, session_manager
 from bot.commands.survey import handle_start_daily_survey
 import os
 
@@ -61,13 +61,15 @@ class WebServer:
                 return web.json_response({"error": "Channel not found or bot doesn't have access"}, status=404)
                 
             # Check if channel is registered
-            payload = {
-                "command": "check_channel",
-                "result": {
-                    "userId": user_id,
-                    "channelId": channel_id
-                }
-            }
+            payload = webhook_service.build_payload(
+                command="check_channel",
+                user_id=user_id,
+                channel_id=channel_id,
+                channel=channel,
+                is_system=True,
+                result={}  # Empty result for check_channel
+            )
+            
             headers = {}
             if Config.WEBHOOK_AUTH_TOKEN:
                 headers["Authorization"] = f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"

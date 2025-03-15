@@ -79,6 +79,62 @@ class WebhookService:
             await self.http_session.close()
             logger.info("Closed webhook service HTTP session")
     
+    def build_payload(
+        self,
+        command: str,
+        user_id: Optional[str] = None,
+        channel_id: Optional[str] = None,
+        channel: Optional[discord.TextChannel] = None,
+        user: Optional[Union[discord.User, discord.Member]] = None,
+        status: str = "ok",
+        message: str = "",
+        result: Optional[Dict[str, Any]] = None,
+        is_system: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Build a consistent payload for n8n webhooks.
+        
+        Args:
+            command: Command name
+            user_id: User ID (optional)
+            channel_id: Channel ID (optional)
+            channel: Discord channel object (optional)
+            user: Discord user object (optional)
+            status: Status string (default: "ok")
+            message: Message string (default: "")
+            result: Result dictionary (optional)
+            is_system: Whether this is a system call (default: False)
+            
+        Returns:
+            Dict containing the webhook payload
+        """
+        if result is None:
+            result = {}
+            
+        # Get channel info if channel object is provided
+        if channel and not channel_id:
+            channel_id = str(channel.id)
+            
+        # Get user info if user object is provided
+        if user and not user_id:
+            user_id = str(user.id)
+            
+        # Build the payload
+        payload = {
+            "command": command,
+            "status": status,
+            "message": message,
+            "result": result,
+            "author": "system" if is_system else (str(user) if user else "unknown"),
+            "userId": user_id if user_id else "system",
+            "sessionId": session_manager.get_session_id(user_id) if user_id else "system",
+            "channelId": channel_id if channel_id else "",
+            "channelName": getattr(channel, 'name', 'DM') if channel else "",
+            "timestamp": int(asyncio.get_event_loop().time())
+        }
+        
+        return payload
+    
     async def send_webhook(
         self,
         ctx_or_interaction: Union[commands.Context, discord.Interaction],
@@ -102,37 +158,25 @@ class WebhookService:
         Returns:
             Tuple of (success, response_data)
         """
-        if result is None:
-            result = {}
-            
         # Determine if we're dealing with a Context or Interaction
         is_interaction = isinstance(ctx_or_interaction, discord.Interaction)
         
         if is_interaction:
             user = ctx_or_interaction.user
             channel = ctx_or_interaction.channel
-            channel_id = str(ctx_or_interaction.channel_id)
         else:
             user = ctx_or_interaction.author
             channel = ctx_or_interaction.channel
-            channel_id = str(ctx_or_interaction.channel.id)
             
-        user_id = str(user.id)
-        session_id = session_manager.get_session_id(user_id)
-        
-        # Build the payload
-        payload = {
-            "command": command,
-            "status": status,
-            "message": message,
-            "result": result,
-            "author": str(user),
-            "userId": user_id,
-            "sessionId": session_id,
-            "channelId": channel_id,
-            "channelName": getattr(channel, 'name', 'DM'),
-            "timestamp": int(asyncio.get_event_loop().time())
-        }
+        # Build the payload using the unified builder
+        payload = self.build_payload(
+            command=command,
+            user=user,
+            channel=channel,
+            status=status,
+            message=message,
+            result=result
+        )
         
         # Set up headers
         headers = {}
