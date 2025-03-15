@@ -176,12 +176,18 @@ async def send_webhook_with_retry(target_channel, payload, headers, max_retries=
     logger.info(f"[{request_id}] Payload: {payload}")
     logger.info(f"[{request_id}] Headers: {headers}")
     
+    # If payload has a 'result' key, merge it into the top level
+    if isinstance(payload, dict) and 'result' in payload:
+        result_data = payload.pop('result')
+        if isinstance(result_data, dict):
+            payload.update(result_data)
+    
     for attempt in range(max_retries):
         try:
             logger.info(f"[{request_id}] Sending to n8n (attempt {attempt+1}/{max_retries})")
             async with http_session.post(
                 N8N_WEBHOOK_URL,
-                json=payload,  # Send payload directly without wrapping
+                json=payload,
                 headers=headers,
                 timeout=15
             ) as response:
