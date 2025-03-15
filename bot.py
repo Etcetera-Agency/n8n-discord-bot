@@ -706,9 +706,28 @@ async def start_survey_http(request):
         if not user_id or not channel_id or not steps:
             return web.json_response({"error": "Missing parameters"}, status=400)
 
-        channel = bot.get_channel(int(channel_id))
-        if not channel:
+        try:
+            channel = await bot.fetch_channel(int(channel_id))
+            if not channel:
+                logger.warning(f"Channel {channel_id} not found")
+                return web.json_response({"error": "Channel not found"}, status=404)
+        except discord.NotFound:
+            logger.error(f"Channel {channel_id} not found")
             return web.json_response({"error": "Channel not found"}, status=404)
+        except discord.Forbidden:
+            logger.error(f"Bot doesn't have access to channel {channel_id}")
+            return web.json_response({"error": "Channel access forbidden"}, status=403)
+            
+        # Flatten the payload structure for check_channel
+        payload = {
+            "command": "check_channel",
+            "channelId": channel_id,
+            "userId": user_id
+        }
+        
+        headers = {}
+        if WEBHOOK_AUTH_TOKEN:
+            headers["Authorization"] = f"Bearer {WEBHOOK_AUTH_TOKEN}"
             
         success_check, data_check = await send_webhook_with_retry(None, payload, headers)
         if not success_check or str(data_check.get("output", "false")).lower() != "true":
@@ -718,6 +737,7 @@ async def start_survey_http(request):
         return web.json_response({"status": "Survey started"})
     
     except Exception as e:
+        logger.error(f"Error in start_survey_http: {e}")
         return web.json_response({"error": str(e)}, status=500)
 
 async def run_server():
