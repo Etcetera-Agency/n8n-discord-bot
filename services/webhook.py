@@ -7,6 +7,19 @@ from discord.ext import commands
 from config import Config, logger
 from services.session import session_manager
 
+# Import survey-related globals and functions
+# These will be imported at runtime to avoid circular imports
+SURVEYS = None
+ask_dynamic_step = None
+finish_survey = None
+
+def initialize_survey_functions(surveys_dict, ask_step_func, finish_survey_func):
+    """Initialize survey-related globals and functions to avoid circular imports."""
+    global SURVEYS, ask_dynamic_step, finish_survey
+    SURVEYS = surveys_dict
+    ask_dynamic_step = ask_step_func
+    finish_survey = finish_survey_func
+
 class WebhookError(Exception):
     """Exception raised for webhook-related errors."""
     pass
@@ -226,6 +239,31 @@ class WebhookService:
         """
         if data and "output" in data:
             await channel.send(data["output"])
+            
+        # Handle survey control
+        if data and "survey" in data:
+            user_id = None
+            # Try to find the user_id from the channel's members
+            for member in channel.members:
+                if str(member.id) in session_manager.sessions:
+                    user_id = str(member.id)
+                    break
+                    
+            if user_id and user_id in SURVEYS:
+                if data["survey"] == "continue":
+                    # Continue to the next step in the survey
+                    state = SURVEYS[user_id]
+                    state.next_step()
+                    next_step = state.current_step()
+                    if next_step:
+                        await ask_dynamic_step(channel, state, next_step)
+                    else:
+                        await finish_survey(channel, state)
+                elif data["survey"] == "cancel":
+                    # Cancel the survey
+                    if user_id in SURVEYS:
+                        del SURVEYS[user_id]
+                    await channel.send(f"<@{user_id}> Survey has been canceled.")
     
     async def send_n8n_reply_interaction(self, interaction: discord.Interaction, data: Dict[str, Any]) -> None:
         """
@@ -240,6 +278,30 @@ class WebhookService:
                 await interaction.followup.send(data["output"], ephemeral=False)
             else:
                 await interaction.response.send_message(data["output"], ephemeral=False)
+                
+        # Handle survey control
+        if data and "survey" in data:
+            user_id = str(interaction.user.id)
+            channel = interaction.channel
+            
+            if user_id and user_id in SURVEYS:
+                if data["survey"] == "continue":
+                    # Continue to the next step in the survey
+                    state = SURVEYS[user_id]
+                    state.next_step()
+                    next_step = state.current_step()
+                    if next_step:
+                        await ask_dynamic_step(channel, state, next_step)
+                    else:
+                        await finish_survey(channel, state)
+                elif data["survey"] == "cancel":
+                    # Cancel the survey
+                    if user_id in SURVEYS:
+                        del SURVEYS[user_id]
+                    if interaction.response.is_done():
+                        await interaction.followup.send(f"<@{user_id}> Survey has been canceled.", ephemeral=False)
+                    else:
+                        await interaction.response.send_message(f"<@{user_id}> Survey has been canceled.", ephemeral=False)
     
     async def send_button_pressed_info(
         self,

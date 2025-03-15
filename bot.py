@@ -13,7 +13,7 @@ import ssl
 from aiohttp import web
 from config import Config
 from services.session import SessionManager
-from services.webhook import WebhookService
+from services.webhook import WebhookService, initialize_survey_functions
 
 ###############################################################################
 # Logging configuration
@@ -260,6 +260,10 @@ async def on_ready():
     logger.info(f"Bot connected as {bot.user}")
     connector = aiohttp.TCPConnector(limit=10, ttl_dns_cache=300)
     http_session = aiohttp.ClientSession(connector=connector)
+    
+    # Initialize WebhookService with survey functions
+    initialize_survey_functions(SURVEYS, ask_dynamic_step, finish_survey)
+    
     try:
         await bot.tree.sync()
         logger.info("Slash commands synced!")

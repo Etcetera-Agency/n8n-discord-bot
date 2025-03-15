@@ -230,6 +230,297 @@ caprover deploy
 
 Keep in mind that Discord **has a 2000-character limit per message**. To ensure responses fit within this limit, configure the AI response to limit tokens accordingly.
 
+## Survey Control
+
+The bot supports controlling surveys based on n8n responses. When n8n responds to a survey step, it can include a `survey` field in the response to control the flow of the survey:
+
+```json
+{
+  "output": "Survey step recorded.",
+  "survey": "continue"
+}
+```
+
+This will display the message "Survey step recorded." and then continue to the next step in the survey.
+
+To cancel a survey, n8n can respond with:
+
+```json
+{
+  "output": "Invalid workload value. Please enter a number between 0 and 50.",
+  "survey": "cancel"
+}
+```
+
+This will display the message "Invalid workload value. Please enter a number between 0 and 50." and then cancel the survey, removing it from the active surveys.
+
+### Starting a Survey from n8n
+
+n8n can initiate a survey by making a POST request to the bot's `/start_survey` endpoint. This is useful for scheduling surveys or triggering them based on external events.
+
+The request should include:
+
+```json
+{
+  "userId": "123456789012345678",
+  "channelId": "987654321098765432",
+  "steps": ["workload_thisweek", "workload_nextweek", "day_off_nextweek"]
+}
+```
+
+The request must include an Authorization header with the webhook token:
+```
+Authorization: Bearer YOUR_WEBHOOK_AUTH_TOKEN
+```
+
+The bot will:
+1. Validate the request and check if the channel exists
+2. Create a new survey flow with the specified steps
+3. Send the first question to the user in the specified channel
+4. Process each step as the user responds
+
+This allows for automated survey scheduling, such as weekly workload reports or periodic check-ins.
+
+### Example Workflow
+
+An example n8n workflow that demonstrates the survey control feature is included in the repository as `n8n-workflow-survey-example.json`. This workflow shows how to:
+
+1. Receive survey responses from the Discord bot
+2. Validate the responses
+3. Continue or cancel the survey based on the validation results
+4. Process the final survey results
+
+You can import this workflow into your n8n instance to see how it works.
+
+## Communication Between Bot and n8n
+
+### Bot Requests to n8n
+
+The Discord bot sends structured JSON payloads to n8n for various interactions. Here are examples of the different types of requests:
+
+#### 1. User Mention Request
+
+When a user mentions the bot in a Discord channel:
+
+```json
+{
+  "command": "mention",
+  "status": "ok",
+  "message": "@BotName Tell me about the weather in New York",
+  "result": {},
+  "author": "User#1234",
+  "userId": "123456789012345678",
+  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+  "channelId": "987654321098765432",
+  "channelName": "general",
+  "timestamp": 1620000000
+}
+```
+
+#### 2. Button/Select Interaction
+
+When a user interacts with a button or select menu:
+
+```json
+{
+  "command": "button_pressed",
+  "status": "ok",
+  "message": "",
+  "result": {
+    "label": "10",
+    "custom_id": "workload_button"
+  },
+  "author": "User#1234",
+  "userId": "123456789012345678",
+  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+  "channelId": "987654321098765432",
+  "channelName": "general",
+  "timestamp": 1620000000
+}
+```
+
+#### 3. Survey Step Submission
+
+When a user completes a step in a survey:
+
+```json
+{
+  "command": "survey",
+  "status": "step",
+  "message": "",
+  "result": {
+    "stepName": "workload_thisweek",
+    "value": 20
+  },
+  "author": "User#1234",
+  "userId": "123456789012345678",
+  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+  "channelId": "987654321098765432",
+  "channelName": "general",
+  "timestamp": 1620000000
+}
+```
+
+#### 4. Survey Completion
+
+When a user completes all steps in a survey:
+
+```json
+{
+  "command": "survey",
+  "status": "ok",
+  "message": "",
+  "result": {
+    "final": {
+      "workload_thisweek": 20,
+      "workload_nextweek": 30,
+      "day_off_nextweek": ["Monday", "Tuesday"]
+    }
+  },
+  "author": "User#1234",
+  "userId": "123456789012345678",
+  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+  "channelId": "987654321098765432",
+  "channelName": "general",
+  "timestamp": 1620000000
+}
+```
+
+#### 5. Slash Command
+
+When a user executes a slash command:
+
+```json
+{
+  "command": "vacation",
+  "status": "ok",
+  "message": "",
+  "result": {
+    "start_day": "15",
+    "start_month": "June",
+    "end_day": "30",
+    "end_month": "June"
+  },
+  "author": "User#1234",
+  "userId": "123456789012345678",
+  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+  "channelId": "987654321098765432",
+  "channelName": "general",
+  "timestamp": 1620000000
+}
+```
+
+### n8n Responses to Bot
+
+n8n can respond to the bot with various structured JSON payloads. Here are examples of different response types:
+
+#### 1. Simple Text Response
+
+Basic response with just text:
+
+```json
+{
+  "output": "The weather in New York is currently 72°F and sunny with a 10% chance of rain."
+}
+```
+
+#### 2. Survey Control - Continue
+
+Response to continue to the next step in a survey:
+
+```json
+{
+  "output": "Thank you for submitting your workload for this week!",
+  "survey": "continue"
+}
+```
+
+#### 3. Survey Control - Cancel
+
+Response to cancel a survey due to an error or invalid input:
+
+```json
+{
+  "output": "Invalid workload value. Please enter a number between 0 and 50.",
+  "survey": "cancel"
+}
+```
+
+Note that currently, the bot only processes the `output` and `survey` fields from n8n responses.
+
+### Current Limitations and Future Possibilities
+
+Currently, the bot does not support receiving UI elements like buttons or select menus directly from n8n responses. The UI elements (buttons, select menus) are created by the bot itself based on predefined templates in the code.
+
+In future versions, the bot could be extended to support dynamic UI elements from n8n responses using the Discord "components" field, which would allow for more flexible interactions. For example:
+
+```json
+{
+  "output": "Please select an option:",
+  "components": [
+    {
+      "type": 1,
+      "components": [
+        {
+          "type": 2,
+          "style": 3,
+          "label": "Approve",
+          "custom_id": "approve_button"
+        },
+        {
+          "type": 2,
+          "style": 4,
+          "label": "Reject",
+          "custom_id": "reject_button"
+        }
+      ]
+    }
+  ]
+}
+```
+
+This follows Discord's API format for message components, where:
+- `type: 1` represents an ActionRow
+- `type: 2` represents a Button
+- `style: 3` represents SUCCESS (green) button
+- `style: 4` represents DANGER (red) button
+
+For select menus, you would use:
+
+```json
+{
+  "output": "Please choose an option:",
+  "components": [
+    {
+      "type": 1,
+      "components": [
+        {
+          "type": 3,
+          "custom_id": "project_select",
+          "placeholder": "Select a project",
+          "options": [
+            {
+              "label": "Project A",
+              "value": "project_a",
+              "description": "Description for Project A"
+            },
+            {
+              "label": "Project B",
+              "value": "project_b",
+              "description": "Description for Project B"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Where `type: 3` represents a SelectMenu.
+
+If you're interested in contributing this functionality, feel free to submit a pull request!
+
 ## Contributing
 
 Contributions are welcome! Feel free to submit a Pull Request.
