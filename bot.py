@@ -109,7 +109,7 @@ class ResponseHandler:
             "command": command,
             "status": status,
             "message": message,
-            "result": result,
+            **result,  # Merge result directly into payload
             "author": str(user),
             "userId": user_id,
             "sessionId": session_id,
@@ -172,22 +172,30 @@ def get_session_id(user_id: str) -> str:
 async def send_webhook_with_retry(target_channel, payload, headers, max_retries=3, retry_delay=1):
     """Sends a POST request to n8n with retry logic. Returns (success, data)."""
     request_id = str(uuid.uuid4())[:8]
+    logger.info(f"[{request_id}] Sending webhook to URL: {N8N_WEBHOOK_URL}")
+    logger.info(f"[{request_id}] Payload: {payload}")
+    logger.info(f"[{request_id}] Headers: {headers}")
+    
     for attempt in range(max_retries):
         try:
             logger.info(f"[{request_id}] Sending to n8n (attempt {attempt+1}/{max_retries})")
             async with http_session.post(
                 N8N_WEBHOOK_URL,
-                json=payload,
+                json=payload,  # Send payload directly without wrapping
                 headers=headers,
                 timeout=15
             ) as response:
+                logger.info(f"[{request_id}] Response status: {response.status}")
+                response_text = await response.text()
+                logger.info(f"[{request_id}] Response text: {response_text}")
+                
                 if response.status == 200:
                     try:
                         data = await response.json()
                         return True, data
                     except Exception as e:
                         logger.error(f"[{request_id}] JSON parse error: {e}")
-                        fallback = (await response.text()).strip()
+                        fallback = response_text.strip()
                         return True, {"output": fallback or "No valid JSON from n8n."}
                 else:
                     logger.warning(f"[{request_id}] HTTP Error {response.status}")
