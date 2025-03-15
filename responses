@@ -1,0 +1,2119 @@
+====
+here is example page for Workload DB. 
+
+ [
+  {
+    "object": "page",
+    "id": "424fc389-c898-48d1-91d6-68dd36585fd7",
+    "created_time": "2025-03-10T08:02:00.000Z",
+    "last_edited_time": "2025-03-14T03:06:00.000Z",
+    "created_by": {
+      "object": "user",
+      "id": "017dfca3-bc98-4899-85a7-0d1927880c33"
+    },
+    "last_edited_by": {
+      "object": "user",
+      "id": "017dfca3-bc98-4899-85a7-0d1927880c33"
+    },
+    "cover": null,
+    "icon": null,
+    "parent": {
+      "type": "database_id",
+      "database_id": "01e5b4b3-d6eb-4ad6-9262-008ddc5fa5e4"
+    },
+    "archived": false,
+    "in_trash": false,
+    "properties": {
+      "Capacity": {
+        "id": "%2B%7Bj%3B",
+        "type": "number",
+        "number": 16
+      },
+      "out of team": {
+        "id": "%2COAn",
+        "type": "checkbox",
+        "checkbox": false
+      },
+      "Date": {
+        "id": "0HwH",
+        "type": "created_time",
+        "created_time": "2025-03-10T08:02:00.000Z"
+      },
+      "Who?": {
+        "id": "3'W%60",
+        "type": "people",
+        "people": []
+      },
+      "Week": {
+        "id": "%3Eqxq",
+        "type": "formula",
+        "formula": {
+          "type": "number",
+          "number": 0
+        }
+      },
+      "Plan": {
+        "id": "%3F%5Ev%3C",
+        "type": "formula",
+        "formula": {
+          "type": "number",
+          "number": 0
+        }
+      },
+      "Who? 1": {
+        "id": "%3F_~k",
+        "type": "people",
+        "people": []
+      },
+      "Booked3": {
+        "id": "%40%5B%5E%60",
+        "type": "number",
+        "number": null
+      },
+      "Weekend Fact": {
+        "id": "A_0%7B",
+        "type": "number",
+        "number": null
+      },
+      "Tue Plan": {
+        "id": "Ayui",
+        "type": "number",
+        "number": null
+      },
+      "Need attention": {
+        "id": "FXj%3F",
+        "type": "formula",
+        "formula": {
+          "type": "boolean",
+          "boolean": true
+        }
+      },
+      "Total": {
+        "id": "FeZY",
+        "type": "formula",
+        "formula": {
+          "type": "number",
+          "number": 3
+        }
+      },
+      "Thu Plan": {
+        "id": "Fz%40A",
+        "type": "number",
+        "number": 0
+      },
+      "Thu Fact": {
+        "id": "JweJ",
+        "type": "number",
+        "number": 0.7
+      },
+      "Wed Fact": {
+        "id": "Ktuu",
+        "type": "number",
+        "number": 1
+      },
+      "Wed Plan": {
+        "id": "Z%3D_K",
+        "type": "number",
+        "number": 3
+      },
+      "Mon Plan": {
+        "id": "Z_~L",
+        "type": "number",
+        "number": 3
+      },
+      "Booked hours": {
+        "id": "_%60oJ",
+        "type": "formula",
+        "formula": {
+          "type": "number",
+          "number": 0
+        }
+      },
+      "Tue Fact": {
+        "id": "g%5CmL",
+        "type": "number",
+        "number": 0.3
+      },
+      "Mon Fact": {
+        "id": "lQLz",
+        "type": "number",
+        "number": 1.8
+      },
+      "Booked1": {
+        "id": "nfq%5E",
+        "type": "number",
+        "number": null
+      },
+      "Date 1": {
+        "id": "npyw",
+        "type": "date",
+        "date": null
+      },
+      "Booked2": {
+        "id": "o%22)v",
+        "type": "number",
+        "number": null
+      },
+      "Fri Fact": {
+        "id": "q_lA",
+        "type": "number",
+        "number": null
+      },
+      "Next week plan": {
+        "id": "u%3Ckf",
+        "type": "number",
+        "number": null
+      },
+      "Not used": {
+        "id": "v0Z8",
+        "type": "formula",
+        "formula": {
+          "type": "string",
+          "string": "12.2"
+        }
+      },
+      "Template": {
+        "id": "x%5B%7B%3B",
+        "type": "checkbox",
+        "checkbox": false
+      },
+      "Not used (number)": {
+        "id": "ykxa",
+        "type": "formula",
+        "formula": {
+          "type": "number",
+          "number": 12.2
+        }
+      },
+      "Fact": {
+        "id": "zCAo",
+        "type": "formula",
+        "formula": {
+          "type": "number",
+          "number": 3.8
+        }
+      },
+      "Who? 2": {
+        "id": "%7BHaK",
+        "type": "people",
+        "people": []
+      },
+      "Updated": {
+        "id": "%7BNwn",
+        "type": "last_edited_time",
+        "last_edited_time": "2025-03-14T03:06:00.000Z"
+      },
+      "Fri Plan": {
+        "id": "%7CKsX",
+        "type": "number",
+        "number": null
+      },
+      "Name": {
+        "id": "title",
+        "type": "title",
+        "title": [
+          {
+            "type": "text",
+            "text": {
+              "content": "Alina Perederiieva",
+              "link": null
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "Alina Perederiieva",
+            "href": null
+          }
+        ]
+      }
+    },
+    "url": "https://www.notion.so/Alina-Perederiieva-424fc389c89848d191d668dd36585fd7",
+    "public_url": null,
+    "request_id": "fd86d302-f49a-43fd-9040-ef242c234ed9"
+  }
+]
+
+
+===
+here is example page  Alex Shibisty Profile Stats Record
+
+[
+  {
+    "object": "page",
+    "id": "1b2c3573-e510-805a-9206-d827a66e7ae6",
+    "created_time": "2025-03-10T07:11:00.000Z",
+    "last_edited_time": "2025-03-10T07:11:00.000Z",
+    "created_by": {
+      "object": "user",
+      "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+    },
+    "last_edited_by": {
+      "object": "user",
+      "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+    },
+    "cover": null,
+    "icon": null,
+    "parent": {
+      "type": "database_id",
+      "database_id": "501c314a-bddb-45bf-b35d-91a217d709d8"
+    },
+    "archived": false,
+    "in_trash": false,
+    "properties": {
+      "Date": {
+        "id": "%3F%3Bt%60",
+        "type": "date",
+        "date": null
+      },
+      "SpecPr#2": {
+        "id": "%3F%3EK%7B",
+        "type": "select",
+        "select": null
+      },
+      "KPI": {
+        "id": "Fvrd",
+        "type": "formula",
+        "formula": {
+          "type": "boolean",
+          "boolean": false
+        }
+      },
+      "Profile Views": {
+        "id": "J%3C%3Am",
+        "type": "number",
+        "number": 2
+      },
+      "SpecPr#2 Invites": {
+        "id": "SvZi",
+        "type": "number",
+        "number": null
+      },
+      "Viewed Proposals": {
+        "id": "Uy%7CS",
+        "type": "number",
+        "number": 0
+      },
+      "General Pr Invites": {
+        "id": "XWCR",
+        "type": "number",
+        "number": 1
+      },
+      "Week": {
+        "id": "ZbfM",
+        "type": "formula",
+        "formula": {
+          "type": "number",
+          "number": 1
+        }
+      },
+      "Clicks": {
+        "id": "%5D%3B%3Ct",
+        "type": "number",
+        "number": 0
+      },
+      "Views": {
+        "id": "%5DKo%5E",
+        "type": "number",
+        "number": null
+      },
+      "Answ in 24h": {
+        "id": "%5EEia",
+        "type": "select",
+        "select": {
+          "id": "957bc453-feff-4f53-bab4-2e1f168e476f",
+          "name": ">80%",
+          "color": "green"
+        }
+      },
+      "Sent Proposals ": {
+        "id": "f%5CEA",
+        "type": "number",
+        "number": 0
+      },
+      "Impressions": {
+        "id": "i%3Apn",
+        "type": "number",
+        "number": 0
+      },
+      "SpecPr#1 Invites": {
+        "id": "jte~",
+        "type": "number",
+        "number": null
+      },
+      "Connects": {
+        "id": "mRps",
+        "type": "number",
+        "number": null
+      },
+      "SpecPr#1": {
+        "id": "qjr%3B",
+        "type": "select",
+        "select": null
+      },
+      "All Invites": {
+        "id": "rSbe",
+        "type": "formula",
+        "formula": {
+          "type": "number",
+          "number": 1
+        }
+      },
+      "Created": {
+        "id": "ztB%3A",
+        "type": "created_time",
+        "created_time": "2025-03-10T07:11:00.000Z"
+      },
+      "Period": {
+        "id": "~g%7CI",
+        "type": "formula",
+        "formula": {
+          "type": "string",
+          "string": "March 3 - March 9 2025"
+        }
+      },
+      "Name": {
+        "id": "title",
+        "type": "title",
+        "title": [
+          {
+            "type": "text",
+            "text": {
+              "content": "Alex Shibisty",
+              "link": null
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "Alex Shibisty",
+            "href": null
+          }
+        ]
+      }
+    },
+    "url": "https://www.notion.so/Alex-Shibisty-1b2c3573e510805a9206d827a66e7ae6",
+    "public_url": null,
+    "request_id": "face0aea-a69d-4366-bbdf-2e77da7a6c1b"
+  }
+]
+
+
+====
+Profile stats database
+
+[
+  {
+    "object": "database",
+    "id": "501c314a-bddb-45bf-b35d-91a217d709d8",
+    "cover": null,
+    "icon": {
+      "type": "emoji",
+      "emoji": "📈"
+    },
+    "created_time": "2020-09-08T10:22:00.000Z",
+    "created_by": {
+      "object": "user",
+      "id": "e2927f75-3161-4f44-88bf-d5db0838eb8e"
+    },
+    "last_edited_by": {
+      "object": "user",
+      "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+    },
+    "last_edited_time": "2025-03-05T09:29:00.000Z",
+    "title": [
+      {
+        "type": "text",
+        "text": {
+          "content": "Profile stats",
+          "link": null
+        },
+        "annotations": {
+          "bold": false,
+          "italic": false,
+          "strikethrough": false,
+          "underline": false,
+          "code": false,
+          "color": "default"
+        },
+        "plain_text": "Profile stats",
+        "href": null
+      }
+    ],
+    "description": [],
+    "is_inline": false,
+    "properties": {
+      "Date": {
+        "id": "%3F%3Bt%60",
+        "name": "Date",
+        "type": "date",
+        "date": {}
+      },
+      "SpecPr#2": {
+        "id": "%3F%3EK%7B",
+        "name": "SpecPr#2",
+        "type": "select",
+        "select": {
+          "options": [
+            {
+              "id": "M~CT",
+              "name": "Front-end development",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "uHf]",
+              "name": "Back-End Development",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "O|sW",
+              "name": "Full Stack Development",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "iWkN",
+              "name": "Ecommerce Development",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "cqmI",
+              "name": "Brand Identity Design",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "LpJ\\",
+              "name": "CMS Development",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "{lMG",
+              "name": "Editorial Design",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "s^fG",
+              "name": "Graphic Design",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "WCrh",
+              "name": "Illustration",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "uQoh",
+              "name": "Mobile Design",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "863ef015-79b9-4629-84e1-1fd099fc2f79",
+              "name": "Presentation Design",
+              "color": "red",
+              "description": null
+            },
+            {
+              "id": "9b2b3db2-1b62-460c-84d0-61e5b9118f3f",
+              "name": "UX/UI Design",
+              "color": "brown",
+              "description": null
+            },
+            {
+              "id": "D@N]",
+              "name": "Web Design",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "b8cc556d-3808-456c-8e61-1990006abb71",
+              "name": "Motion Graphics",
+              "color": "purple",
+              "description": null
+            },
+            {
+              "id": "e8db0a34-ed7b-48ce-b639-ceac91bfc457",
+              "name": "Video Editing",
+              "color": "brown",
+              "description": null
+            },
+            {
+              "id": "9f6d420a-9e86-4207-925f-052d9a714ed2",
+              "name": "Digital Marketing",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "3d26ad39-2c4a-4ee9-b271-51454779aa33",
+              "name": "Virtual/Administrative Assistance",
+              "color": "orange",
+              "description": null
+            },
+            {
+              "id": "maEK",
+              "name": "Search Engine Optimization",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "6ac47718-662d-41ed-8fec-2d879f2c4817",
+              "name": "Marketing strategy",
+              "color": "green",
+              "description": null
+            },
+            {
+              "id": "c3f44071-623e-480b-acb8-783e393e0197",
+              "name": "Social MEdia Desighn",
+              "color": "pink",
+              "description": null
+            },
+            {
+              "id": "121edb64-8f90-47a3-b564-3cdafa336abb",
+              "name": "Social Media Strategy",
+              "color": "yellow",
+              "description": null
+            },
+            {
+              "id": "234ea9ba-6663-4aac-bce5-bafb5fd9c94b",
+              "name": "Project Management",
+              "color": "blue",
+              "description": null
+            },
+            {
+              "id": "41daa94e-8ab1-46f1-8545-6a751cb433d7",
+              "name": "Sales & Business Development",
+              "color": "gray",
+              "description": null
+            },
+            {
+              "id": "c6cbfc74-00c3-4c78-9b12-68d43cad438d",
+              "name": "Copywriting",
+              "color": "purple",
+              "description": null
+            }
+          ]
+        }
+      },
+      "KPI": {
+        "id": "Fvrd",
+        "name": "KPI",
+        "type": "formula",
+        "formula": {
+          "expression": "{{notion:block_property:rSbe:00000000-0000-0000-0000-000000000000:0cf88286-10f7-495a-8e70-f8115c902ff6}} >= 2"
+        }
+      },
+      "Profile Views": {
+        "id": "J%3C%3Am",
+        "name": "Profile Views",
+        "type": "number",
+        "number": {
+          "format": "number"
+        }
+      },
+      "SpecPr#2 Invites": {
+        "id": "SvZi",
+        "name": "SpecPr#2 Invites",
+        "type": "number",
+        "number": {
+          "format": "number"
+        }
+      },
+      "Viewed Proposals": {
+        "id": "Uy%7CS",
+        "name": "Viewed Proposals",
+        "type": "number",
+        "number": {
+          "format": "number"
+        }
+      },
+      "General Pr Invites": {
+        "id": "XWCR",
+        "name": "General Pr Invites",
+        "type": "number",
+        "number": {
+          "format": "number"
+        }
+      },
+      "Week": {
+        "id": "ZbfM",
+        "name": "Week",
+        "type": "formula",
+        "formula": {
+          "expression": "round(dateBetween(dateSubtract(now(), toNumber(day(now()) % 7 - 1), \"days\"), dateSubtract({{notion:block_property:ztB%3A:00000000-0000-0000-0000-000000000000:0cf88286-10f7-495a-8e70-f8115c902ff6}}, if((toNumber(day({{notion:block_property:ztB%3A:00000000-0000-0000-0000-000000000000:0cf88286-10f7-495a-8e70-f8115c902ff6}}) % 7 - 1) == -1), 7, toNumber(day({{notion:block_property:ztB%3A:00000000-0000-0000-0000-000000000000:0cf88286-10f7-495a-8e70-f8115c902ff6}}) % 7 - 1)), \"days\"), \"days\") / 7) + 1"
+        }
+      },
+      "Clicks": {
+        "id": "%5D%3B%3Ct",
+        "name": "Clicks",
+        "type": "number",
+        "number": {
+          "format": "number"
+        }
+      },
+      "Views": {
+        "id": "%5DKo%5E",
+        "name": "Views",
+        "type": "number",
+        "number": {
+          "format": "number"
+        }
+      },
+      "Answ in 24h": {
+        "id": "%5EEia",
+        "name": "Answ in 24h",
+        "type": "select",
+        "select": {
+          "options": [
+            {
+              "id": "957bc453-feff-4f53-bab4-2e1f168e476f",
+              "name": ">80%",
+              "color": "green",
+              "description": null
+            },
+            {
+              "id": "eabe5c50-c252-4d22-86ff-0003a4d10139",
+              "name": ">50%",
+              "color": "blue",
+              "description": null
+            },
+            {
+              "id": "47d724cb-a0cc-4566-9864-2023dcbf07cd",
+              "name": "~50%",
+              "color": "yellow",
+              "description": null
+            },
+            {
+              "id": "eee8d609-d7a9-42dc-aeaa-3fe5328d9cb9",
+              "name": ">30%",
+              "color": "pink",
+              "description": null
+            },
+            {
+              "id": "0a1cda84-ca2b-4a66-89a0-50188cab6a91",
+              "name": "<30%",
+              "color": "red",
+              "description": null
+            },
+            {
+              "id": "ed96a791-9839-4fcd-b2cb-06cd3d37135f",
+              "name": "Not determined",
+              "color": "brown",
+              "description": null
+            },
+            {
+              "id": "22d873df-2165-11ed-bbe0-fc3497c06895",
+              "name": "1.0",
+              "color": "default",
+              "description": null
+            }
+          ]
+        }
+      },
+      "Sent Proposals ": {
+        "id": "f%5CEA",
+        "name": "Sent Proposals ",
+        "type": "number",
+        "number": {
+          "format": "number"
+        }
+      },
+      "Impressions": {
+        "id": "i%3Apn",
+        "name": "Impressions",
+        "type": "number",
+        "number": {
+          "format": "number"
+        }
+      },
+      "SpecPr#1 Invites": {
+        "id": "jte~",
+        "name": "SpecPr#1 Invites",
+        "type": "number",
+        "number": {
+          "format": "number"
+        }
+      },
+      "Connects": {
+        "id": "mRps",
+        "name": "Connects",
+        "type": "number",
+        "number": {
+          "format": "number"
+        }
+      },
+      "SpecPr#1": {
+        "id": "qjr%3B",
+        "name": "SpecPr#1",
+        "type": "select",
+        "select": {
+          "options": [
+            {
+              "id": "F\\Fq",
+              "name": "CMS customization",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "er<q",
+              "name": "Full Stack Development",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "L{oL",
+              "name": "Front-End Development",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "|ieG",
+              "name": "CMS Development",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "sd<D",
+              "name": "Ecommerce Development",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "OEAp",
+              "name": "Back-end Development",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "fopX",
+              "name": "Presentation Design",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "nFWK",
+              "name": "Graphic Design",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "pwTS",
+              "name": "Web Design",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "SL@e",
+              "name": "Digital Marketing",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "t]uW",
+              "name": "Mobile Design",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "oV]Z",
+              "name": "UX/UI Design",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "66a87b5f-9051-45cd-ba0f-3dd21eefafa8",
+              "name": "Brand Identity Design",
+              "color": "blue",
+              "description": null
+            },
+            {
+              "id": "a27dfcbf-f0af-4981-ba27-45fe8ac567a9",
+              "name": "Illustration",
+              "color": "purple",
+              "description": null
+            },
+            {
+              "id": "0a561e24-c2a3-4513-8375-1760caab8d12",
+              "name": "Search Engine Optimization",
+              "color": "gray",
+              "description": null
+            },
+            {
+              "id": "a1584333-8837-4698-bfe4-22f55ffcafd2",
+              "name": "Project Manager",
+              "color": "orange",
+              "description": null
+            },
+            {
+              "id": "89c91b65-4d35-42bc-b2fb-123be28047a6",
+              "name": "Project Management",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "77117b63-4a06-4182-b775-3f1e30e1abce",
+              "name": "Motion Design",
+              "color": "brown",
+              "description": null
+            },
+            {
+              "id": "de4d2962-49e2-4c8e-a6ea-67c510b9da71",
+              "name": "fu",
+              "color": "pink",
+              "description": null
+            },
+            {
+              "id": "543577e7-4422-4a36-b231-4a6f740de639",
+              "name": "Social Media Strategy",
+              "color": "red",
+              "description": null
+            },
+            {
+              "id": "7e68a080-58e1-402e-b54e-83601a6920dd",
+              "name": "Virtual Assistance",
+              "color": "yellow",
+              "description": null
+            }
+          ]
+        }
+      },
+      "All Invites": {
+        "id": "rSbe",
+        "name": "All Invites",
+        "type": "formula",
+        "formula": {
+          "expression": "{{notion:block_property:XWCR:00000000-0000-0000-0000-000000000000:0cf88286-10f7-495a-8e70-f8115c902ff6}}+{{notion:block_property:SvZi:00000000-0000-0000-0000-000000000000:0cf88286-10f7-495a-8e70-f8115c902ff6}}+{{notion:block_property:jte~:00000000-0000-0000-0000-000000000000:0cf88286-10f7-495a-8e70-f8115c902ff6}}"
+        }
+      },
+      "Created": {
+        "id": "ztB%3A",
+        "name": "Created",
+        "type": "created_time",
+        "created_time": {}
+      },
+      "Period": {
+        "id": "~g%7CI",
+        "name": "Period",
+        "type": "formula",
+        "formula": {
+          "expression": "(formatDate(dateSubtract({{notion:block_property:ztB%3A:00000000-0000-0000-0000-000000000000:0cf88286-10f7-495a-8e70-f8115c902ff6}}, 6 + toNumber(day({{notion:block_property:ztB%3A:00000000-0000-0000-0000-000000000000:0cf88286-10f7-495a-8e70-f8115c902ff6}}) % 7), \"days\"), \"MMMM D\") + \" - \") + formatDate(dateSubtract({{notion:block_property:ztB%3A:00000000-0000-0000-0000-000000000000:0cf88286-10f7-495a-8e70-f8115c902ff6}}, 0 + toNumber(day({{notion:block_property:ztB%3A:00000000-0000-0000-0000-000000000000:0cf88286-10f7-495a-8e70-f8115c902ff6}}) % 7), \"days\"), \"MMMM D Y\")"
+        }
+      },
+      "Name": {
+        "id": "title",
+        "name": "Name",
+        "type": "title",
+        "title": {}
+      }
+    },
+    "parent": {
+      "type": "page_id",
+      "page_id": "749af794-0875-414a-821e-40a31049bd06"
+    },
+    "url": "https://www.notion.so/501c314abddb45bfb35d91a217d709d8",
+    "public_url": null,
+    "archived": false,
+    "in_trash": false,
+    "request_id": "6883785c-37f1-4d83-a6ef-687c3a09a8e5"
+  }
+]
+
+
+====
+[
+  {
+    "object": "page",
+    "id": "b02bf04c-43e4-404c-a4e2-1707ae8b61cc",
+    "created_time": "2024-10-11T12:56:00.000Z",
+    "last_edited_time": "2025-03-12T08:26:00.000Z",
+    "created_by": {
+      "object": "user",
+      "id": "ac65fb9b-377c-46c7-85b9-29f4f8dd9197"
+    },
+    "last_edited_by": {
+      "object": "user",
+      "id": "e2927f75-3161-4f44-88bf-d5db0838eb8e"
+    },
+    "cover": null,
+    "icon": {
+      "type": "emoji",
+      "emoji": "👨"
+    },
+    "parent": {
+      "type": "database_id",
+      "database_id": "7113e573-923e-4c57-8d78-8cd94a7bddfa"
+    },
+    "archived": false,
+    "in_trash": false,
+    "properties": {
+      "Tools": {
+        "id": "%22Xb~",
+        "type": "rich_text",
+        "rich_text": [
+          {
+            "type": "text",
+            "text": {
+              "content": "PhpStorm, Figma, Adobe Photoshop, Adobe Illustrator, Mamp, Unix command line",
+              "link": null
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "PhpStorm, Figma, Adobe Photoshop, Adobe Illustrator, Mamp, Unix command line",
+            "href": null
+          }
+        ]
+      },
+      "Skills set": {
+        "id": "%22kJ)",
+        "type": "rich_text",
+        "rich_text": [
+          {
+            "type": "text",
+            "text": {
+              "content": "HTML5, CSS3, Css Grid, Css Flex, Bootstrap, MySQL, JavaScript Native, jQuery, Gulp, PHP, Codeigniter, Yii1, Git, Angular.js, Vue.js, Yii2, Laravel, Docker, xDebug, AEM 6.3+, Javascript ES 5/6, Jenkins, Gitlab, React.js, React Native, Wordpress, WooCommerce, WordPress themes, WordPress plugins, Elementor, WP Bakery, ",
+              "link": null
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "HTML5, CSS3, Css Grid, Css Flex, Bootstrap, MySQL, JavaScript Native, jQuery, Gulp, PHP, Codeigniter, Yii1, Git, Angular.js, Vue.js, Yii2, Laravel, Docker, xDebug, AEM 6.3+, Javascript ES 5/6, Jenkins, Gitlab, React.js, React Native, Wordpress, WooCommerce, WordPress themes, WordPress plugins, Elementor, WP Bakery, ",
+            "href": null
+          }
+        ]
+      },
+      "FB": {
+        "id": "*phK",
+        "type": "url",
+        "url": "https://www.facebook.com/lernichenko/"
+      },
+      "1-1": {
+        "id": "%2B0%7Dw",
+        "type": "rich_text",
+        "rich_text": [
+          {
+            "type": "mention",
+            "mention": {
+              "type": "page",
+              "page": {
+                "id": "6b070584-8129-4f40-9306-a98bbe889eb3"
+              }
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "Untitled",
+            "href": "https://www.notion.so/6b07058481294f409306a98bbe889eb3"
+          }
+        ]
+      },
+      "ToDo": {
+        "id": "%2B29y",
+        "type": "rich_text",
+        "rich_text": [
+          {
+            "type": "mention",
+            "mention": {
+              "type": "page",
+              "page": {
+                "id": "11cc3573-e510-8104-a0f1-d579c3f9a648"
+              }
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "Todo - Roman Lernichenko",
+            "href": "https://www.notion.so/11cc3573e5108104a0f1d579c3f9a648"
+          },
+          {
+            "type": "text",
+            "text": {
+              "content": " https://www.notion.so/11cc3573e5108104a0f1d579c3f9a648",
+              "link": null
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": " https://www.notion.so/11cc3573e5108104a0f1d579c3f9a648",
+            "href": null
+          }
+        ]
+      },
+      "Location": {
+        "id": "3G%5B%3C",
+        "type": "rich_text",
+        "rich_text": [
+          {
+            "type": "text",
+            "text": {
+              "content": "Odessa, Ua",
+              "link": null
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "Odessa, Ua",
+            "href": null
+          }
+        ]
+      },
+      "Upwork Profile": {
+        "id": "5%60Wr",
+        "type": "url",
+        "url": "https://www.upwork.com/freelancers/~0169058897ca604e4e"
+      },
+      "Birth Day": {
+        "id": "6%22gc",
+        "type": "date",
+        "date": {
+          "start": "1992-06-23",
+          "end": null,
+          "time_zone": null
+        }
+      },
+      "Notion User": {
+        "id": "%3A%7B%40k",
+        "type": "people",
+        "people": [
+          {
+            "object": "user",
+            "id": "10dd872b-594c-81ad-8f91-00024e1124ce",
+            "name": "Roman Lernichenko",
+            "avatar_url": "https://s3-us-west-2.amazonaws.com/public.notion-static.com/bc898723-dc88-4ad0-9935-b647cfb07372/IMG_0003-min.png",
+            "type": "person",
+            "person": {
+              "email": "lernichenko@etcetera.kiev.ua"
+            }
+          }
+        ]
+      },
+      "Discord ID": {
+        "id": "%3CMlE",
+        "type": "rich_text",
+        "rich_text": []
+      },
+      "ETC": {
+        "id": "%3D3%25-",
+        "type": "email",
+        "email": "lernichenko@etcetera.kiev.ua"
+      },
+      "16 Pers": {
+        "id": "%3DC%7B7",
+        "type": "rich_text",
+        "rich_text": [
+          {
+            "type": "text",
+            "text": {
+              "content": "ENTP",
+              "link": null
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "ENTP",
+            "href": null
+          }
+        ]
+      },
+      "Behance": {
+        "id": "%40rk9",
+        "type": "url",
+        "url": "https://www.behance.net/lernichenko"
+      },
+      "Unwanted": {
+        "id": "AYki",
+        "type": "rich_text",
+        "rich_text": [
+          {
+            "type": "text",
+            "text": {
+              "content": "Wix",
+              "link": null
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "Wix",
+            "href": null
+          }
+        ]
+      },
+      "Newcommer": {
+        "id": "BffU",
+        "type": "checkbox",
+        "checkbox": false
+      },
+      "Upwork ID": {
+        "id": "CN%7Cm",
+        "type": "rich_text",
+        "rich_text": [
+          {
+            "type": "text",
+            "text": {
+              "content": "roma_lernichenko",
+              "link": null
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "roma_lernichenko",
+            "href": null
+          }
+        ]
+      },
+      "Updated": {
+        "id": "ExQ%3D",
+        "type": "last_edited_time",
+        "last_edited_time": "2025-03-12T08:26:00.000Z"
+      },
+      "Skype chat ID": {
+        "id": "G~P%7B",
+        "type": "rich_text",
+        "rich_text": [
+          {
+            "type": "text",
+            "text": {
+              "content": "19:0d7c998d73e04f58bee74018a8b6e045@thread.skype",
+              "link": null
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "19:0d7c998d73e04f58bee74018a8b6e045@thread.skype",
+            "href": null
+          }
+        ]
+      },
+      "Skype Staffing Chat": {
+        "id": "Ko9Z",
+        "type": "url",
+        "url": "https://join.skype.com/OIfulnm2esHt"
+      },
+      "Phone": {
+        "id": "Mj%24g",
+        "type": "phone_number",
+        "phone_number": "+380930342465"
+      },
+      "Years in team": {
+        "id": "Obqy",
+        "type": "formula",
+        "formula": {
+          "type": "number",
+          "number": 0.3
+        }
+      },
+      "Stats Upload": {
+        "id": "U%2FCY",
+        "type": "url",
+        "url": "https://u.pcloud.com/#page=puplink&code=DyVXZ1joTIJh5H8JPmXB0Mu6t0HP6CvEk"
+      },
+      "Bidder": {
+        "id": "UW%26%3F",
+        "type": "relation",
+        "relation": [],
+        "has_more": false
+      },
+      "Discord channel ID": {
+        "id": "UsNH",
+        "type": "rich_text",
+        "rich_text": []
+      },
+      "LinkedIn": {
+        "id": "Vv%5C%3A",
+        "type": "url",
+        "url": "https://www.linkedin.com/in/roman-lernichenko/"
+      },
+      "Non-exclusive": {
+        "id": "WJ%3C%3F",
+        "type": "checkbox",
+        "checkbox": false
+      },
+      "DISK": {
+        "id": "_K_%22",
+        "type": "rich_text",
+        "rich_text": [
+          {
+            "type": "text",
+            "text": {
+              "content": "D:-2, I:5, S:4, C:-7",
+              "link": null
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "D:-2, I:5, S:4, C:-7",
+            "href": null
+          }
+        ]
+      },
+      "BD": {
+        "id": "%60oN%3D",
+        "type": "formula",
+        "formula": {
+          "type": "boolean",
+          "boolean": false
+        }
+      },
+      "PA": {
+        "id": "%60pDP",
+        "type": "relation",
+        "relation": [],
+        "has_more": false
+      },
+      "Upwork reference": {
+        "id": "cksY",
+        "type": "rich_text",
+        "rich_text": [
+          {
+            "type": "text",
+            "text": {
+              "content": "0169058897ca604e4e",
+              "link": null
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "0169058897ca604e4e",
+            "href": null
+          }
+        ]
+      },
+      "Skype ID": {
+        "id": "dhHw",
+        "type": "rich_text",
+        "rich_text": [
+          {
+            "type": "text",
+            "text": {
+              "content": "29:1chA7XPudvcqmkgfkL6CgC2EP7kRKVKd3wBwKIXwoYLG-bvYmMviSTNpOg1Acm8gd",
+              "link": null
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "29:1chA7XPudvcqmkgfkL6CgC2EP7kRKVKd3wBwKIXwoYLG-bvYmMviSTNpOg1Acm8gd",
+            "href": null
+          }
+        ]
+      },
+      "Left agency": {
+        "id": "eT%5E5",
+        "type": "date",
+        "date": null
+      },
+      "Joined": {
+        "id": "k%2C%5BP",
+        "type": "date",
+        "date": {
+          "start": "2024-10-21",
+          "end": null,
+          "time_zone": null
+        }
+      },
+      "Stats": {
+        "id": "neT%3C",
+        "type": "url",
+        "url": "https://my.pcloud.com/#page=filemanager&folder=23560541139&tpl=folderlist"
+      },
+      "Skype": {
+        "id": "q%3DI%60",
+        "type": "rich_text",
+        "rich_text": [
+          {
+            "type": "text",
+            "text": {
+              "content": "roman.lernichenko",
+              "link": null
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "roman.lernichenko",
+            "href": null
+          }
+        ]
+      },
+      "Roles": {
+        "id": "qeOI",
+        "type": "multi_select",
+        "multi_select": [
+          {
+            "id": "c21060df-8daf-48d8-b9c6-4ee3786334ea",
+            "name": "Development",
+            "color": "green"
+          },
+          {
+            "id": "746d2910-7ad3-4cad-830d-40975837d309",
+            "name": "FrontEnd",
+            "color": "green"
+          },
+          {
+            "id": "e24a64a6-fbb4-4db8-bf45-da6f0d6d3e17",
+            "name": "BackEnd",
+            "color": "green"
+          },
+          {
+            "id": "77cd02c1-8348-4c72-a138-f2bc2cbf4985",
+            "name": "FL",
+            "color": "pink"
+          }
+        ]
+      },
+      "out of Team now": {
+        "id": "tu%7B%5D",
+        "type": "checkbox",
+        "checkbox": false
+      },
+      "Dribbble": {
+        "id": "vrd%7B",
+        "type": "url",
+        "url": null
+      },
+      "Personal": {
+        "id": "y%2FXJ",
+        "type": "email",
+        "email": "roman.lernichenko@gmail.com"
+      },
+      "Templates": {
+        "id": "yG~S",
+        "type": "rich_text",
+        "rich_text": []
+      },
+      "Offboarding - Bye-Bye": {
+        "id": "~kkK",
+        "type": "rich_text",
+        "rich_text": []
+      },
+      "Name": {
+        "id": "title",
+        "type": "title",
+        "title": [
+          {
+            "type": "text",
+            "text": {
+              "content": "Roman Lernichenko",
+              "link": null
+            },
+            "annotations": {
+              "bold": false,
+              "italic": false,
+              "strikethrough": false,
+              "underline": false,
+              "code": false,
+              "color": "default"
+            },
+            "plain_text": "Roman Lernichenko",
+            "href": null
+          }
+        ]
+      }
+    },
+    "url": "https://www.notion.so/Roman-Lernichenko-b02bf04c43e4404ca4e21707ae8b61cc",
+    "public_url": null,
+    "request_id": "ecb8c1ce-fe22-42b9-83b8-eceb06f2b3a0"
+  }
+]
+
+
+
+
+===
+[
+    {
+      "object": "database",
+      "id": "7113e573-923e-4c57-8d78-8cd94a7bddfa",
+      "cover": {
+        "type": "file",
+        "file": {
+          "url": "https://prod-files-secure.s3.us-west-2.amazonaws.com/0cf88286-10f7-495a-8e70-f8115c902ff6/cd58c817-0d26-43e7-ab03-67747853dcc5/Client_Portrait_-_Google_Slides_2023-08-14_15-18-34-2.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ASIAZI2LB4664OWVRP2I%2F20250314%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20250314T062132Z&X-Amz-Expires=3600&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEJ7%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLXdlc3QtMiJIMEYCIQCKby6KSnzLpoMemwGcOdvkCVee6nlnHw6CLUmF9ppKTQIhAIlgWxLtxT4zIJTJd%2FlcGCuCYKJgfkD7%2FXRPvuOna7LHKogECOf%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEQABoMNjM3NDIzMTgzODA1IgzOE1uoO3W2ybT5C6Eq3ANZrk4uuP5uw8EkE6CSczj6xC1BephQtKaSpPelmNIJ6tr5BQCAF2PYg1C7dVkkD1e%2BipJ6RPvcbCurH4J49TXOb2TGjjV5HznzF7e1ldvcjVzm%2FP8UlscBN5xIR09r5I2PTycQyEnQy5dJLvuN1ulTXHRZX9XbAtuZOGEeP3USrMxrSydEvk1U%2B06f70e5I%2BABL%2FpMNrQKWXt5iOPhiFFrvJpL1R8kO55eFfoDqQP7xQFVYLWPnPy0Ax%2BJMmQolEzUMGBvyiR656KqhL%2BLXzlcfBqfuc6fBp%2B56dukOi2omjID1LdKZKo55DZ9MO%2FDb9P3fzUkYLNSzKMG560SULSgF30K6DiaWlJyMut45Bcb23sf85PhsjllJ1m5Z6a1eTyJlj8IFF1v8G%2FyOjDeAe%2BiQdCXFt2F5OxT2JAAmXWMb9AYN6diT%2BO2FqBI%2FnBbNzKKCDtXdLqMmqkR65kStSZG%2F1T0oWjubyKuOwlbZM1209QTbyKC2aByHAWxvK4W8CIa85tdxZVkZH8W8ME85rC8Ar9doE9%2Bz43%2FCRJ8u5BfoUMeG%2FJNDEFllJAswhd7SgLFhaTrHA41FHxUDjvAZ7qD6o%2FMzuyQtKaPQGjseO%2BW46fvNCidALH%2Bn%2BU%2BOzDBis%2B%2BBjqkAUAs8HSyD76Da%2FpYNOueRn8y6HKxNzm44MEvIskTMZ0UNrqOUgSbLLdaFcJFLFn89Tz04m6R%2Fu4VIMxxInTBi0LmpyzAOeIW79sgMVEkt8hZJLlQOXFYddvByqEq1Fusrs%2BkXjuR%2FqGuWbibnnHgTTway4u0I0rfSUR3uDr4XoqdAYFn1gowA8v3vbRT3oC54aXKA37uZ31A2UOVn9wP0CTo7FNY&X-Amz-Signature=ba71bc89cd3385e025f42136513e09abb4239f4e5f30260f376577962cf15f95&X-Amz-SignedHeaders=host&x-id=GetObject",
+          "expiry_time": "2025-03-14T07:21:32.218Z"
+        }
+      },
+      "icon": {
+        "type": "emoji",
+        "emoji": "📞"
+      },
+      "created_time": "2019-07-05T20:29:00.000Z",
+      "created_by": {
+        "object": "user",
+        "id": "9be1d96c-bff7-4bba-a4a2-86ff33cc4db5"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "863fdd40-00a4-497b-92ed-b3c3728815f7"
+      },
+      "last_edited_time": "2025-03-10T15:10:00.000Z",
+      "title": [
+        {
+          "type": "text",
+          "text": {
+            "content": "Team Directory",
+            "link": null
+          },
+          "annotations": {
+            "bold": false,
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+            "code": false,
+            "color": "default"
+          },
+          "plain_text": "Team Directory",
+          "href": null
+        }
+      ],
+      "description": [
+        {
+          "type": "text",
+          "text": {
+            "content": "\n\n↓ Click ",
+            "link": null
+          },
+          "annotations": {
+            "bold": false,
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+            "code": false,
+            "color": "default"
+          },
+          "plain_text": "\n\n↓ Click ",
+          "href": null
+        },
+        {
+          "type": "text",
+          "text": {
+            "content": "Gallery View",
+            "link": null
+          },
+          "annotations": {
+            "bold": false,
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+            "code": true,
+            "color": "default"
+          },
+          "plain_text": "Gallery View",
+          "href": null
+        },
+        {
+          "type": "text",
+          "text": {
+            "content": " below to see other views of this information, including a table with additional fields.",
+            "link": null
+          },
+          "annotations": {
+            "bold": false,
+            "italic": false,
+            "strikethrough": false,
+            "underline": false,
+            "code": false,
+            "color": "default"
+          },
+          "plain_text": " below to see other views of this information, including a table with additional fields.",
+          "href": null
+        }
+      ],
+      "is_inline": false,
+      "properties": {
+        "Tools": {
+          "id": "%22Xb~",
+          "name": "Tools",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "Skills set": {
+          "id": "%22kJ)",
+          "name": "Skills set",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "FB": {
+          "id": "*phK",
+          "name": "FB",
+          "type": "url",
+          "url": {}
+        },
+        "1-1": {
+          "id": "%2B0%7Dw",
+          "name": "1-1",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "ToDo": {
+          "id": "%2B29y",
+          "name": "ToDo",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "Location": {
+          "id": "3G%5B%3C",
+          "name": "Location",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "Upwork Profile": {
+          "id": "5%60Wr",
+          "name": "Upwork Profile",
+          "type": "url",
+          "url": {}
+        },
+        "Birth Day": {
+          "id": "6%22gc",
+          "name": "Birth Day",
+          "type": "date",
+          "date": {}
+        },
+        "Notion User": {
+          "id": "%3A%7B%40k",
+          "name": "Notion User",
+          "type": "people",
+          "people": {}
+        },
+        "Discord ID": {
+          "id": "%3CMlE",
+          "name": "Discord ID",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "ETC": {
+          "id": "%3D3%25-",
+          "name": "ETC",
+          "type": "email",
+          "email": {}
+        },
+        "16 Pers": {
+          "id": "%3DC%7B7",
+          "name": "16 Pers",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "Behance": {
+          "id": "%40rk9",
+          "name": "Behance",
+          "type": "url",
+          "url": {}
+        },
+        "Unwanted": {
+          "id": "AYki",
+          "name": "Unwanted",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "Newcommer": {
+          "id": "BffU",
+          "name": "Newcommer",
+          "type": "checkbox",
+          "checkbox": {}
+        },
+        "Upwork ID": {
+          "id": "CN%7Cm",
+          "name": "Upwork ID",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "Updated": {
+          "id": "ExQ%3D",
+          "name": "Updated",
+          "type": "last_edited_time",
+          "last_edited_time": {}
+        },
+        "Skype chat ID": {
+          "id": "G~P%7B",
+          "name": "Skype chat ID",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "Skype Staffing Chat": {
+          "id": "Ko9Z",
+          "name": "Skype Staffing Chat",
+          "type": "url",
+          "url": {}
+        },
+        "Phone": {
+          "id": "Mj%24g",
+          "name": "Phone",
+          "type": "phone_number",
+          "phone_number": {}
+        },
+        "Years in team": {
+          "id": "Obqy",
+          "name": "Years in team",
+          "type": "formula",
+          "formula": {
+            "expression": "round(dateBetween(now(),{{notion:block_property:k%2C%5BP:00000000-0000-0000-0000-000000000000:0cf88286-10f7-495a-8e70-f8115c902ff6}},\"month\")/12*10)/10"
+          }
+        },
+        "Stats Upload": {
+          "id": "U%2FCY",
+          "name": "Stats Upload",
+          "type": "url",
+          "url": {}
+        },
+        "Bidder": {
+          "id": "UW%26%3F",
+          "name": "Bidder",
+          "type": "relation",
+          "relation": {
+            "database_id": "e4d36149-b9d8-476e-9985-a2c658d4a873",
+            "synced_property_name": "Bidder (role for)",
+            "synced_property_id": "7x5\\"
+          }
+        },
+        "Discord channel ID": {
+          "id": "UsNH",
+          "name": "Discord channel ID",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "LinkedIn": {
+          "id": "Vv%5C%3A",
+          "name": "LinkedIn",
+          "type": "url",
+          "url": {}
+        },
+        "Non-exclusive": {
+          "id": "WJ%3C%3F",
+          "name": "Non-exclusive",
+          "type": "checkbox",
+          "checkbox": {}
+        },
+        "DISK": {
+          "id": "_K_%22",
+          "name": "DISK",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "BD": {
+          "id": "%60oN%3D",
+          "name": "BD",
+          "type": "formula",
+          "formula": {
+            "expression": "or(month({{notion:block_property:6%22gc:00000000-0000-0000-0000-000000000000:0cf88286-10f7-495a-8e70-f8115c902ff6}}) - 1 == month(now()) - 1, month({{notion:block_property:6%22gc:00000000-0000-0000-0000-000000000000:0cf88286-10f7-495a-8e70-f8115c902ff6}}) - 1 == (month(now()) - 1 + 1))"
+          }
+        },
+        "PA": {
+          "id": "%60pDP",
+          "name": "PA",
+          "type": "relation",
+          "relation": {
+            "database_id": "e4d36149-b9d8-476e-9985-a2c658d4a873",
+            "synced_property_name": "PA (role)",
+            "synced_property_id": "a)0p"
+          }
+        },
+        "Upwork reference": {
+          "id": "cksY",
+          "name": "Upwork reference",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "Skype ID": {
+          "id": "dhHw",
+          "name": "Skype ID",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "Left agency": {
+          "id": "eT%5E5",
+          "name": "Left agency",
+          "type": "date",
+          "date": {}
+        },
+        "Joined": {
+          "id": "k%2C%5BP",
+          "name": "Joined",
+          "type": "date",
+          "date": {}
+        },
+        "Stats": {
+          "id": "neT%3C",
+          "name": "Stats",
+          "type": "url",
+          "url": {}
+        },
+        "Skype": {
+          "id": "q%3DI%60",
+          "name": "Skype",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "Roles": {
+          "id": "qeOI",
+          "name": "Roles",
+          "type": "multi_select",
+          "multi_select": {
+            "options": [
+              {
+                "id": "~+op",
+                "name": "Sales",
+                "color": "orange",
+                "description": null
+              },
+              {
+                "id": "1d4cad9e-6af6-4ce6-8a2d-cee3663f73dd",
+                "name": "HR",
+                "color": "orange",
+                "description": null
+              },
+              {
+                "id": "7b8e1f73-a41c-45d6-9f30-0e9bf3f4848b",
+                "name": "Recruiter",
+                "color": "orange",
+                "description": null
+              },
+              {
+                "id": "534934be-1b44-4e15-bea9-50d108960a37",
+                "name": "Sourcer",
+                "color": "orange",
+                "description": null
+              },
+              {
+                "id": "55bc7450-aa3a-473f-92c7-97f2412fca99",
+                "name": "PM",
+                "color": "red",
+                "description": null
+              },
+              {
+                "id": "84f1a826-6166-4047-aa11-3615850f3e7c",
+                "name": "CC",
+                "color": "red",
+                "description": null
+              },
+              {
+                "id": "b8e67ba4-b13e-4fd9-b3d4-687c9e9df520",
+                "name": "BA",
+                "color": "red",
+                "description": null
+              },
+              {
+                "id": "d539fb1c-e8d8-41c6-94d0-31075908c716",
+                "name": "PA",
+                "color": "red",
+                "description": null
+              },
+              {
+                "id": "8392da4c-2eb0-4691-ba8a-7acd4bc16528",
+                "name": "Bidder",
+                "color": "red",
+                "description": null
+              },
+              {
+                "id": "9f0aefa9-cada-4aac-963f-01e82a794f56",
+                "name": "Account Manager",
+                "color": "red",
+                "description": null
+              },
+              {
+                "id": "778e7a32-104c-48f7-8571-5f8a6167c1c6",
+                "name": "Head",
+                "color": "default",
+                "description": null
+              },
+              {
+                "id": "77cd02c1-8348-4c72-a138-f2bc2cbf4985",
+                "name": "FL",
+                "color": "pink",
+                "description": null
+              },
+              {
+                "id": "c21060df-8daf-48d8-b9c6-4ee3786334ea",
+                "name": "Development",
+                "color": "green",
+                "description": null
+              },
+              {
+                "id": "746d2910-7ad3-4cad-830d-40975837d309",
+                "name": "FrontEnd",
+                "color": "green",
+                "description": null
+              },
+              {
+                "id": "e24a64a6-fbb4-4db8-bf45-da6f0d6d3e17",
+                "name": "BackEnd",
+                "color": "green",
+                "description": null
+              },
+              {
+                "id": "e7eadc64-3f76-43a8-aead-cab90dffc84f",
+                "name": "Android",
+                "color": "green",
+                "description": null
+              },
+              {
+                "id": "208c6cba-0d70-43ce-a03f-182e9098ec93",
+                "name": "iOs",
+                "color": "green",
+                "description": null
+              },
+              {
+                "id": "5d419278-f7d0-4bfd-b509-04417f61bee1",
+                "name": "Graphic Designer",
+                "color": "blue",
+                "description": null
+              },
+              {
+                "id": "397dd608-829b-4a0c-81ba-59ec437747db",
+                "name": "Web Designer",
+                "color": "blue",
+                "description": null
+              },
+              {
+                "id": "44984658-5c90-452a-8084-526b955c6c0b",
+                "name": "Mobile Designer",
+                "color": "blue",
+                "description": null
+              },
+              {
+                "id": "ad58fb63-6796-45af-96cc-3a0f944a6195",
+                "name": "Game designer",
+                "color": "blue",
+                "description": null
+              },
+              {
+                "id": "a33c1726-eb93-4981-ad4e-552869f999a5",
+                "name": "Video Editor",
+                "color": "blue",
+                "description": null
+              },
+              {
+                "id": "e170ed2b-5b5e-47fc-b49e-47bf74f86b87",
+                "name": "Print designer",
+                "color": "blue",
+                "description": null
+              },
+              {
+                "id": "8d58cdf6-f6ee-4c6e-b349-0c22def1af94",
+                "name": "Illustrator",
+                "color": "blue",
+                "description": null
+              },
+              {
+                "id": "12206500-cf1b-442b-ba46-ac612cb18da6",
+                "name": "Identity",
+                "color": "yellow",
+                "description": null
+              },
+              {
+                "id": "bc9a157a-c646-4384-9a36-1ccfd9b485ec",
+                "name": "Branding",
+                "color": "yellow",
+                "description": null
+              },
+              {
+                "id": "3ca5a8be-12f5-4fe2-92af-98fc3a2315f4",
+                "name": "Logo",
+                "color": "yellow",
+                "description": null
+              },
+              {
+                "id": "5f766bc2-4233-43b0-9904-1fbb4ebf99f6",
+                "name": "Infographic",
+                "color": "yellow",
+                "description": null
+              },
+              {
+                "id": "f938c431-bc91-4950-82cc-93ba65ef405b",
+                "name": "Presentation",
+                "color": "yellow",
+                "description": null
+              },
+              {
+                "id": "7eae80e5-d579-407a-9dbe-6aa30117bc9a",
+                "name": "UI/UX",
+                "color": "purple",
+                "description": null
+              },
+              {
+                "id": "7a781c1b-c846-4557-a863-0978c286c76d",
+                "name": "ArtDirector",
+                "color": "purple",
+                "description": null
+              },
+              {
+                "id": "5fb5384b-1b39-4550-890e-4fe0fb945595",
+                "name": "onBoarding",
+                "color": "gray",
+                "description": null
+              },
+              {
+                "id": "5fa437b6-a1bc-46f5-b305-bcd94f70da2a",
+                "name": "Support",
+                "color": "brown",
+                "description": null
+              },
+              {
+                "id": "b02aaa23-ba84-4060-8d47-16c00b5d6f41",
+                "name": "UX",
+                "color": "blue",
+                "description": null
+              },
+              {
+                "id": "a86f40b7-13b9-4d0a-807f-587128751aae",
+                "name": "SEO",
+                "color": "orange",
+                "description": null
+              },
+              {
+                "id": "3c322377-4279-4882-b6b2-af2d180e400c",
+                "name": "SMM",
+                "color": "red",
+                "description": null
+              },
+              {
+                "id": "a9c6beba-2254-434c-9960-5480b9945ff7",
+                "name": "Animation",
+                "color": "orange",
+                "description": null
+              },
+              {
+                "id": "e02a982f-1b58-45fb-9ead-048eb58d72c3",
+                "name": "QA",
+                "color": "default",
+                "description": null
+              },
+              {
+                "id": "07aa8940-9207-4986-84d4-3f8be0de3bfd",
+                "name": "brand guidelines",
+                "color": "blue",
+                "description": null
+              }
+            ]
+          }
+        },
+        "out of Team now": {
+          "id": "tu%7B%5D",
+          "name": "out of Team now",
+          "type": "checkbox",
+          "checkbox": {}
+        },
+        "Dribbble": {
+          "id": "vrd%7B",
+          "name": "Dribbble",
+          "type": "url",
+          "url": {}
+        },
+        "Personal": {
+          "id": "y%2FXJ",
+          "name": "Personal",
+          "type": "email",
+          "email": {}
+        },
+        "Templates": {
+          "id": "yG~S",
+          "name": "Templates",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "Offboarding - Bye-Bye": {
+          "id": "~kkK",
+          "name": "Offboarding - Bye-Bye",
+          "type": "rich_text",
+          "rich_text": {}
+        },
+        "Name": {
+          "id": "title",
+          "name": "Name",
+          "type": "title",
+          "title": {}
+        }
+      },
+      "parent": {
+        "type": "workspace",
+        "workspace": true
+      },
+      "url": "https://www.notion.so/7113e573923e4c578d788cd94a7bddfa",
+      "public_url": null,
+      "archived": false,
+      "in_trash": false,
+      "request_id": "0505b1e0-f786-413b-a749-949d3539e161"
+    }
+  ]
+  
+  

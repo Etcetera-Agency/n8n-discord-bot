@@ -1,284 +1,1464 @@
 {
-    "name": "Discord AI Agent",
-    "nodes": [
-      {
-        "parameters": {
-          "options": {}
-        },
-        "type": "n8n-nodes-base.respondToWebhook",
-        "typeVersion": 1.1,
-        "position": [
-          1860,
-          300
-        ],
-        "id": "28f4a1ea-cb69-4e1d-a4ba-ef35f2f91926",
-        "name": "Respond to Webhook"
+  "nodes": [
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Discord Webhook').item.json.body.channelId + \"-\" + $('Discord Webhook').item.json.body.channelName}}",
+        "contextWindowLength": 10
       },
-      {
-        "parameters": {
-          "content": "## Tool Calling\nConnect any tool you want to the AI agent.\nUpdate the prompt according to the specific tools you want to use.\nThis **allows the AI** to **interact with external services and APIs**.",
-          "height": 400,
-          "width": 260,
-          "color": 7
-        },
-        "type": "n8n-nodes-base.stickyNote",
-        "typeVersion": 1,
-        "position": [
-          1500,
-          500
-        ],
-        "id": "36740007-c900-48b7-bd1f-a71869140bc1",
-        "name": "Sticky Note"
-      },
-      {
-        "parameters": {
-          "content": "## Discord AI Agent\n\n### Update the prompt\n**Modify the prompt** according to your specific use case and requirements.\n\n### Variables used\n- **date_message**: `{{ $now }}`\n- **userId**: `<{{ $json.body.userId }}>`\n- **discord_message**: `{{ $json.body.content.replace(\"<@botid>\", \"\") }}` *Note: On the text field, replace **@botid** with the actual ID of your Discord bot*.",
-          "height": 460,
-          "width": 980,
-          "color": 7
-        },
-        "type": "n8n-nodes-base.stickyNote",
-        "typeVersion": 1,
-        "position": [
-          780,
-          20
-        ],
-        "id": "5f8df7e8-d8da-438a-8bfd-82b8d9b7233e",
-        "name": "Sticky Note1"
-      },
-      {
-        "parameters": {},
-        "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
-        "typeVersion": 1.1,
-        "position": [
-          1560,
-          760
-        ],
-        "id": "27a82c0b-9bea-4d27-84de-faa900162408",
-        "name": "HTTP Request"
-      },
-      {
-        "parameters": {
-          "promptType": "define",
-          "text": "=date_message : {{ $now }}\nuserId : <{{ $json.body.userId }}>\ndiscord_message : {{ $json.body.content.replace(\"<@botid>\", \"\") }}",
-          "options": {
-            "systemMessage": "=You are a Discord assistant that…\n[Provide instructions to the Discord AI Agent in Markdown or XML format, detailing how to use the available tools.]\n\n**Always include the author by mentioning them with the provided <@userId> in your answer**."
-          }
-        },
-        "type": "@n8n/n8n-nodes-langchain.agent",
-        "typeVersion": 1.7,
-        "position": [
-          1160,
-          300
-        ],
-        "id": "4d2b41b6-7931-41c7-8a7d-73227a462e13",
-        "name": "Discord AI Agent"
-      },
-      {
-        "parameters": {
-          "content": "## Memory\n\nThis component gives the AI agent more context by remembering conversation history.\nYou can replace this with the memory node of your choice (e.g., Postgres for more persistent storage).\n\nThe variable `{{ $('Webhook').item.json.body.sessionId }}` is used to maintain conversations based on the **sessionId** generated from the Discord `bot.py` file.",
-          "height": 400,
-          "width": 420,
-          "color": 7
-        },
-        "type": "n8n-nodes-base.stickyNote",
-        "typeVersion": 1,
-        "position": [
-          1060,
-          500
-        ],
-        "id": "8ace912c-ad30-4a60-8955-48f7574eab34",
-        "name": "Sticky Note3"
-      },
-      {
-        "parameters": {
-          "sessionIdType": "customKey",
-          "sessionKey": "={{ $('Webhook - Receive message and sessionId').item.json.body.sessionId }}"
-        },
-        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-        "typeVersion": 1.3,
-        "position": [
-          1280,
-          760
-        ],
-        "id": "af1d5ae9-e8cc-48f5-95b0-dc51a3bd4ab3",
-        "name": "Window Buffer Memory"
-      },
-      {
-        "parameters": {
-          "content": "## Discord AI Agent Workflow\nThis workflow serves as the foundation for using the Discord n8n AI Agent.\n\n### The Python file \nThe `bot.py` script runs on the service of your choice (e.g., a **[background worker on Render.com](https://render.com/docs/background-workers)**)\n\n### Variables\nThe workflow receives the following variables via webhook:\n- **content**: The message content from Discord\n- **author**: The username of the message sender\n- **userId**: The Discord user ID\n- **sessionId**: Unique identifier for maintaining conversation context\n- **timestamp**: When the message was sent\n\n### Prompt\nUpdate the **prompt** in the **\"Discord AI Agent\"** node to meet your specific needs.\nIf your bot will be used in public channels, ensure your prompt includes **appropriate guardrails**.\n\n### Tool Connection\nConnect **any tools you want the Discord AI agent** to **interact with** to provide answers directly on Discord.\n\n### Character Limitations\nRemember that Discord has a **2000 character limit** per message in its basic version.",
-          "height": 880,
-          "width": 480,
-          "color": 5
-        },
-        "type": "n8n-nodes-base.stickyNote",
-        "typeVersion": 1,
-        "position": [
-          0,
-          0
-        ],
-        "id": "ea20b288-aa87-40ff-8ba0-eaf8df1b042a",
-        "name": "Sticky Note2"
-      },
-      {
-        "parameters": {
-          "content": "## Webhook\nThis webhook receives the **message content**, **author id** , and a generated **sessionId** from the bot.py script.\n\nIt is only **triggered** when the bot is **mentioned** in a Discord message.\n\nAdd **header authentication** and edit your **.env** file with the same authentication token for security.",
-          "height": 460,
-          "width": 260,
-          "color": 7
-        },
-        "type": "n8n-nodes-base.stickyNote",
-        "typeVersion": 1,
-        "position": [
-          500,
-          20
-        ],
-        "id": "ff5c669d-7928-4043-a384-11bad7aed4e8",
-        "name": "Sticky Note4"
-      },
-      {
-        "parameters": {
-          "httpMethod": "POST",
-          "path": "webhook-path",
-          "authentication": "headerAuth",
-          "responseMode": "responseNode",
-          "options": {}
-        },
-        "type": "n8n-nodes-base.webhook",
-        "typeVersion": 2,
-        "position": [
-          580,
-          300
-        ],
-        "id": "a899d460-209b-4709-8791-01fe3d2433ba",
-        "name": "Webhook - Receive message and sessionId",
-        "webhookId": "webhook-id",
-        "credentials": {
-          "httpHeaderAuth": {
-            "id": "",
-            "name": ""
-          }
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        3920,
+        1480
+      ],
+      "id": "241e80f3-4989-4e07-b475-4428c778b6da",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "11",
+          "name": "n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a personal assistant AI Agent designed to handle various tasks efficiently. Your primary role is to manage contacts, emails, and calendar events for the user. You have access to three tools to help you fulfill requests:\n\nTeam Directory: Use this when you need to look up contact information like an email address. You need to use this tool BEFORE sending an email or BEFORE getting emails.\n\nEmail Agent: Use this for handling all email-related actions, like sending messages, setting up replies, or forwarding emails.\n\nCalendar Agent: Use this for scheduling, updating, or managing calendar events.\n\nSend Slack Message: Use this to send a message in Slack.\n\nProjects_Agent: Use this tool to access our projects. We can update our projects of get information on our projects.\n\nWhen a task requires using one or more of these tools, make sure to identify which tool is most appropriate, pass along the relevant details, and execute the actions needed to complete the task. Your goal is to be proactive, precise, and organized in managing these resources to provide a smooth experience for the user.\n\nHere is the current time/date: {{ $now }}\nuserId : {{ $('Discord Webhook').item.json.body.userId }}\ndiscord_message : {{   $('Discord Webhook').item.json.body.message.replace(\"<@botid>\", \"\") }}\n\nYou are a calendar assistant. You have access to multiple tools to take any action within calendar. Here is the current date/time: {{ $now }}\n\nCreate Event:\nIf an end date isn't specified for the event, assume it will be 60 minutes long. Use this tool if there is no attendee specified.\n\nCreate Event with Attendee:\nIf an end date isn't specified for the event, assume it will be 60 minutes long. Use this tool WHEN AN ATTENDEE IS SPECIFIED.\n\nGet Events:\nUse this tool to get events from a certain day and summarize them. ",
+        "options": {
+          "systemMessage": "=You are a Discord assistant that…\n[Provide instructions to the Discord AI Agent in Markdown or XML format, detailing how to use the available tools.]\n\n**Always include the author by mentioning them with the provided <@userId> in your answer**."
         }
       },
-      {
-        "parameters": {
-          "content": "## Chat Model\nThis is the LLM used by the agent.\nThe default is `gpt-4o-mini` for its cost-efficiency.\n\nYou can replace this with **any model** of your choice that supports **tool calling functionality**.",
-          "height": 400,
-          "width": 260,
-          "color": 7
-        },
-        "type": "n8n-nodes-base.stickyNote",
-        "typeVersion": 1,
-        "position": [
-          780,
-          500
-        ],
-        "id": "faafbcf2-2948-411c-98d6-f418ee182a8f",
-        "name": "Sticky Note5"
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        4060,
+        1200
+      ],
+      "id": "c068d4c0-4a71-418f-b7eb-78573f3cb5dd",
+      "name": "Discord AI Agent"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"output\": \"{{ $('Discord AI Agent').item.output }}\"\n}",
+        "options": {}
       },
-      {
-        "parameters": {
-          "model": {
-            "__rl": true,
-            "value": "gpt-4o-mini",
-            "mode": "list",
-            "cachedResultName": "gpt-4o-mini"
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4900,
+        1200
+      ],
+      "id": "fb956ff8-1f1b-4b94-8134-515e493a1f64",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        4060,
+        1480
+      ],
+      "id": "2fbed6cb-d332-4fdb-b41f-fc50fef91c11",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "vnHxdCZ1hQ9Frchg",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "discord-bot",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        2520,
+        1220
+      ],
+      "id": "d2626658-fa51-4ae3-8509-7e620f7e553a",
+      "name": "Discord Webhook",
+      "webhookId": "webhook-id",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CumNb9VRPUmBMX0w",
+          "name": "Discord"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7113e573-923e-4c57-8d78-8cd94a7bddfa",
+          "mode": "list",
+          "cachedResultName": "Team Directory",
+          "cachedResultUrl": "https://www.notion.so/7113e573923e4c578d788cd94a7bddfa"
+        },
+        "limit": 2,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Discord channel ID|rich_text",
+              "condition": "equals",
+              "richTextValue": "={{ $json.body.channelId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2740,
+        1220
+      ],
+      "id": "52c454a2-1946-49f7-8f01-d94f8ee837ab",
+      "name": "Notion",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"output\": \"Канал не зареєстровано. Будь ласка, зареєструйте його перед початком спілкування з ботом.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3480,
+        1520
+      ],
+      "id": "a874cb17-cc7e-450e-8aed-e8726af8dd8b",
+      "name": "Respond not Registred"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Consume Google Calendar API to get events in Team Calendar related to team member name",
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "etcetera.kiev.ua_q1bfpjas0rj3e59cv32v05t6bs@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Etcetera Agency"
+        },
+        "returnAll": true,
+        "options": {
+          "timeMin": "={{ $fromAI(\"oneDayBefore\",\"one day before the day that the user requested\") }}",
+          "timeMax": "={{ $fromAI(\"oneDayAfter\",\"one day after the day that the user requested\") }}",
+          "query": "={{$fromAI(\"name\") }}"
+        }
+      },
+      "id": "f7dcc56b-d274-462e-8131-b7367e4b5bf3",
+      "name": "Get Events",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.1,
+      "position": [
+        4440,
+        1760
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "10",
+          "name": "Safonov gCal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Calendar tools\n",
+        "height": 380,
+        "width": 500,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        4380,
+        1720
+      ],
+      "typeVersion": 1,
+      "id": "c8ebfd37-586d-4adb-83a5-87d4c565c987",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Notion tools\n",
+        "height": 440,
+        "width": 540,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3740,
+        1700
+      ],
+      "typeVersion": 1,
+      "id": "0e3e866c-a4c2-4b7a-8608-d632d46ea8dd",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Team Directory Database\n\nThe Team Directory is an internal resource designed to store comprehensive details about team members, including their professional skills, roles, contact methods, social profiles, and other important notes. It is primarily used for effective team management, collaboration, and quick reference.\n\n⸻\n\nGeneral Information\n\t•\tName (Title)\nTeam member’s full name (e.g., Roman Lernichenko).\n\t•\tLocation (Rich Text)\nMember’s current work location (e.g., Odessa, Ua).\n\t•\tBirth Day (Date)\nTeam member’s birth date (e.g., YYYY-MM-DD).\n\t•\tJoined (Date)\nDate the member joined the agency (e.g., 2024-10-21).\n\t•\tLeft agency (Date)\nDate when the member left, if applicable.\n\t•\tNewcommer (Checkbox)\nIndicates if the member is new.\n\t•\tout of Team now (Checkbox)\nIndicates if the team member is currently inactive.\n\t•\tNon-exclusive (Checkbox)\nFlags non-exclusive employment or agreements.\n\n\n⸻\n\nContact Information\n\t•\tPhone (Phone Number)\nMember’s phone number.\n\t•\tPersonal (Email)\nPersonal email address (e.g., roman.lernichenko@gmail.com)\n\t•\tETC (Email)\nCorporate Etcetera email information or notes(e.g., lernichenko@etcetera.kiev.ua).\n\t•\tSkype ID (rich_text)\nSkype username (e.g., roman.lernichenko).\n\t•\tSkype chat ID (rich_text)\nSkype group or chat identifier.\n\t•\tSkype Staffing Chat (URL)\nURL to staffing-related Skype group.\n\t•\tDiscord ID (rich_text)\nDiscord username.\n\t•\tDiscord channel ID (rich_text)\nIdentifier for Discord channels.\n\t•\tLinkedIn (URL)\nMember’s LinkedIn profile.\n\t•\tFB (URL)\nMember’s Facebook profile (e.g., link).\n\t•\tPersonal (Email)\nMember’s personal email for direct communication.\n\n⸻\n\nSkills & Tools\n\t•\tSkills set (rich_text)\nDetailed technical skills (e.g., HTML5, CSS3, JavaScript, PHP, React.js, Docker, Laravel, Wordpress, etc.).\n\t•\tTools (rich_text)\nTools the team member is proficient with (e.g., PhpStorm, Figma, Adobe Photoshop, Adobe Illustrator, Mamp, Unix CLI).\n\t•\tUnwanted (rich_text)\nTools or platforms explicitly unwanted or not preferred (e.g., Wix).\n\n⸻\n\nProfessional Profiles\n\t•\tUpwork Profile (URL)\nLink to the Upwork profile.\n\t•\tUpwork ID (rich_text)\nInternal identifier related to Upwork.\n\t•\tUpwork reference (rich_text)\nReference ID from Upwork.\n\t•\tBehance (URL)\nMember’s creative portfolio link on Behance.\n\t•\tDribbble (URL)\nDribbble profile link (if applicable).\n\t•\tLinkedIn (URL)\nLink to the LinkedIn profile.\n\n⸻\n\nPersonality & Assessments\n\t•\t16 Pers (rich_text)\nPersonality type (e.g., ENTP).\n\t•\tDISK (rich_text)\nDISC personality profile or assessment details (e.g., “D:-2, I:5, S:4, C:-7”).",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7113e573-923e-4c57-8d78-8cd94a7bddfa",
+          "mode": "list",
+          "cachedResultName": "Team Directory",
+          "cachedResultUrl": "https://www.notion.so/7113e573923e4c578d788cd94a7bddfa"
+        },
+        "returnAll": true,
+        "simple": false,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "out of Team now|checkbox",
+              "condition": "equals"
+            },
+            {
+              "key": "Discord channel ID|rich_text",
+              "condition": "equals",
+              "richTextValue": "={{ $fromAI(\"Discord_channel_ID\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        3820,
+        1780
+      ],
+      "id": "5fc20baf-fbd1-49d5-ae54-5725715da38e",
+      "name": "Get Team directory by channel",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "=The Workload Database is a tool for monitoring and managing an individual’s work capacity on a weekly basis. It captures both the planned workload (what was scheduled) and the actual work completed (the “facts”) for each day of the week. This enables teams and managers to assess resource allocation, identify discrepancies between planned and actual performance, and flag areas needing attention. In addition, the database tracks overall capacity, booking details, and aggregates key metrics to support effective workload planning and optimization.\n\n⸻\n\nField Descriptions\n\n1. General Information\n\t•\tName (Title):\nThe primary identifier for each record, typically displaying the team mamber name(e.g., Alex Shibisty)..\n\t•\tDate (Created Time):\nIndicates when the workload record was created, marking the start of the tracking period.\n\t•\tUpdated (Last Edited Time):\nReflects the most recent update to the record.\n\n2. Capacity & Availability\n\t•\tCapacity (Number):\nRepresents the maximum workload capacity available for the individual (e.g., 16).\n\t•\tout of team (Checkbox):\nA flag indicating whether the individual is currently not part of the team, which may affect planning.\n\n3. Daily Workload & Booking Metrics\n\t•\tMon Plan, Tue Plan, Wed Plan, Thu Plan, Fri Plan (Number):\nCapture the planned workload from corresponding day till the end of the week annousnsed by the tean member.\n\t•\tMon Fact, Tue Fact, Wed Fact, Thu Fact, Fri Fact (Number):\nRecord the actual work completed (“facts”) on each day.\n\t•\tWeekend Fact (Number):\nUsed to log any work performed during the weekend.\n\t•\tNext week plan (Number):\nCaptures planned workload for the upcoming week to aid in forward planning.\n\n\n4. Aggregated & Derived Metrics\n\t•\tPlan (Formula - Number):\nA derived value that summarizes the total planned workload for the week.\n\t•\tTotal (Formula - Number):\nAggregates workload data (such as total tasks or hours) to provide an overall measure.\n\t•\tFact (Formula - Number):\nComputes the total actual work completed across the week by summing daily values.\n\t•\tNot used / Not used (number) (Formula - String/Number):\nFields that capture unused capacity.\n\t•\tNeed attention (Formula - Boolean):\nA flag (true/false) indicating if the current workload status requires managerial intervention.\n\n5. Additional Scheduling & Planning Metrics\n\t•\tWeek (Formula - Number)\nComputes the amount weeks passed from curren week helping to segment data into weekly intervals. e.g 0=this week, 1=last week, 2=two weeks ago\n\t•\tTemplate (Checkbox):\nIndicates whether this record is template wich shows the normal capasity hour numbers.\n\t",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "01e5b4b3-d6eb-4ad6-9262-008ddc5fa5e4",
+          "mode": "list",
+          "cachedResultName": "Workload",
+          "cachedResultUrl": "https://www.notion.so/01e5b4b3d6eb4ad69262008ddc5fa5e4"
+        },
+        "simple": false,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Name|title",
+              "condition": "equals",
+              "titleValue": "={{ $fromAI(\"name\") }}"
+            },
+            {
+              "key": "Week|formula",
+              "condition": "equals",
+              "returnType": "number",
+              "numberValue": "={{ $fromAI(\"week\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        4160,
+        1780
+      ],
+      "id": "eb46b01c-a39b-457f-ac69-0a62e69acdaa",
+      "name": "Get Workload DB by name",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "etcetera.kiev.ua_q1bfpjas0rj3e59cv32v05t6bs@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Etcetera Agency"
+        },
+        "eventId": "={{ $fromAI(\"event_id\") }}",
+        "useDefaultReminders": false,
+        "updateFields": {}
+      },
+      "id": "df3d8885-08c9-499a-8324-ef672dca1e79",
+      "name": "Change event",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.1,
+      "position": [
+        4240,
+        960
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "10",
+          "name": "Safonov gCal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "=Profile Stats Database \n\nThe Profile Stats Database is a performance tracking tool that aggregates key metrics for Upwork profiles over defined reporting periods. It monitors engagement indicators such as views, clicks, proposals, and invites while also evaluating response efficiency and specialized performance areas. This data is used to assess overall profile performance against established KPIs and to inform strategic adjustments.\n\nField Descriptions\n\n1. General & Time-Based Fields\n\t•\tName (Title)\nThe primary identifier for each record, typically displaying the team mamber name(e.g., Alex Shibisty).\n\t•\tCreated (Created Time)\nAutomatically records the timestamp when the record was created.\n\t•\tWeek (Formula - Number)\nComputes the amount weeks passed from curren week helping to segment data into weekly intervals. e.g 0=this week, 1=last week, 2=two weeks ago\n\t•\tPeriod (Formula - String)\nA calculated field that formats a date range (for example, “March 3 - March 9 2025”), defining the reporting period for the record.\n\n2. Engagement & Performance Metrics\n\t•\tProfile Views (Number)\nTotal count of profile views recorded during the reporting period.\n\t•\tClicks (Number)\nThe number of client's clicks registered on the upwork profile during the reporting period.\n\t•\tImpressions (Number)\nThe number of client's interactions registered on the upwork profile during the reporting period.\n\t•\tSent Proposals (Number)\nTotal proposals sent out from the profile during the reporting period.\n\t•\tViewed Proposals (Number)\nThe count of proposals that were actually viewed by clients during the reporting period.\n\t•\tConnects (Number)\nRecords the number of upwork connects available on infividual the upwork profile on start the reporting period.. \n\t•\tGeneral Pr Invites (Number)\nTotal number of general invitations received during the reporting period..",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "https://www.notion.so/etcetera/501c314abddb45bfb35d91a217d709d8?v=f22acd6b1b1f4697bdab81734f86301a&pvs=4",
+          "mode": "url"
+        },
+        "simple": false,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Name|title",
+              "condition": "equals",
+              "titleValue": "={{ $fromAI(\"name\") }}"
+            },
+            {
+              "key": "Week|formula",
+              "condition": "equals",
+              "returnType": "number",
+              "numberValue": "={{ $fromAI(\"week\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        4000,
+        1780
+      ],
+      "id": "e4e290a3-d4e1-43df-a919-d79750cf1f88",
+      "name": "Get Profile stats DB by name",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "etcetera.kiev.ua_q1bfpjas0rj3e59cv32v05t6bs@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Etcetera Agency"
+        },
+        "eventId": "={{ $fromAI(\"event_id\") }}",
+        "options": {}
+      },
+      "id": "f1f61cde-78f5-4975-92d8-2ee047d3ecb1",
+      "name": "Delete event",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.1,
+      "position": [
+        4380,
+        960
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "10",
+          "name": "Safonov gCal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Consume Google Calendar API to create Create Day-off or Vacation record with event name in format \"Vacation: teammember name\"",
+        "calendar": {
+          "__rl": true,
+          "value": "etcetera.kiev.ua_q1bfpjas0rj3e59cv32v05t6bs@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Etcetera Agency"
+        },
+        "start": "={{ $fromAI(\"starttime\",\"the time the user asks for the event to start\") }}",
+        "end": "={{ $fromAI(\"endtime\",\"the time the user asks for the event to end\") }}",
+        "useDefaultReminders": false,
+        "additionalFields": {
+          "allday": "yes",
+          "attendees": []
+        }
+      },
+      "id": "f21a42ed-36f7-45d4-bede-aaf70b2d84a0",
+      "name": "Create Day-off or Vacation",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.1,
+      "position": [
+        4580,
+        1760
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "10",
+          "name": "Safonov gCal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Consume Notion API\n",
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "=https://www.notion.so/etcetera/Alex-Shibisty-1abc3573e5108043a5c4d70c6c9ddca2?pvs=4",
+          "mode": "url"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Connects|number",
+              "numberValue": "={{ $fromAI(\"connects\",\"\",\"number\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        4000,
+        1960
+      ],
+      "id": "0ff5bd22-fb0a-4bf5-8b78-63d3a3d7c249",
+      "name": "Write connects to Profile stats DB",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Write plan hours announced by the user",
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "=https://www.notion.so/etcetera/Alex-Shibisty-7333e7f85cd14bf5b7d8cf53c2ec6fc0?pvs=4",
+          "mode": "url"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "={{ $fromAI(\"field\", \"lkjlkj\" ,\"string\", Fri Plan) }}|number",
+              "numberValue": "={{ $fromAI(\"hours\", \"lkjlkj\" ,\"number\", 0) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        4160,
+        1960
+      ],
+      "id": "4dfea2b2-d02c-4c2e-ba8c-97b12b97edae",
+      "name": "Write plan hours to Workload DB",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "n8n_chat_histories",
+          "mode": "list",
+          "cachedResultName": "n8n_chat_histories"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_id": "={{ $('Discord Webhook').item.json.body.channelId }}",
+            "message": "={{ $fromAI(\"uncomplited_survey_steps\") }}"
           },
-          "options": {}
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
-        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-        "typeVersion": 1.2,
-        "position": [
-          860,
-          760
-        ],
-        "id": "1e029c3c-7856-406b-9c1c-419e42ca2288",
-        "name": "OpenAI Chat Model"
+        "options": {}
       },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.5,
+      "position": [
+        4980,
+        1700
+      ],
+      "id": "fa44d1e2-bbea-4f8b-a30a-a1ed25da3a45",
+      "name": "insert uncompited survey",
+      "credentials": {
+        "postgres": {
+          "id": "11",
+          "name": "n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json  }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "all good"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "bc2d2a65-260a-4393-aec7-63caf1d37a5c",
+                    "leftValue": "={{ $json && $(  'Discord Webhook').item.json.body.message.includes(\"!register\")}}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "register"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a0a8e7d1-d733-4d77-b1a9-c857115321b8",
+                    "leftValue": "={{ $json && $(  'Discord Webhook').item.json.body.message.includes(\"!unregister\")}}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "unregister"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2960,
+        1220
+      ],
+      "id": "265214c5-2d70-471b-96f6-3443ad3668b5",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7113e573-923e-4c57-8d78-8cd94a7bddfa",
+          "mode": "list",
+          "cachedResultName": "Team Directory",
+          "cachedResultUrl": "https://www.notion.so/7113e573923e4c578d788cd94a7bddfa"
+        },
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Name|title",
+              "condition": "contains",
+              "titleValue": "={{ $('Discord Webhook').item.json.body.message.substring(33) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2860,
+        1680
+      ],
+      "id": "3f803e54-8bbf-4a2d-81d1-fdcec9b7f4d8",
+      "name": "Notion search TD",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.url }}",
+          "mode": "url"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Discord ID|rich_text",
+              "textContent": "={{ $('Discord Webhook').item.json.body.userId }}"
+            },
+            {
+              "key": "Discord channel ID|rich_text",
+              "textContent": "={{ $('Discord Webhook').item.json.body.channelId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        3280,
+        1680
+      ],
+      "id": "8bd62cf0-006c-4acc-ba42-c52fcd4fc1ea",
+      "name": "Notion add ID, Channel ID",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"output\": \"Канал зарєстровано. Дякую <@{{$('Discord Webhook').item.json.body.userId}}> \"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3480,
+        1680
+      ],
+      "id": "6c1f634e-ff4f-4ff6-abfe-82664c323f29",
+      "name": "Respond  Registred"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Write Discord ID  and Discord channel ID, if unregister comand make Discord channel ID empty\n",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7113e573-923e-4c57-8d78-8cd94a7bddfa",
+          "mode": "list",
+          "cachedResultName": "Team Directory",
+          "cachedResultUrl": "https://www.notion.so/7113e573923e4c578d788cd94a7bddfa"
+        },
+        "returnAll": true,
+        "simple": false,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "out of Team now|checkbox",
+              "condition": "equals"
+            },
+            {
+              "key": "Discord channel ID|rich_text",
+              "condition": "equals",
+              "richTextValue": "={{ $fromAI(\"Discord_channel_ID\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        3820,
+        1960
+      ],
+      "id": "f82d48e9-8eec-4065-b784-44b697bd6812",
+      "name": "Update channel to Team directory",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7113e573-923e-4c57-8d78-8cd94a7bddfa",
+          "mode": "list",
+          "cachedResultName": "Team Directory",
+          "cachedResultUrl": "https://www.notion.so/7113e573923e4c578d788cd94a7bddfa"
+        },
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Name|title",
+              "condition": "contains",
+              "titleValue": "={{ $('Discord Webhook').item.json.body.message.substring(33) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2860,
+        1860
+      ],
+      "id": "661272cd-def8-4102-af54-66829752d02d",
+      "name": "Notion search TD1",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.url }}",
+          "mode": "url"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Discord ID|rich_text",
+              "textContent": "={{ $('Discord Webhook').item.json.body.userId }}"
+            },
+            {
+              "key": "Discord channel ID|rich_text",
+              "textContent": "= "
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        3280,
+        1860
+      ],
+      "id": "f562e4c3-684e-4a1b-bcdf-2dd38cd38708",
+      "name": "Notion add ID, Channel ID1",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"output\": \"Канал більше не зарєстрований. Дякую <@{{$('Discord Webhook').item.json.body.userId}}> \"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3480,
+        1860
+      ],
+      "id": "7902b0eb-9293-4489-88c5-aecbe8a75f3a",
+      "name": "Respond  Registred1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6a271d22-02df-42cd-85b9-f978e55ade3d",
+              "leftValue": "={{ $('Discord Webhook').item.json.body.command }}",
+              "rightValue": "mention",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3280,
+        1180
+      ],
+      "id": "1e80791c-7ddd-4e65-9e95-2a7da9307ace",
+      "name": "If mention"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "get",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $fromAI(\"url\", \"DB page url\") }}",
+          "mode": "url"
+        },
+        "simple": false
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        4060,
+        960
+      ],
+      "id": "5625d679-7bc5-4b33-9a50-8bd1b303d532",
+      "name": "Get DB page",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "block",
+        "operation": "getAll",
+        "blockId": {
+          "__rl": true,
+          "value": "={{ $fromAI(\"url\", \"Get child blocks from page url\") }}",
+          "mode": "url"
+        }
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        3940,
+        960
+      ],
+      "id": "1acbd227-2518-4042-958f-52590a3226d0",
+      "name": "Notion get Page",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "=Team Directory Database\n\nThe Team Directory is an internal resource designed to store comprehensive details about team members, including their professional skills, roles, contact methods, social profiles, and other important notes. It is primarily used for effective team management, collaboration, and quick reference.\n\n⸻\n\nGeneral Information\n\t•\tName (Title)\nTeam member’s full name (e.g., Roman Lernichenko).\n\t•\tLocation (Rich Text)\nMember’s current work location (e.g., Odessa, Ua).\n\t•\tBirth Day (Date)\nTeam member’s birth date (e.g., YYYY-MM-DD).\n\t•\tJoined (Date)\nDate the member joined the agency (e.g., 2024-10-21).\n\t•\tLeft agency (Date)\nDate when the member left, if applicable.\n\t•\tNewcommer (Checkbox)\nIndicates if the member is new.\n\t•\tout of Team now (Checkbox)\nIndicates if the team member is currently inactive.\n\t•\tNon-exclusive (Checkbox)\nFlags non-exclusive employment or agreements.\n\n\n⸻\n\nContact Information\n\t•\tPhone (Phone Number)\nMember’s phone number.\n\t•\tPersonal (Email)\nPersonal email address (e.g., roman.lernichenko@gmail.com)\n\t•\tETC (Email)\nCorporate Etcetera email information or notes(e.g., lernichenko@etcetera.kiev.ua).\n\t•\tSkype ID (rich_text)\nSkype username (e.g., roman.lernichenko).\n\t•\tSkype chat ID (rich_text)\nSkype group or chat identifier.\n\t•\tSkype Staffing Chat (URL)\nURL to staffing-related Skype group.\n\t•\tDiscord ID (rich_text)\nDiscord username.\n\t•\tDiscord channel ID (rich_text)\nIdentifier for Discord channels.\n\t•\tLinkedIn (URL)\nMember’s LinkedIn profile.\n\t•\tFB (URL)\nMember’s Facebook profile (e.g., link).\n\t•\tPersonal (Email)\nMember’s personal email for direct communication.\n\t•\tToDo \nMember’s ToDo page (Page with plans) link\n\n⸻\n\nSkills & Tools\n\t•\tSkills set (rich_text)\nDetailed technical skills (e.g., HTML5, CSS3, JavaScript, PHP, React.js, Docker, Laravel, Wordpress, etc.).\n\t•\tTools (rich_text)\nTools the team member is proficient with (e.g., PhpStorm, Figma, Adobe Photoshop, Adobe Illustrator, Mamp, Unix CLI).\n\t•\tUnwanted (rich_text)\nTools or platforms explicitly unwanted or not preferred (e.g., Wix).\n\n⸻\n\nProfessional Profiles\n\t•\tUpwork Profile (URL)\nLink to the Upwork profile.\n\t•\tUpwork ID (rich_text)\nInternal identifier related to Upwork.\n\t•\tUpwork reference (rich_text)\nReference ID from Upwork.\n\t•\tBehance (URL)\nMember’s creative portfolio link on Behance.\n\t•\tDribbble (URL)\nDribbble profile link (if applicable).\n\t•\tLinkedIn (URL)\nLink to the LinkedIn profile.\n\n⸻\n\nPersonality & Assessments\n\t•\t16 Pers (rich_text)\nPersonality type (e.g., ENTP).\n\t•\tDISK (rich_text)\nDISC personality profile or assessment details (e.g., “D:-2, I:5, S:4, C:-7”).",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7113e573-923e-4c57-8d78-8cd94a7bddfa",
+          "mode": "list",
+          "cachedResultName": "Team Directory",
+          "cachedResultUrl": "https://www.notion.so/7113e573923e4c578d788cd94a7bddfa"
+        },
+        "returnAll": true,
+        "simple": false,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "out of Team now|checkbox",
+              "condition": "equals"
+            },
+            {
+              "key": "Name|title",
+              "condition": "={{ $fromAI(\"contain\", \"Could be does or does_not_contain\", \"does_not_contain\")  }}",
+              "titleValue": "={{ $fromAI(\"name\", \"Team member name\") }}"
+            },
+            {
+              "key": "Discord channel ID|rich_text",
+              "condition": "equals"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        3800,
+        960
+      ],
+      "id": "c0b068ca-9e64-4b32-9c35-ed1d71005af2",
+      "name": "Get Team directory by Channel or name",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        3980,
+        680
+      ],
+      "id": "95870139-5f48-4d7a-bc9e-893a5d9ae57b",
+      "name": "Etcetera AI Agent"
+    }
+  ],
+  "connections": {
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Discord AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "Etcetera AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discord AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Discord AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Etcetera AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discord Webhook": {
+      "main": [
+        [
+          {
+            "node": "Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Events": {
+      "ai_tool": [
+        [
+          {
+            "node": "Discord AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Etcetera AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Team directory by channel": {
+      "ai_tool": [
+        [
+          {
+            "node": "Discord AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Workload DB by name": {
+      "ai_tool": [
+        [
+          {
+            "node": "Discord AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Etcetera AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Change event": {
+      "ai_tool": [
+        [
+          {
+            "node": "Etcetera AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Profile stats DB by name": {
+      "ai_tool": [
+        [
+          {
+            "node": "Discord AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Etcetera AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete event": {
+      "ai_tool": [
+        [
+          {
+            "node": "Etcetera AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Day-off or Vacation": {
+      "ai_tool": [
+        [
+          {
+            "node": "Discord AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Etcetera AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write connects to Profile stats DB": {
+      "ai_tool": [
+        [
+          {
+            "node": "Discord AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write plan hours to Workload DB": {
+      "ai_tool": [
+        [
+          {
+            "node": "Discord AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "insert uncompited survey": {
+      "ai_tool": [
+        [
+          {
+            "node": "Discord AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "If mention",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notion search TD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notion search TD1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond not Registred",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion search TD": {
+      "main": [
+        [
+          {
+            "node": "Notion add ID, Channel ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion add ID, Channel ID": {
+      "main": [
+        [
+          {
+            "node": "Respond  Registred",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update channel to Team directory": {
+      "ai_tool": [
+        [
+          {
+            "node": "Discord AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion search TD1": {
+      "main": [
+        [
+          {
+            "node": "Notion add ID, Channel ID1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion add ID, Channel ID1": {
+      "main": [
+        [
+          {
+            "node": "Respond  Registred1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If mention": {
+      "main": [
+        [
+          {
+            "node": "Etcetera AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Discord AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Get DB page": {
+      "ai_tool": [
+        [
+          {
+            "node": "Etcetera AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion get Page": {
+      "ai_tool": [
+        [
+          {
+            "node": "Etcetera AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Team directory by Channel or name": {
+      "ai_tool": [
+        [
+          {
+            "node": "Etcetera AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Etcetera AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "Discord Webhook": [
       {
-        "parameters": {
-          "content": "## Respond to Webhook\n\nThis node sends the **response back to the webhook**.\n\nThe response will be handled by `bot.py` to provide an answer in the Discord channel where the bot was mentioned.",
-          "height": 460,
-          "width": 260,
-          "color": 7
+        "headers": {
+          "host": "n8n.etcetera.agency",
+          "x-real-ip": "152.70.187.230",
+          "x-forwarded-for": "152.70.187.230",
+          "x-forwarded-proto": "https",
+          "connection": "close",
+          "content-length": "314",
+          "authorization": "Bearer 3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "accept": "*/*",
+          "accept-encoding": "gzip, deflate",
+          "user-agent": "Python/3.10 aiohttp/3.11.12",
+          "content-type": "application/json"
         },
-        "type": "n8n-nodes-base.stickyNote",
-        "typeVersion": 1,
-        "position": [
-          1780,
-          20
-        ],
-        "id": "f27228e6-1275-47a2-ae2b-6b2f3a233d37",
-        "name": "Sticky Note6"
+        "params": {},
+        "query": {},
+        "body": {
+          "command": "mention",
+          "status": "ok",
+          "message": "<@1347227313636642937> !register Safonov",
+          "result": {},
+          "author": "safonov.denys",
+          "userId": "720027389714759751",
+          "sessionId": "dab44d9e-e718-490f-a326-d4fdb70ef0b4",
+          "channelId": "1348252644866654228",
+          "channelName": "head-denys-safonov",
+          "timestamp": 4720260
+        },
+        "webhookUrl": "https://n8n.etcetera.agency/webhook/discord-bot",
+        "executionMode": "production"
       }
-    ],
-    "pinData": {},
-    "connections": {
-      "HTTP Request": {
-        "ai_tool": [
-          [
-            {
-              "node": "Discord AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Discord AI Agent": {
-        "main": [
-          [
-            {
-              "node": "Respond to Webhook",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Window Buffer Memory": {
-        "ai_memory": [
-          [
-            {
-              "node": "Discord AI Agent",
-              "type": "ai_memory",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Webhook - Receive message and sessionId": {
-        "main": [
-          [
-            {
-              "node": "Discord AI Agent",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "OpenAI Chat Model": {
-        "ai_languageModel": [
-          [
-            {
-              "node": "Discord AI Agent",
-              "type": "ai_languageModel",
-              "index": 0
-            }
-          ]
-        ]
-      }
-    },
-    "active": false,
-    "settings": {
-      "executionOrder": "v1"
-    },
-    "versionId": "",
-    "meta": {
-      "templateCredsSetupCompleted": true,
-      "instanceId": ""
-    },
-    "id": "",
-    "tags": []
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b3f46965e79ded88445b217ef4b61bbf4a8cac3b842104201ba127ccd1b416b7"
   }
+}

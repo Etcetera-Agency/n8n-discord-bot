@@ -243,7 +243,7 @@ The bot supports controlling surveys based on n8n responses. When n8n responds t
 
 This will display the message "Survey step recorded." and then continue to the next step in the survey.
 
-To cancel a survey, n8n can respond with:
+To cancel a survey from the n8n side, respond with:
 
 ```json
 {
@@ -252,7 +252,59 @@ To cancel a survey, n8n can respond with:
 }
 ```
 
-This will display the message "Invalid workload value. Please enter a number between 0 and 50." and then cancel the survey, removing it from the active surveys.
+This will display the message and then cancel the survey, removing it from the active surveys.
+
+When a survey is completed or ended, the bot will send a request to n8n with `"status": "end"`:
+
+```json
+{
+  "command": "survey",
+  "status": "end",
+  "result": {
+    "final": {
+    "stepName": "workload_thisweek",
+    "value": 20
+    }
+  },
+  "author": "User#1234",
+  "userId": "123456789012345678",
+  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+  "channelId": "987654321098765432",
+  "channelName": "general",
+  "timestamp": 1620000000
+}
+```
+
+This allows n8n to process the complete survey results.
+
+### Survey Timeouts
+
+If a user doesn't respond to a survey step within 15 minutes (900 seconds), the survey will automatically time out. When this happens:
+
+1. The bot sends a notification to n8n with `"status": "incomplete"` and a list of the remaining steps:
+
+```json
+{
+  "command": "survey",
+  "status": "incomplete",
+  "result": {
+    "incompleteSteps": ["workload_nextweek", "day_off_nextweek"]
+  },
+  "author": "User#1234",
+  "userId": "123456789012345678",
+  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+  "channelId": "987654321098765432",
+  "channelName": "general",
+  "timestamp": 1620000000
+}
+```
+
+2. The survey is immediately removed from active surveys
+3. The UI components (buttons, select menus) are disabled
+
+**Important**: Unlike other survey interactions, n8n does not need to send any control commands in response to an incomplete survey notification. The survey has already been removed by the time n8n receives the notification. Your n8n workflow can simply log the incomplete survey or take other actions like sending reminders to the user, but no response is expected or processed by the bot.
+
+This timeout mechanism ensures that surveys don't remain active indefinitely if users abandon them.
 
 ### Starting a Survey from n8n
 
@@ -291,6 +343,38 @@ An example n8n workflow that demonstrates the survey control feature is included
 4. Process the final survey results
 
 You can import this workflow into your n8n instance to see how it works.
+
+### Configuring the n8n AI Agent Node
+
+The n8n AI Agent node can be used to process requests from the Discord bot and generate appropriate responses. This powerful node combines AI capabilities with n8n's workflow automation, allowing your bot to make intelligent decisions based on user input.
+
+#### Basic Setup
+
+1. Add an AI Agent node to your workflow after the Webhook node
+2. Connect it to your preferred AI provider (OpenAI, Anthropic, etc.)
+3. Configure the prompt to handle different types of requests from the Discord bot
+4. Connect the AI Agent output to a Function node to process the response if needed
+
+#### Workflow Structure for Surveys
+
+For handling surveys, we recommend the following workflow structure:
+
+```
+Webhook → IF (command=survey) → IF (has final result) → Process Final Result → Respond to Webhook
+                              │                      │
+                              │                      └→ Process Survey Step → Respond to Webhook
+                              │
+                              └→ Default Response → Respond to Webhook
+```
+
+In this structure:
+- The first IF node checks if the request is a survey command
+- The second IF node checks if it's a final survey result or a step
+- Separate nodes handle processing survey steps vs. final results
+
+#### Sample Prompt for AI Agent Node
+
+See the [AI_AGENT_PROMPT.md](AI_AGENT_PROMPT.md) file for a sample prompt template and available tools.
 
 ## Communication Between Bot and n8n
 
@@ -368,13 +452,11 @@ When a user completes all steps in a survey:
 ```json
 {
   "command": "survey",
-  "status": "ok",
+  "status": "end",
   "message": "",
   "result": {
-    "final": {
-      "workload_thisweek": 20,
-      "workload_nextweek": 30,
-      "day_off_nextweek": ["Monday", "Tuesday"]
+    "stepName": "workload_thisweek",
+    "value": 20
     }
   },
   "author": "User#1234",
@@ -424,35 +506,10 @@ Basic response with just text:
 }
 ```
 
-#### 2. Survey Control - Continue
+#### 2. Response with buttons
 
-Response to continue to the next step in a survey:
+Basic response with buttons:
 
-```json
-{
-  "output": "Thank you for submitting your workload for this week!",
-  "survey": "continue"
-}
-```
-
-#### 3. Survey Control - Cancel
-
-Response to cancel a survey due to an error or invalid input:
-
-```json
-{
-  "output": "Invalid workload value. Please enter a number between 0 and 50.",
-  "survey": "cancel"
-}
-```
-
-Note that currently, the bot only processes the `output` and `survey` fields from n8n responses.
-
-### Current Limitations and Future Possibilities
-
-Currently, the bot does not support receiving UI elements like buttons or select menus directly from n8n responses. The UI elements (buttons, select menus) are created by the bot itself based on predefined templates in the code.
-
-In future versions, the bot could be extended to support dynamic UI elements from n8n responses using the Discord "components" field, which would allow for more flexible interactions. For example:
 
 ```json
 {
@@ -520,6 +577,32 @@ For select menus, you would use:
 Where `type: 3` represents a SelectMenu.
 
 If you're interested in contributing this functionality, feel free to submit a pull request!
+
+
+#### 3. Survey Control - Continue
+
+Response to continue to the next step in a survey:
+
+```json
+{
+  "output": "Thank you for submitting your workload for this week!",
+  "survey": "continue"
+}
+```
+
+#### 4. Survey Control - Cancel
+
+Response to cancel a survey due to an error or invalid input:
+
+```json
+{
+  "output": "Cannot write data, sorry.",
+  "survey": "cancel"
+}
+```
+
+Note that currently, the bot only processes the `output` and `survey` fields from n8n responses.
+
 
 ## Contributing
 

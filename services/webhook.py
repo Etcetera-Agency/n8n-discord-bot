@@ -264,6 +264,12 @@ class WebhookService:
                     if user_id in SURVEYS:
                         del SURVEYS[user_id]
                     await channel.send(f"<@{user_id}> Survey has been canceled.")
+                elif data["survey"] == "end":
+                    # End the survey and send results
+                    state = SURVEYS[user_id]
+                    if "stepName" in data and "value" in data:
+                        state.add_result(data["stepName"], data["value"])
+                    await finish_survey(channel, state)
     
     async def send_n8n_reply_interaction(self, interaction: discord.Interaction, data: Dict[str, Any]) -> None:
         """
@@ -302,6 +308,14 @@ class WebhookService:
                         await interaction.followup.send(f"<@{user_id}> Survey has been canceled.", ephemeral=False)
                     else:
                         await interaction.response.send_message(f"<@{user_id}> Survey has been canceled.", ephemeral=False)
+                elif data["survey"] == "end":
+                    # End the survey and send results
+                    state = SURVEYS[user_id]
+                    # Check if result contains stepName and value
+                    if "result" in data and isinstance(data["result"], dict):
+                        if "stepName" in data["result"] and "value" in data["result"]:
+                            state.add_result(data["result"]["stepName"], data["result"]["value"])
+                    await finish_survey(channel, state)
     
     async def send_button_pressed_info(
         self,
