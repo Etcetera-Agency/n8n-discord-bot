@@ -2,7 +2,9 @@
 
 A **Discord bot** that seamlessly integrates with n8n AI Agent, enabling AI Assistant to connect with external tools, APIs, and services for your Discord server.
 
-The Python code was developed with the assistance of LLMs, specifically `Claude 3.7 Sonnet` and `o3-mini-high`.
+The Python code was developed with the assistance of LLMs:
+- [Claude 3 Sonnet](https://docs.anthropic.com/claude/docs/claude-3-sonnet) - Used for complex code generation and architectural decisions
+- [o3-mini-high](https://ollama.com/library/openhermes) - Used for quick code reviews and minor adjustments
 
 ## Overview
 

@@ -9,63 +9,47 @@ class WorkloadView(BaseView):
     pass
 
 class WorkloadButton(discord.ui.Button):
-    """Button for selecting workload hours."""
-    def __init__(self, label: str, parent_view: WorkloadView):
+    """Button for workload selection."""
+    def __init__(self, label: str):
         """
-        Initialize the workload button.
+        Initialize a workload button.
         
         Args:
             label: Button label
-            parent_view: Parent view
         """
-        super().__init__(label=label, style=discord.ButtonStyle.secondary)
-        self.parent_view = parent_view
-    
-    async def callback(self, interaction: discord.Interaction) -> None:
-        """
-        Handle button click.
+        # Convert "Нічого немає" to "0" for display but keep original for comparison
+        display_label = "0" if label == "Нічого немає" else label
+        super().__init__(
+            style=discord.ButtonStyle.primary,
+            label=display_label,
+            custom_id=f"workload_button_{label}"
+        )
+        self.original_label = label  # Store original label for comparison
         
-        Args:
-            interaction: Discord interaction
-        """
+    async def callback(self, interaction: discord.Interaction):
+        """Handle button click."""
         await webhook_service.send_button_pressed_info(interaction, self)
+        # Convert "Нічого немає" to 0 for value
+        value = 0 if self.original_label == "Нічого немає" else int(self.label)
         
-        # Extract value from label
-        value = 0 if self.label == "Нічого немає" else int(self.label)
-        
-        if self.parent_view.has_survey:
-            # Dynamic survey flow handling
-            survey = survey_manager.get_survey(self.parent_view.user_id)
-            if not survey:
-                await interaction.response.send_message("Опитування не знайдено.", ephemeral=False)
-                return
-                
-            success, _ = await webhook_service.send_webhook(
-                interaction, 
-                command="survey",
-                status="step",
-                result={"stepName": self.parent_view.cmd_or_step, "value": value}
-            )
-            
-            if not success:
-                await interaction.response.send_message("Помилка виклику n8n.", ephemeral=False)
-                return
-            
-            survey.add_result(self.parent_view.cmd_or_step, value)
+        # Get the survey if it exists
+        survey = survey_manager.get_survey(str(interaction.user.id))
+        if survey:
+            survey.add_result(survey.current_step(), value)
             survey.next_step()
             
-            from bot.commands.survey import continue_survey
-            await continue_survey(interaction.channel, survey)
-        else:
-            # Regular slash command handling
-            await webhook_service.send_webhook(
-                interaction,
-                command=self.parent_view.cmd_or_step,
-                result={"hours": value}
-            )
+            # Ask the next question or finish
+            if survey.is_done():
+                await finish_survey(interaction.channel, survey)
+            else:
+                next_step = survey.current_step()
+                if next_step:
+                    await ask_dynamic_step(interaction.channel, survey, next_step)
         
-        self.parent_view.disable_all_items()
-        self.parent_view.stop()
+        # Disable all buttons in the view
+        for child in self.view.children:
+            child.disabled = True
+        await interaction.response.edit_message(view=self.view)
 
 def create_workload_view(
     cmd_or_step: str,
@@ -87,5 +71,5 @@ def create_workload_view(
     """
     view = WorkloadView(cmd_or_step, user_id, timeout, has_survey)
     for opt in WORKLOAD_OPTIONS:
-        view.add_item(WorkloadButton(opt, view))
+        view.add_item(WorkloadButton(opt))
     return view 

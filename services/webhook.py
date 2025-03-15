@@ -6,6 +6,7 @@ from typing import Dict, Any, Tuple, Optional, Union
 from discord.ext import commands
 from config import Config, logger
 from services.session import session_manager
+from services.survey import survey_manager
 
 # Import survey-related globals and functions
 # These will be imported at runtime to avoid circular imports
@@ -384,22 +385,51 @@ class WebhookService:
         """
         # Get appropriate attributes for different UI elements
         if isinstance(button_or_select, discord.ui.Button):
-            item_info = {"label": button_or_select.label, "custom_id": button_or_select.custom_id}
+            value = 0 if button_or_select.label == "Нічого немає" else button_or_select.label
+            custom_id = button_or_select.custom_id
         elif isinstance(button_or_select, discord.ui.Select):
-            item_info = {
-                "placeholder": button_or_select.placeholder,
-                "custom_id": button_or_select.custom_id,
-                "values": button_or_select.values
-            }
+            value = button_or_select.values[0] if button_or_select.values else None
+            custom_id = button_or_select.custom_id
         else:
-            item_info = {"type": str(type(button_or_select))}
-        
-        await self.send_webhook(
-            interaction,
-            command="button_pressed",
-            result=item_info
-        )
-        logger.info(f"UI element info sent: {item_info}, user: {interaction.user}")
+            value = None
+            custom_id = None
+
+        # Check if this is part of a survey
+        survey = None
+        if hasattr(interaction, 'user'):
+            survey = survey_manager.get_survey(str(interaction.user.id))
+
+        # Only use survey format if we're in an active survey AND the button is a workload button
+        if survey and custom_id and custom_id.startswith('workload_button_'):
+            # This is a survey step
+            result = {
+                "stepName": survey.current_step(),
+                "value": value
+            }
+            await self.send_webhook(
+                interaction,
+                command="survey",
+                status="step",
+                result=result
+            )
+        else:
+            # Regular button press (from n8n components or other interactions)
+            item_info = {
+                "label": getattr(button_or_select, 'label', None),
+                "custom_id": custom_id,
+                "value": value
+            }
+            if isinstance(button_or_select, discord.ui.Select):
+                item_info.update({
+                    "placeholder": button_or_select.placeholder,
+                    "values": button_or_select.values
+                })
+            
+            await self.send_webhook(
+                interaction,
+                command="button_pressed",
+                result=item_info
+            )
 
 # Global webhook service instance
 webhook_service = WebhookService() 
