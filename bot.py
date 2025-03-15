@@ -323,7 +323,7 @@ async def survey_incomplete_timeout(user_id: str):
     if state.user_id in SURVEYS:
         del SURVEYS[state.user_id]
 
-async def handle_start_daily_survey(user_id: str, channel_id: str, steps: List[str]):
+async def handle_start_daily_survey(bot, user_id: str, channel_id: str, steps: List[str]):
     channel = bot.get_channel(int(channel_id))
     if not channel:
         logger.warning(f"Channel {channel_id} not found for user {user_id}")
@@ -573,7 +573,7 @@ async def on_message(message: discord.Message):
             user_id = parts[1]
             channel_id = parts[2]
             steps = parts[3:]
-            await handle_start_daily_survey(user_id, channel_id, steps)
+            await handle_start_daily_survey(bot, user_id, channel_id, steps)
 
     await bot.process_commands(message)
 
@@ -699,7 +699,7 @@ async def start_survey_http(request):
         if not success_check or str(data_check.get("output", "false")).lower() != "true":
             return web.json_response({"error": "Channel is not registered"}, status=403)
 
-        await handle_start_daily_survey(user_id, channel_id, steps)
+        await handle_start_daily_survey(bot, user_id, channel_id, steps)
         return web.json_response({"status": "Survey started"})
     
     except Exception as e:

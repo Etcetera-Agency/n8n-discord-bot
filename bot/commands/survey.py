@@ -3,7 +3,6 @@ from typing import Optional, List
 from config import ViewType, logger
 from services import survey_manager, webhook_service
 from bot.views.factory import create_view
-from bot import bot  # Import the bot instance directly
 
 async def handle_survey_incomplete(user_id: str) -> None:
     """
@@ -32,16 +31,17 @@ async def handle_survey_incomplete(user_id: str) -> None:
     survey_manager.remove_survey(user_id)
     logger.info(f"Survey for user {user_id} timed out with incomplete steps: {incomplete}")
 
-async def handle_start_daily_survey(user_id: str, channel_id: str, steps: List[str]) -> None:
+async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, channel_id: str, steps: List[str]) -> None:
     """
     Start a daily survey for a user.
     
     Args:
+        bot_instance: Discord bot instance
         user_id: Discord user ID
         channel_id: Discord channel ID
         steps: List of survey step names
     """
-    channel = await bot.fetch_channel(int(channel_id))
+    channel = await bot_instance.fetch_channel(int(channel_id))
     if not channel:
         logger.warning(f"Channel {channel_id} not found for user {user_id}")
         return

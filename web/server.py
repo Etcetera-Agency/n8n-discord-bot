@@ -80,7 +80,7 @@ class WebServer:
                 logger.error(f"Channel registration check failed - success: {success_check}, data: {data_check}")
                 return web.json_response({"error": "Channel is not registered"}, status=403)
 
-            await handle_start_daily_survey(user_id, channel_id, steps)
+            await handle_start_daily_survey(self.bot, user_id, channel_id, steps)
             return web.json_response({"status": "Survey started"})
         
         except Exception as e:

@@ -75,6 +75,6 @@ class EventHandlers:
                     user_id = parts[1]
                     channel_id = parts[2]
                     steps = parts[3:]
-                    await handle_start_daily_survey(user_id, channel_id, steps)
+                    await handle_start_daily_survey(self.bot, user_id, channel_id, steps)
 
             await self.bot.process_commands(message) 
