@@ -1,5 +1,6 @@
 import discord
 from typing import Optional, List
+import datetime
 from bot.views.base import BaseView
 from config import WEEKDAY_OPTIONS, logger
 from services import webhook_service, survey_manager
@@ -27,18 +28,33 @@ class DayOffView(BaseView):
 
 class DayOffSelect(discord.ui.Select):
     """Select menu for choosing days off."""
-    def __init__(self, parent_view: DayOffView):
+    def __init__(self, parent_view: DayOffView, filter_passed_days: bool = False):
         """
         Initialize the day off select menu.
         
         Args:
             parent_view: Parent view
+            filter_passed_days: Whether to filter out days that have already passed
         """
+        # Get available options based on current day if filtering is enabled
+        options = WEEKDAY_OPTIONS
+        if filter_passed_days:
+            # Get current day of week (0 is Monday in our implementation)
+            current_date = datetime.datetime.now()
+            current_day_idx = current_date.weekday()  # 0 = Monday, 6 = Sunday
+            
+            # Filter out days that have already passed
+            options = [option for i, option in enumerate(WEEKDAY_OPTIONS) if i >= current_day_idx]
+            
+            # If all days have passed (it's Sunday), show all options
+            if not options:
+                options = WEEKDAY_OPTIONS
+        
         super().__init__(
             placeholder="Оберіть день(і) вихідних",
             min_values=1,
             max_values=7,
-            options=WEEKDAY_OPTIONS
+            options=options
         )
         self.parent_view = parent_view
     
@@ -131,6 +147,10 @@ def create_day_off_view(
         A configured DayOffView instance
     """
     view = DayOffView(cmd_or_step, user_id, timeout, has_survey)
-    view.add_item(DayOffSelect(view))
+    
+    # Only filter passed days for "thisweek" command
+    filter_passed_days = "thisweek" in cmd_or_step
+    
+    view.add_item(DayOffSelect(view, filter_passed_days))
     view.add_item(DayOffSubmitButton(view))
     return view 
