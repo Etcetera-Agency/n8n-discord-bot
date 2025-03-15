@@ -2117,3 +2117,1001 @@ Profile stats database
   ]
   
   
+
+  ===
+todo page
+
+  [
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "ef0a49a9-119a-40ad-b398-7827cbe629bc",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "ac65fb9b-377c-46c7-85b9-29f4f8dd9197"
+      },
+      "has_children": true,
+      "archived": false,
+      "in_trash": false,
+      "type": "synced_block",
+      "synced_block": {
+        "synced_from": {
+          "type": "block_id",
+          "block_id": "7f2607bf-1287-42d6-998a-872f91a4b6a9"
+        }
+      },
+      "root_id": "2f57f8df09cc4923888ec37a709344d7"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "57e4986c-3622-40b9-a4fc-4464b784c761",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "child_database",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "Day Planner"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "3adb4949-bfe1-47dd-acef-45c56600d983",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "ac65fb9b-377c-46c7-85b9-29f4f8dd9197"
+      },
+      "has_children": true,
+      "archived": false,
+      "in_trash": false,
+      "type": "toggle",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "Index"
+    },
+    {
+      "object": "block",
+      "parent_id": "3adb4949-bfe1-47dd-acef-45c56600d983",
+      "id": "2a404e41-6713-4a37-b514-6c875dc89d11",
+      "parent": {
+        "type": "block_id",
+        "block_id": "3adb4949-bfe1-47dd-acef-45c56600d983"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "ac65fb9b-377c-46c7-85b9-29f4f8dd9197"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "table_of_contents",
+      "table_of_contents": {
+        "color": "gray"
+      },
+      "root_id": "2f57f8df09cc4923888ec37a709344d7"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "1b6c3573-e510-8008-9b7f-f967e56e91f2",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2025-03-14 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "1b6c3573-e510-80a6-86ae-e3c5b69408e2",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain please update All work profile - Dmytro Bronfain with HEADER"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "1aec3573-e510-806d-a284-cd72727d8630",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2025-03-06 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "1aec3573-e510-80a7-a1ea-f66d55392d4f",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain please update 2. Front-end profile - Dmytro Bronfain with HEADER"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "1aec3573-e510-80b7-ae46-ea77e0376c58",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain будь лака, додай портфоліо кейс на Upwork , опис тут"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "1aec3573-e510-80c3-a22e-d7859b02ffb2",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "на Behance додай згадування агенції в цьому кейсі, і додай кавер - опис тут"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "1aec3573-e510-80ee-9f3d-c1cba4c7fc59",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": true,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain boost profile: use your connects; budget - 10; limit - 100; Total; End- 30.03.25"
+    },
+    {
+      "object": "block",
+      "parent_id": "1aec3573-e510-80ee-9f3d-c1cba4c7fc59",
+      "id": "1aec3573-e510-8098-8cfe-f05b67aad1c1",
+      "parent": {
+        "type": "block_id",
+        "block_id": "1aec3573-e510-80ee-9f3d-c1cba4c7fc59"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "image",
+      "image": {
+        "caption": [],
+        "type": "file",
+        "file": {
+          "url": "https://prod-files-secure.s3.us-west-2.amazonaws.com/0cf88286-10f7-495a-8e70-f8115c902ff6/08833b76-9ccc-430c-8531-1e2d8dff284f/%D0%97%D0%BD%D1%96%D0%BC%D0%BE%D0%BA_%D0%B5%D0%BA%D1%80%D0%B0%D0%BD%D0%B0_2025-01-15_%D0%BE_14.43.35.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ASIAZI2LB4663BNPLJQ5%2F20250315%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20250315T120215Z&X-Amz-Expires=3600&X-Amz-Security-Token=IQoJb3JpZ2luX2VjELz%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLXdlc3QtMiJHMEUCIQDTbb0n%2B3rLOfKsh%2BHwTRmhDq%2FvRcvkKj%2FMDb7QWF8ZqwIga%2FJqbvtryEFX%2FTIjVJ0zP2GmRVq8SBodqQXSVklGWuwq%2FwMIFRAAGgw2Mzc0MjMxODM4MDUiDHquCr%2B%2FjRWZOlyb5ircAzQ92Nf9lihx8Vvu2CZ5f6eTLe%2BKBE7ElmTa%2F9PuM0qsPoTfiIRgCoa%2B9%2FUPAxtH1ie68wNc7r60Mp0ih3fmd9701tZCE0cLXUDTawgWtfcHuxPlrD3pANq1yD8hXO3qyfG0ySRhABSaN6J%2FyKhRWnd6GvkqGI7%2BCpra7CrLKmODIsvSZasROJzhkUOZHkn0yVlSeWFrwRYLgSz1ofpBBFTemTfW0OZiAn2nDo01c0i2ZQqU5WdvaBM%2Fko9akdLq8gAWl3qJ8H9guocOsvG79RKvZgnrARd95aBdu7rx6njx7BNiaQWaxWYoC9vPumtE0uKjEL%2BEHyks0d3f0EmPhzkQHj7Ix%2BDhfidDOGKePUfxcj68bJvl1x3Lj5TyJPVV0cKDPk5hWJrmCwbOJpVyFPmQVySoPNOjwws9zIKPHRebaw1faYW%2BDKoSQD9Z4e8P0M0XB88Cs4e9wpjhm3wuQXj2rWIXqc3HHlAcBPZ%2Bh75jibgHoiUdSPBryf1uA7D%2BEhzSSxol2nyG3wI%2BOrGYo9rRcWAmq2qHm9mXwI60bQop59Q13lut%2Fz3ZFkWVzn8msmr3wn6LTDUlbM8R%2Fl%2Fk2e2qdCmw1qpS%2FW2SUxJZBB5JvfxEBykjvypGzeSpMJLP1b4GOqUBnLazN%2BWfwZlCRg6notn4uZ47BJthMWrBLRMAeGZnGEthJHbm27uzq5oxO62OFa1T9127hL6kBSahS%2BRVGa2j8Rt4Baz%2FC1Xpi0DqtFgra8caj5BxDMmofIOcj0g0s8YtaMHup8KqvnF8Dzpsyzn1X51cqBZ6PLKyNzmpiB%2BQplRlQN1LEXRXy1d2plifpJmhhBy7vNOQoxHLzrs%2BUdz4nc3mZt%2B5&X-Amz-Signature=7d2493847cbbd5ec206dd5e5334bf10b6dca8ad69d10e076f75c06fc916f1230&X-Amz-SignedHeaders=host&x-id=GetObject",
+          "expiry_time": "2025-03-15T13:02:15.775Z"
+        }
+      },
+      "root_id": "2f57f8df09cc4923888ec37a709344d7"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "1aec3573-e510-8053-9d5d-f25a52dff143",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "paragraph",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": ""
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "1a7c3573-e510-8089-b901-e7b8e1ba9a51",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2025-02-27 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "1a7c3573-e510-80d1-99be-e7a4b97c956b",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain please update All work profile - Dmytro Bronfain "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "1a5c3573-e510-8057-a2b8-ddbb2e69184a",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2025-02-25 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "1a5c3573-e510-804f-9229-ecb3555030c2",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain будь лака, додай портфоліо кейс на Upwork та Behance, опис тут"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "1a1c3573-e510-80d1-8525-fbbe6bbb6c13",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2025-02-21 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "1a1c3573-e510-8065-8a2a-e77bcf5270e6",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain please update 1. eCommerce profile - Dmytro Bronfain  with HEADER"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "199c3573-e510-80b5-a54d-fb7554677d49",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2025-02-13 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "199c3573-e510-80f2-ae54-cabba15b6067",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain please update All work profile - Dmytro Bronfain with HEADER"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "f93da83e-9438-4a50-80eb-3e51456f9f4c",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2025-02-07 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "32bf3fb1-2c3b-4e8c-a97d-23451019fc94",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain please update 2. Front-end profile - Dmytro Bronfain "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "fa0d4cf1-f551-4dba-89e9-90a9f37c19bb",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2025-02-04 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "b1ba17c0-0758-4236-8d58-80a686c5bf6a",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain boost profile: use your connects; budget - 10; limit - 100; Total; End- 18.02.25"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "040622a5-280b-48da-8bce-86226354b3ad",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "image",
+      "image": {
+        "caption": [],
+        "type": "file",
+        "file": {
+          "url": "https://prod-files-secure.s3.us-west-2.amazonaws.com/0cf88286-10f7-495a-8e70-f8115c902ff6/08833b76-9ccc-430c-8531-1e2d8dff284f/%D0%97%D0%BD%D1%96%D0%BC%D0%BE%D0%BA_%D0%B5%D0%BA%D1%80%D0%B0%D0%BD%D0%B0_2025-01-15_%D0%BE_14.43.35.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ASIAZI2LB4667TP6UQTX%2F20250315%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20250315T120214Z&X-Amz-Expires=3600&X-Amz-Security-Token=IQoJb3JpZ2luX2VjELz%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLXdlc3QtMiJHMEUCIGFKKo8rgafpiubmbPYRJ%2BwWPXOrA128pMR%2F1jmvfOBZAiEAgVQVUnqA4SQla%2BoYmJRBqa0u%2B5abOJZCf4a4qIoevr8q%2FwMIFRAAGgw2Mzc0MjMxODM4MDUiDGZqBPITeFtjan7gtCrcAx%2FOCb2jJds6YHqBUlD5AAEbK69WXnQ3eGIvkf%2BTitGU8ThztEy7%2FxWr%2FINPl81sPXsM7wEiDmKrfTZwU9PVG%2B5LmO0vIPyPjZU8KvDpPniVJ6xrd7HbMFjfvRZcRniAGyiL4otNVN3dxOOQ7tEDkE7ye3jzYBQBRM0Oiz4nZdUxoZx1sWo8VODfvUUZ1DtDronc4O1%2Fb66PZ02Tq7ADy2HDTZs2q2CoGpsn0pnQ42rekO%2F2vZXuGRwIPtYRh3V6eMuutiG%2B4qyq1Cu1eCMRItpD9bK2oKvxVoxfg9a85mSG7pZebTKi4XlXypU5rrXkfXQPQMZrT50le%2B%2Fj3PYrutHdf7Z1ui9RBrezLF3HgaIlQmQhFVAcExsnxouCXps1RNIBcMxwmL5VH3xfZsISR0JgU8fFTb96yNQZ6B%2FACVqyuE9tO3uF4YIDVyP2f4xzbJtA5wpLcRn2sTPN6Y0KFR0BT1S5pnLM%2F6tugjRDsNfi1pLfZYbNPTokfNFgnbsxW95QgETB2cZUVXAbawF8%2BoNUiNdrdRDIi%2BN1iJWU1HoutKXdIhkDd%2BPo20%2FSb9TFYPCzveCk41lYGz5O2jjgGk8RzMyPxrAccRemAsPIsiNzfCd3dLkELrKGNaaDMMLP1b4GOqUBs53Q%2F7K4kdxX7FXl3oy2VjIzMmPP7CHGouwB4MsjOqWj8fi34Jlj79xK3V2IIH6ViSsh2UomQ83KV6TurQoII69zATvewmtrGh5xvQu%2Ba1wW8ekwlSlGomDwuNmlb7o8e%2BQLvao2h8NST9%2Fg0gDW31HEaYC%2FWEIXQ03f7LmkHYwn2VfSpJH2dz2Ogge2MuGyUxqAJxfIiyvtIDnhlNxkIdIu6GRB&X-Amz-Signature=e0eee27e4351843c4810eed8adfa9b5f76bd3b32cb5a12017d1a094ac892023f&X-Amz-SignedHeaders=host&x-id=GetObject",
+          "expiry_time": "2025-03-15T13:02:14.435Z"
+        }
+      },
+      "root_id": "2f57f8df09cc4923888ec37a709344d7"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "c7e51723-6380-42f0-8bcf-fb833de0bc72",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2025-01-28 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "a86e34b6-7667-4077-aca6-ba53f3f53c2c",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain please update All work profile - Dmytro Bronfain "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "0ddbe7a8-ef89-40c2-836d-4e42d848d30e",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "напиши будь ласка кількість конектів"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "a0ef9543-02bd-4b4c-be5d-055f1ceb1341",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": true,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "зроби, будь ласка, скрін категорій які обрані в All works профілі (для цього зайди в Your profile, далі через редагування профілів, і знайди Categories: "
+    },
+    {
+      "object": "block",
+      "parent_id": "a0ef9543-02bd-4b4c-be5d-055f1ceb1341",
+      "id": "194e50b2-9bf9-4364-b01a-a4577e2e92ca",
+      "parent": {
+        "type": "block_id",
+        "block_id": "a0ef9543-02bd-4b4c-be5d-055f1ceb1341"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "image",
+      "image": {
+        "caption": [],
+        "type": "file",
+        "file": {
+          "url": "https://prod-files-secure.s3.us-west-2.amazonaws.com/0cf88286-10f7-495a-8e70-f8115c902ff6/8a238c7a-6edc-4cfc-b8f2-21c787224d1c/Monosnap_2025-01-28_13-15-47.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ASIAZI2LB4663SP63DTL%2F20250315%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20250315T120216Z&X-Amz-Expires=3600&X-Amz-Security-Token=IQoJb3JpZ2luX2VjELz%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLXdlc3QtMiJGMEQCIBoeCxAo56uvmt8USOJnsDDpuiifE4lS%2B%2FfFSvS4RcvsAiBOJjFV3UdARPKHM5sBhpRpokwc7reFpaDtWByaKDCEhSr%2FAwgVEAAaDDYzNzQyMzE4MzgwNSIMRSuBRgCbUh35SibHKtwDYBtg%2BTAFAOGKwF5X8CkkeH8dQ9VF0L7ZRw85z7t9qjGi73HAW0oUpU8GFJqwTuCEi2vuCWxKudt%2BPzmDbxWxGKhI5pOLy3s%2BLsAkVZVHM6E0UBfaGrU%2BYGCDeiWowuNDLE527f0ff%2BY48tTAqTly%2Bstcsdw3tJwToNBIJuw9EQoy0MTtOllbQLKSuHZBdjpbGGq0tsPk0NCoJpR9X37snhkPKULimdqA4gXnqLhc%2FDqBSsympN8J7FJhLZNB6swIdMX44pIbDiHb3AEl%2FjGtk0at1xIBKrnh%2Bw2rvEruZ5fYsfTYFnIrbdrOyoM3nqtvKRwHAut714Gaxav6xowefAIeTqU5WAhLA5D3GDrO%2B%2BZTDPZRo8aDuRDc%2BpcMDoopbk1l4N4LhGoDWtgNigGdlgGO5sPjMTwrKjIR6%2Fx3sHfFo7UMp5p%2BnmXDn25Uq1fJ8RSTYoaZbQ3qZghjB%2BxrLV%2FOQdTkl%2FV6NyhfXANBSUEWqfFx5mNw82VnTK9HyqDsLsZEtxcHXLI55Pfb1cT0RPJzWCq5cMhF2HEsnAcH1GFu2M61%2F26V9dw%2BwTiNyJ4Fmixc12ad6%2BylwJlHwjuRNkuk21x5UCa2vbATpJ5MrU15TL64oh%2FiM%2BSi2vswvs%2FVvgY6pgGcANXel4uALJXGrsfFuxqN45cqsZTTa6Jkkpk%2FEaJJjFmoVGb3bU8LWDX8zHl9%2FvtBXSG6MFhdjhkfK1HFPoINc6gDmO00EPknHH9%2FwQEBrTUbWRGpbffMgF59mYzmAZBaWAFmq9HqREuQlCAipJKARUG%2BwxKX2kRNiBN85g2BvCyUQBSm%2BS8ID3CBiYzBhDDrGWiYbaXjOdUuywriWWFEELO%2B5UbL&X-Amz-Signature=eeaf85c01c735ce6ca2128efd80261d0134f07f0fdb4b3ec794036339fc23beb&X-Amz-SignedHeaders=host&x-id=GetObject",
+          "expiry_time": "2025-03-15T13:02:16.353Z"
+        }
+      },
+      "root_id": "2f57f8df09cc4923888ec37a709344d7"
+    },
+    {
+      "object": "block",
+      "parent_id": "a0ef9543-02bd-4b4c-be5d-055f1ceb1341",
+      "id": "d9f50c4c-5a76-4b5d-a92e-48c1bae061b0",
+      "parent": {
+        "type": "block_id",
+        "block_id": "a0ef9543-02bd-4b4c-be5d-055f1ceb1341"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "divider",
+      "divider": {},
+      "root_id": "2f57f8df09cc4923888ec37a709344d7"
+    },
+    {
+      "object": "block",
+      "parent_id": "a0ef9543-02bd-4b4c-be5d-055f1ceb1341",
+      "id": "0bca9486-a958-4caf-ba9c-166adc61d0f0",
+      "parent": {
+        "type": "block_id",
+        "block_id": "a0ef9543-02bd-4b4c-be5d-055f1ceb1341"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "image",
+      "image": {
+        "caption": [],
+        "type": "file",
+        "file": {
+          "url": "https://prod-files-secure.s3.us-west-2.amazonaws.com/0cf88286-10f7-495a-8e70-f8115c902ff6/1c83d6b2-85e6-4cec-8f88-1762b01acf37/484bbc7a-928f-4e78-b713-1300589aedab.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ASIAZI2LB4663SP63DTL%2F20250315%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20250315T120216Z&X-Amz-Expires=3600&X-Amz-Security-Token=IQoJb3JpZ2luX2VjELz%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLXdlc3QtMiJGMEQCIBoeCxAo56uvmt8USOJnsDDpuiifE4lS%2B%2FfFSvS4RcvsAiBOJjFV3UdARPKHM5sBhpRpokwc7reFpaDtWByaKDCEhSr%2FAwgVEAAaDDYzNzQyMzE4MzgwNSIMRSuBRgCbUh35SibHKtwDYBtg%2BTAFAOGKwF5X8CkkeH8dQ9VF0L7ZRw85z7t9qjGi73HAW0oUpU8GFJqwTuCEi2vuCWxKudt%2BPzmDbxWxGKhI5pOLy3s%2BLsAkVZVHM6E0UBfaGrU%2BYGCDeiWowuNDLE527f0ff%2BY48tTAqTly%2Bstcsdw3tJwToNBIJuw9EQoy0MTtOllbQLKSuHZBdjpbGGq0tsPk0NCoJpR9X37snhkPKULimdqA4gXnqLhc%2FDqBSsympN8J7FJhLZNB6swIdMX44pIbDiHb3AEl%2FjGtk0at1xIBKrnh%2Bw2rvEruZ5fYsfTYFnIrbdrOyoM3nqtvKRwHAut714Gaxav6xowefAIeTqU5WAhLA5D3GDrO%2B%2BZTDPZRo8aDuRDc%2BpcMDoopbk1l4N4LhGoDWtgNigGdlgGO5sPjMTwrKjIR6%2Fx3sHfFo7UMp5p%2BnmXDn25Uq1fJ8RSTYoaZbQ3qZghjB%2BxrLV%2FOQdTkl%2FV6NyhfXANBSUEWqfFx5mNw82VnTK9HyqDsLsZEtxcHXLI55Pfb1cT0RPJzWCq5cMhF2HEsnAcH1GFu2M61%2F26V9dw%2BwTiNyJ4Fmixc12ad6%2BylwJlHwjuRNkuk21x5UCa2vbATpJ5MrU15TL64oh%2FiM%2BSi2vswvs%2FVvgY6pgGcANXel4uALJXGrsfFuxqN45cqsZTTa6Jkkpk%2FEaJJjFmoVGb3bU8LWDX8zHl9%2FvtBXSG6MFhdjhkfK1HFPoINc6gDmO00EPknHH9%2FwQEBrTUbWRGpbffMgF59mYzmAZBaWAFmq9HqREuQlCAipJKARUG%2BwxKX2kRNiBN85g2BvCyUQBSm%2BS8ID3CBiYzBhDDrGWiYbaXjOdUuywriWWFEELO%2B5UbL&X-Amz-Signature=ddd62de1155599faaf6d8ebdba68219fa0b561494d7338234c179b751a950104&X-Amz-SignedHeaders=host&x-id=GetObject",
+          "expiry_time": "2025-03-15T13:02:16.356Z"
+        }
+      },
+      "root_id": "2f57f8df09cc4923888ec37a709344d7"
+    },
+    {
+      "object": "block",
+      "parent_id": "a0ef9543-02bd-4b4c-be5d-055f1ceb1341",
+      "id": "dc85163d-f3a8-468f-b074-582b9149754e",
+      "parent": {
+        "type": "block_id",
+        "block_id": "a0ef9543-02bd-4b4c-be5d-055f1ceb1341"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "paragraph",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": ""
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "c6319c02-618a-4471-9e49-e0ff13b55d1b",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2025-01-24 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "745ca48d-5f94-4b7e-b4ba-5943f617ea93",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain please update 1. eCommerce profile - Dmytro Bronfain  "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "231dd59f-91f1-4ae1-b82b-28b078a76f76",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2025-01-16 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "958d5447-2cb4-49e9-87c1-4ce9c210dbae",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain please update All work profile - Dmytro Bronfain "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "36395916-37e0-466b-b78b-dbd91748a299",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2025-01-15 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "26a3f6f3-598e-407c-b119-77ee751bd1bf",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain turn ON “available now”"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "ba0cfca6-ae44-4e3b-af54-ee83d609e550",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": true,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain boost profile: use your connects; budget - 10; limit - 100; Total; End- 31.01.25"
+    },
+    {
+      "object": "block",
+      "parent_id": "ba0cfca6-ae44-4e3b-af54-ee83d609e550",
+      "id": "990bef84-7ad9-4068-8651-d6a84ead98fc",
+      "parent": {
+        "type": "block_id",
+        "block_id": "ba0cfca6-ae44-4e3b-af54-ee83d609e550"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "image",
+      "image": {
+        "caption": [],
+        "type": "file",
+        "file": {
+          "url": "https://prod-files-secure.s3.us-west-2.amazonaws.com/0cf88286-10f7-495a-8e70-f8115c902ff6/08833b76-9ccc-430c-8531-1e2d8dff284f/%D0%97%D0%BD%D1%96%D0%BC%D0%BE%D0%BA_%D0%B5%D0%BA%D1%80%D0%B0%D0%BD%D0%B0_2025-01-15_%D0%BE_14.43.35.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ASIAZI2LB466SZ6R45LL%2F20250315%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20250315T120216Z&X-Amz-Expires=3600&X-Amz-Security-Token=IQoJb3JpZ2luX2VjELz%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLXdlc3QtMiJHMEUCIG6aaW5M3B7UuZKfs9d2EDCdEg0wWee4JktoPvU1ypiUAiEA4taQb7MSjj2ubYAc6XJmSuq%2BNVoyEA5MQSqymDGfGEEq%2FwMIFRAAGgw2Mzc0MjMxODM4MDUiDHJ%2BVRH%2FFgwUoQGE1yrcAxAqDOSNUJhz%2F69Z%2B%2BZTtu%2F5n1qtgCVqutLysKKJYxZQJapi9PwPnHZaGoV2otUj6bylG15eIvm%2FDu4ldVfebSJxobIxYMOdoobfU7YoiGP9wT0GRPvM94lsR4BHx%2B%2BEZ3Jttxt%2BS6xi1PhwB6FHkWQSNco3PrcS7JsdfdGp5mqs0qkTgLikwCJqcipB09t0zVLt5TUh2sp0hCjQzx6uZfGEo5pD0MYeI1RLj9HyBBIns27XCR4WXzsEmSJs9pMqDSDW5kAMNPqitU2HXW87sIrcfB1dmYP4j76hpttU0dU4A21IzDwAYElHjo5s%2BomZ9GtfwD%2BJgo7ejHEegOFkUqw2Jkg9FzotegypYFVqLSPyG6IdI6nHpwnEKSjIMWANl4fPPLwUVnUQdyQSq3CS4XSoiHebmccA2VcRU0wNidDbecR0hVELeZwsEmRVZKTPSsVhPev1z0R0QeSu4Tory%2B0QdS6%2BkrJAAeqsd1GZz7gTnUXWZBrPtshPqZD0TuPzftYSnXIWF2fFRQWAMCEFfe5Cav2UyblnLTwtVtzAZ31yBx9bQVi3fClDPkSqZPsnkCDIqECKevkaVAMscSVFJKmc8xujxAu75Lf%2BSYnLnH1vJVAA0iJFSMsEhWJFMJrP1b4GOqUB5jm%2F8TDaK4gdCXK5baRG%2Fj5vWCannApXwM7tbLDA9DOSHbKQEVOD%2B8FCu08sKXvmFQYPsDUqRFUGhH%2F1bPtF8b6N9v%2BJh6pNe8F9OwNN7EyXO9pgdA8s8jVcqP5jq1OQlXTE2bmJATzKNQZxXP3Z9WLVEvBf9XaMdCV4jHVH70e9jNNSdahwJKCZA3v0lduXUgs134xUAWAulf9J2KluUZ7PVm1X&X-Amz-Signature=c2c50b46ca060de7f857135dbf85552389dc67bbd750f6f80d427dfff32d03d4&X-Amz-SignedHeaders=host&x-id=GetObject",
+          "expiry_time": "2025-03-15T13:02:16.627Z"
+        }
+      },
+      "root_id": "2f57f8df09cc4923888ec37a709344d7"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "d2531353-cfb5-4052-8429-cca0e3bd22ba",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e2927f75-3161-4f44-88bf-d5db0838eb8e"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2025-01-08 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "cdf005dd-ff7c-49bf-b9c1-318532424474",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain please update  🔝2. Front-end profile - Dmytro Bronfain"
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "18049792-a3d8-4b36-9a3c-55be0393533b",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2025-01-02 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "12b8a59a-8931-4f1a-a92e-126a59d0f88b",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain please update All work profile - Dmytro Bronfain "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "52cffbd3-087e-4a8a-9ff8-69a8cdb37a77",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2024-12-27 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "144dd63e-d4a2-44b5-a224-88d1f15d2557",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain please update 1. eCommerce profile - Dmytro Bronfain  "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "0be7185f-b731-4515-bb07-d11ace219de4",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "899446ce-d979-4e73-afcb-0b60aaab67a6"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "heading_2",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "2024-12-19 "
+    },
+    {
+      "object": "block",
+      "parent_id": "2f57f8df09cc4923888ec37a709344d7",
+      "id": "5f6545e7-a752-4399-8ca3-c505b869f360",
+      "parent": {
+        "type": "page_id",
+        "page_id": "2f57f8df-09cc-4923-888e-c37a709344d7"
+      },
+      "last_edited_by": {
+        "object": "user",
+        "id": "e3a569f7-f37a-4401-bc16-fbdb8b534811"
+      },
+      "has_children": false,
+      "archived": false,
+      "in_trash": false,
+      "type": "to_do",
+      "root_id": "2f57f8df09cc4923888ec37a709344d7",
+      "content": "@Dmytro Bronfain please update All work profile - Dmytro Bronfain "
+    }
+  ]

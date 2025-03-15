@@ -177,8 +177,8 @@
       "type": "n8n-nodes-base.googleCalendarTool",
       "typeVersion": 1.1,
       "position": [
-        4440,
-        1760
+        4500,
+        840
       ],
       "credentials": {
         "googleCalendarOAuth2Api": {
@@ -196,8 +196,8 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        4380,
-        1720
+        4200,
+        760
       ],
       "typeVersion": 1,
       "id": "c8ebfd37-586d-4adb-83a5-87d4c565c987",
@@ -333,7 +333,7 @@
       "typeVersion": 1.1,
       "position": [
         4240,
-        960
+        840
       ],
       "credentials": {
         "googleCalendarOAuth2Api": {
@@ -406,7 +406,7 @@
       "typeVersion": 1.1,
       "position": [
         4380,
-        960
+        840
       ],
       "credentials": {
         "googleCalendarOAuth2Api": {
@@ -974,7 +974,7 @@
       "typeVersion": 2.2,
       "position": [
         4060,
-        960
+        840
       ],
       "id": "5625d679-7bc5-4b33-9a50-8bd1b303d532",
       "name": "Get DB page",
@@ -999,7 +999,7 @@
       "typeVersion": 2.2,
       "position": [
         3940,
-        960
+        840
       ],
       "id": "1acbd227-2518-4042-958f-52590a3226d0",
       "name": "Notion get Page",
@@ -1035,12 +1035,13 @@
             },
             {
               "key": "Name|title",
-              "condition": "={{ $fromAI(\"contain\", \"Could be does or does_not_contain\", \"does_not_contain\")  }}",
+              "condition": "={{ $fromAI(\"contain\", \"Could be contain or does_not_contain\")  }}",
               "titleValue": "={{ $fromAI(\"name\", \"Team member name\") }}"
             },
             {
               "key": "Discord channel ID|rich_text",
-              "condition": "equals"
+              "condition": "=does_not_equal {{ $fromAI(\"contain\", \"Could be equal or does_not_equal\")  }}",
+              "richTextValue": "={{ $fromAI(\"name\", \"Team member name\") }}"
             }
           ]
         },
@@ -1049,8 +1050,8 @@
       "type": "n8n-nodes-base.notionTool",
       "typeVersion": 2.2,
       "position": [
-        3800,
-        960
+        3820,
+        840
       ],
       "id": "c0b068ca-9e64-4b32-9c35-ed1d71005af2",
       "name": "Get Team directory by Channel or name",
@@ -1071,10 +1072,47 @@
       "typeVersion": 1.7,
       "position": [
         3980,
-        680
+        560
       ],
       "id": "95870139-5f48-4d7a-bc9e-893a5d9ae57b",
       "name": "Etcetera AI Agent"
+    },
+    {
+      "parameters": {
+        "content": "## Calendar tools\n",
+        "height": 380,
+        "width": 500,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        4320,
+        1700
+      ],
+      "typeVersion": 1,
+      "id": "4dd985cf-ece8-44cf-8a38-a2e9820cc1ec",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "text": "={{ $fromAI(\"search_arg\", \"Search string\", \"string\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        3800,
+        980
+      ],
+      "id": "4569c15e-bf10-4f59-a032-41598cf6b79c",
+      "name": "Notion search page",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
     }
   ],
   "connections": {
@@ -1146,11 +1184,6 @@
     "Get Events": {
       "ai_tool": [
         [
-          {
-            "node": "Discord AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          },
           {
             "node": "Etcetera AI Agent",
             "type": "ai_tool",
@@ -1395,6 +1428,11 @@
             "node": "Etcetera AI Agent",
             "type": "ai_tool",
             "index": 0
+          },
+          {
+            "node": "Discord AI Agent",
+            "type": "ai_tool",
+            "index": 0
           }
         ]
       ]
@@ -1416,6 +1454,17 @@
           {
             "node": "Respond to Webhook",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion search page": {
+      "ai_tool": [
+        [
+          {
+            "node": "Etcetera AI Agent",
+            "type": "ai_tool",
             "index": 0
           }
         ]
