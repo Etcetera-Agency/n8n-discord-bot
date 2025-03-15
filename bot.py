@@ -308,34 +308,49 @@ async def survey_incomplete_timeout(user_id: str):
     state = SURVEYS.get(user_id)
     if not state:
         return
-    channel = bot.get_channel(int(state.channel_id))
-    if not channel:
-        return
-    
-    incomplete = state.incomplete_steps()
-    await ResponseHandler.handle_response(
-        channel,
-        command="survey",
-        status="incomplete",
-        result={"incompleteSteps": incomplete}
-    )
-    
-    if state.user_id in SURVEYS:
-        del SURVEYS[state.user_id]
+    try:
+        channel = await bot.fetch_channel(int(state.channel_id))
+        if not channel:
+            logger.warning(f"Channel {state.channel_id} not found for user {user_id}")
+            return
+        
+        incomplete = state.incomplete_steps()
+        await ResponseHandler.handle_response(
+            channel,
+            command="survey",
+            status="incomplete",
+            result={"incompleteSteps": incomplete}
+        )
+        
+        if state.user_id in SURVEYS:
+            del SURVEYS[state.user_id]
+    except discord.NotFound:
+        logger.error(f"Channel {state.channel_id} not found")
+    except discord.Forbidden:
+        logger.error(f"Bot doesn't have access to channel {state.channel_id}")
+    except Exception as e:
+        logger.error(f"Error in survey_incomplete_timeout: {e}")
 
 async def handle_start_daily_survey(bot, user_id: str, channel_id: str, steps: List[str]):
-    channel = bot.get_channel(int(channel_id))
-    if not channel:
-        logger.warning(f"Channel {channel_id} not found for user {user_id}")
-        return
+    try:
+        channel = await bot.fetch_channel(int(channel_id))
+        if not channel:
+            logger.warning(f"Channel {channel_id} not found for user {user_id}")
+            return
 
-    state = SurveyFlow(user_id, channel_id, steps)
-    SURVEYS[user_id] = state
-    step = state.current_step()
-    if step:
-        await ask_dynamic_step(channel, state, step)
-    else:
-        await channel.send(f"<@{user_id}> Не вказано кроків опитування.")
+        state = SurveyFlow(user_id, channel_id, steps)
+        SURVEYS[user_id] = state
+        step = state.current_step()
+        if step:
+            await ask_dynamic_step(channel, state, step)
+        else:
+            await channel.send(f"<@{user_id}> Не вказано кроків опитування.")
+    except discord.NotFound:
+        logger.error(f"Channel {channel_id} not found")
+    except discord.Forbidden:
+        logger.error(f"Bot doesn't have access to channel {channel_id}")
+    except Exception as e:
+        logger.error(f"Error in handle_start_daily_survey: {e}")
 
 async def ask_dynamic_step(channel: discord.TextChannel, state: SurveyFlow, step_name: str):
     user_id = state.user_id
