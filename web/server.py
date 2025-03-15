@@ -52,22 +52,32 @@ class WebServer:
             if not user_id or not channel_id or not steps:
                 return web.json_response({"error": "Missing parameters"}, status=400)
 
-            channel = self.bot.get_channel(int(channel_id))
-            if not channel:
-                return web.json_response({"error": "Channel not found"}, status=404)
+            logger.info(f"Attempting to find channel {channel_id}")
+            try:
+                channel = await self.bot.fetch_channel(int(channel_id))
+                logger.info(f"Found channel: {channel.name} ({channel.id})")
+            except Exception as e:
+                logger.error(f"Failed to fetch channel {channel_id}: {str(e)}")
+                return web.json_response({"error": "Channel not found or bot doesn't have access"}, status=404)
                 
             # Check if channel is registered
             payload = {
                 "command": "check_channel",
-                "userId": user_id,
-                "channelId": channel_id
+                "result": {
+                    "userId": user_id,
+                    "channelId": channel_id
+                }
             }
             headers = {}
             if Config.WEBHOOK_AUTH_TOKEN:
                 headers["Authorization"] = f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"
-                
+            
+            logger.info(f"Sending check_channel webhook to n8n with payload: {payload}")
             success_check, data_check = await webhook_service.send_webhook_with_retry(None, payload, headers)
+            logger.info(f"n8n webhook response - success: {success_check}, data: {data_check}")
+            
             if not success_check or str(data_check.get("output", "false")).lower() != "true":
+                logger.error(f"Channel registration check failed - success: {success_check}, data: {data_check}")
                 return web.json_response({"error": "Channel is not registered"}, status=403)
 
             await handle_start_daily_survey(user_id, channel_id, steps)

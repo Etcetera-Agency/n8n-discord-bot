@@ -178,6 +178,10 @@ class WebhookService:
             raise WebhookError("HTTP session not initialized")
             
         request_id = str(uuid.uuid4())[:8]
+        logger.info(f"[{request_id}] Sending webhook to URL: {self.url}")
+        logger.info(f"[{request_id}] Payload: {payload}")
+        logger.info(f"[{request_id}] Headers: {headers}")
+        
         for attempt in range(max_retries):
             try:
                 logger.info(f"[{request_id}] Sending to n8n (attempt {attempt+1}/{max_retries})")
@@ -187,13 +191,18 @@ class WebhookService:
                     headers=headers,
                     timeout=15
                 ) as response:
+                    response_text = await response.text()
+                    logger.info(f"[{request_id}] Response status: {response.status}")
+                    logger.info(f"[{request_id}] Response text: {response_text}")
+                    
                     if response.status == 200:
                         try:
                             data = await response.json()
+                            logger.info(f"[{request_id}] Parsed JSON response: {data}")
                             return True, data
                         except Exception as e:
                             logger.error(f"[{request_id}] JSON parse error: {e}")
-                            fallback = (await response.text()).strip()
+                            fallback = response_text.strip()
                             return True, {"output": fallback or "No valid JSON from n8n."}
                     else:
                         logger.warning(f"[{request_id}] HTTP Error {response.status}")
