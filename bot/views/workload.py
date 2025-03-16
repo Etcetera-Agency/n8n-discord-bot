@@ -26,8 +26,8 @@ class WorkloadButton(discord.ui.Button):
                 await view.command_msg.add_reaction("⏳")
             
             try:
-                # Set value based on button label
-                value = "0" if self.label == "Нічого немає" else self.label
+                # Set value based on button label and convert to integer
+                value = 0 if self.label == "Нічого немає" else int(self.label)
                 
                 if view.has_survey:
                     # Dynamic survey flow

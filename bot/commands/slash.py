@@ -41,14 +41,14 @@ class SlashCommands:
             
             # First send the command usage message and store it
             if not interaction.response.is_done():
-                await interaction.response.send_message(f"{interaction.user} used day_off_thisweek")
+                await interaction.response.send_message(f"{interaction.user} Оберіть свої вихідні (цей тиждень):")
             command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
             view = create_view("day_off", "day_off_thisweek", str(interaction.user.id))
             view.command_msg = command_msg  # Store reference to command message
             buttons_msg = await interaction.channel.send(
-                "Оберіть свої вихідні (цей тиждень), потім натисніть кнопку:",
+                "В кінці натисніть кнопку Підтверджую",
                 view=view
             )
             view.buttons_msg = buttons_msg  # Store reference to buttons message
@@ -65,14 +65,14 @@ class SlashCommands:
             
             # First send the command usage message and store it
             if not interaction.response.is_done():
-                await interaction.response.send_message(f"{interaction.user} used day_off_nextweek")
+                await interaction.response.send_message(f"{interaction.user} Оберіть свої вихідні на наступний тиждень:")
             command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
             view = create_view("day_off", "day_off_nextweek", str(interaction.user.id))
             view.command_msg = command_msg  # Store reference to command message
             buttons_msg = await interaction.channel.send(
-                "Оберіть свої вихідні (наступний тиждень), потім натисніть кнопку:",
+                "В кінці натисніть кнопку Підтверждую",
                 view=view
             )
             view.buttons_msg = buttons_msg  # Store reference to buttons message
@@ -197,7 +197,7 @@ class SlashCommands:
             
             # First send the command usage message and store it
             if not interaction.response.is_done():
-                await interaction.response.send_message(f"{interaction.user} used workload_today")
+                await interaction.response.send_message(f"{interaction.user} На скільки годин у тебе підтверджена зайнятість з СЬОГОДНІ до кінця тижня? ")
             command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
@@ -224,7 +224,7 @@ class SlashCommands:
             
             # First send the command usage message and store it
             if not interaction.response.is_done():
-                await interaction.response.send_message(f"{interaction.user} used workload_nextweek")
+                await interaction.response.send_message(f"{interaction.user} Скажи, а чи є підтверджені завдання на наступний тиждень? ")
             command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
