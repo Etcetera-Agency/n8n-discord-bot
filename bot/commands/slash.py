@@ -5,6 +5,7 @@ from typing import List
 from config import MONTHS, ViewType, logger
 from services import webhook_service
 from bot.views.factory import create_view
+import asyncio
 
 class SlashCommands:
     """
@@ -92,21 +93,60 @@ class SlashCommands:
             
             # Validate inputs
             if not (1 <= start_day <= 31) or not (1 <= end_day <= 31):
-                await interaction.response.send_message("День повинен бути між 1 та 31.", ephemeral=False)
+                error_msg = f"Ваш запит: Відпустка {start_day}/{start_month} - {end_day}/{end_month}\nПомилка: День повинен бути між 1 та 31."
+                await interaction.response.send_message(error_msg, ephemeral=False)
                 return
             
-            # Process vacation request
-            await webhook_service.send_interaction_response(
-                interaction,
-                initial_message=f"Обробка запиту на відпустку: {start_day}/{start_month} - {end_day}/{end_month}",
-                command="vacation",
-                result={
-                    "start_day": str(start_day),
-                    "start_month": start_month,
-                    "end_day": str(end_day),
-                    "end_month": end_month
-                }
-            )
+            # First, acknowledge the interaction to prevent timeout
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=False)
+            
+            # Get the original message
+            message = await interaction.original_response()
+            if message:
+                # Add processing reaction
+                await message.add_reaction("⏳")
+            
+            try:
+                # Send webhook
+                success, data = await webhook_service.send_webhook(
+                    interaction,
+                    command="vacation",
+                    status="ok",
+                    result={
+                        "start_day": str(start_day),
+                        "start_month": start_month,
+                        "end_day": str(end_day),
+                        "end_month": end_month
+                    }
+                )
+                
+                if message:
+                    # Remove processing reaction
+                    await message.remove_reaction("⏳", interaction.client.user)
+                
+                if success and data and "output" in data:
+                    if message:
+                        # Add success reaction before deleting
+                        await message.add_reaction("✅")
+                        await asyncio.sleep(1)
+                        await message.delete()
+                    await interaction.followup.send(data["output"])
+                else:
+                    error_msg = f"Ваш запит: Відпустка {start_day}/{start_month} - {end_day}/{end_month}\nПомилка: Не вдалося виконати команду."
+                    if message:
+                        await message.edit(content=error_msg)
+                        await message.add_reaction("❌")
+                    else:
+                        await interaction.followup.send(error_msg)
+                    
+            except Exception as e:
+                logger.error(f"Error in vacation command: {e}")
+                if message:
+                    await message.remove_reaction("⏳", interaction.client.user)
+                    error_msg = f"Ваш запит: Відпустка {start_day}/{start_month} - {end_day}/{end_month}\nПомилка: Сталася неочікувана помилка."
+                    await message.edit(content=error_msg)
+                    await message.add_reaction("❌")
             
         @vacation_slash.autocomplete("start_month")
         @vacation_slash.autocomplete("end_month")
@@ -141,13 +181,51 @@ class SlashCommands:
             """
             logger.info(f"Workload today command from {interaction.user}")
             view = create_view("workload", "workload_today", str(interaction.user.id))
-            await webhook_service.send_interaction_response(
-                interaction,
-                initial_message="Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?\nЯкщо нічого, оберіть «Нічого немає».",
-                command="workload_today",
-                result={},
-                view=view
-            )
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=False)
+            
+            # Get the original message
+            message = await interaction.original_response()
+            if message:
+                # Add processing reaction
+                await message.add_reaction("⏳")
+            
+            try:
+                # Send webhook
+                success, data = await webhook_service.send_webhook(
+                    interaction,
+                    command="workload_today",
+                    status="ok",
+                    result={},
+                    view=view
+                )
+                
+                if message:
+                    # Remove processing reaction
+                    await message.remove_reaction("⏳", interaction.client.user)
+                
+                if success and data and "output" in data:
+                    if message:
+                        # Add success reaction before deleting
+                        await message.add_reaction("✅")
+                        await asyncio.sleep(1)
+                        await message.delete()
+                    await interaction.followup.send(data["output"])
+                else:
+                    error_msg = "Ваш запит: Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?\nПомилка: Не вдалося виконати команду."
+                    if message:
+                        await message.edit(content=error_msg)
+                        await message.add_reaction("❌")
+                    else:
+                        await interaction.followup.send(error_msg)
+                    
+            except Exception as e:
+                logger.error(f"Error in workload today command: {e}")
+                if message:
+                    await message.remove_reaction("⏳", interaction.client.user)
+                    error_msg = "Ваш запит: Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?\nПомилка: Сталася неочікувана помилка."
+                    await message.edit(content=error_msg)
+                    await message.add_reaction("❌")
 
         @self.bot.tree.command(
             name="workload_nextweek",
@@ -162,13 +240,51 @@ class SlashCommands:
             """
             logger.info(f"Workload nextweek command from {interaction.user}")
             view = create_view("workload", "workload_nextweek", str(interaction.user.id))
-            await webhook_service.send_interaction_response(
-                interaction,
-                initial_message="Скільки годин підтверджено на НАСТУПНИЙ тиждень?\nЯкщо нічого, оберіть «Нічого немає».",
-                command="workload_nextweek",
-                result={},
-                view=view
-            )
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=False)
+            
+            # Get the original message
+            message = await interaction.original_response()
+            if message:
+                # Add processing reaction
+                await message.add_reaction("⏳")
+            
+            try:
+                # Send webhook
+                success, data = await webhook_service.send_webhook(
+                    interaction,
+                    command="workload_nextweek",
+                    status="ok",
+                    result={},
+                    view=view
+                )
+                
+                if message:
+                    # Remove processing reaction
+                    await message.remove_reaction("⏳", interaction.client.user)
+                
+                if success and data and "output" in data:
+                    if message:
+                        # Add success reaction before deleting
+                        await message.add_reaction("✅")
+                        await asyncio.sleep(1)
+                        await message.delete()
+                    await interaction.followup.send(data["output"])
+                else:
+                    error_msg = "Ваш запит: Скільки годин підтверджено на НАСТУПНИЙ тиждень?\nПомилка: Не вдалося виконати команду."
+                    if message:
+                        await message.edit(content=error_msg)
+                        await message.add_reaction("❌")
+                    else:
+                        await interaction.followup.send(error_msg)
+                    
+            except Exception as e:
+                logger.error(f"Error in workload nextweek command: {e}")
+                if message:
+                    await message.remove_reaction("⏳", interaction.client.user)
+                    error_msg = "Ваш запит: Скільки годин підтверджено на НАСТУПНИЙ тиждень?\nПомилка: Сталася неочікувана помилка."
+                    await message.edit(content=error_msg)
+                    await message.add_reaction("❌")
 
         @self.bot.tree.command(
             name="connects_thisweek",
@@ -183,9 +299,49 @@ class SlashCommands:
                 connects: Number of connects
             """
             logger.info(f"Connects thisweek command from {interaction.user}: {connects}")
-            await webhook_service.send_interaction_response(
-                interaction,
-                initial_message=f"Обробка запиту на Connects: {connects}",
-                command="connects_thisweek",
-                result={"connects": connects}
-            ) 
+            
+            # First, acknowledge the interaction to prevent timeout
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=False)
+            
+            # Get the original message
+            message = await interaction.original_response()
+            if message:
+                # Add processing reaction
+                await message.add_reaction("⏳")
+            
+            try:
+                # Send webhook
+                success, data = await webhook_service.send_webhook(
+                    interaction,
+                    command="connects_thisweek",
+                    status="ok",
+                    result={"connects": connects}
+                )
+                
+                if message:
+                    # Remove processing reaction
+                    await message.remove_reaction("⏳", interaction.client.user)
+                
+                if success and data and "output" in data:
+                    if message:
+                        # Add success reaction before deleting
+                        await message.add_reaction("✅")
+                        await asyncio.sleep(1)
+                        await message.delete()
+                    await interaction.followup.send(data["output"])
+                else:
+                    error_msg = f"Ваш запит: Connects на цей тиждень = {connects}\nПомилка: Не вдалося виконати команду."
+                    if message:
+                        await message.edit(content=error_msg)
+                        await message.add_reaction("❌")
+                    else:
+                        await interaction.followup.send(error_msg)
+                    
+            except Exception as e:
+                logger.error(f"Error in connects command: {e}")
+                if message:
+                    await message.remove_reaction("⏳", interaction.client.user)
+                    error_msg = f"Ваш запит: Connects на цей тиждень = {connects}\nПомилка: Сталася неочікувана помилка."
+                    await message.edit(content=error_msg)
+                    await message.add_reaction("❌") 
