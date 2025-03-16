@@ -686,7 +686,14 @@ async def slash_workload_nextweek(interaction: discord.Interaction):
     await interaction.response.send_message("Скільки годин підтверджено на НАСТУПНИЙ тиждень?\nЯкщо нічого, оберіть «Нічого немає».", view=view, ephemeral=False)
 
 @bot.tree.command(name="connects_thisweek", description="Скільки CONNECTS Upwork Connects History показує ЦЬОГО тижня?")
+@app_commands.describe(
+    connects="Кількість Upwork Connects, що залишилось на цьому тижні"
+)
 async def slash_connects_thisweek(interaction: discord.Interaction, connects: int):
+    # First send a message acknowledging the command
+    await interaction.response.send_message(f"Команда: /connects_thisweek\nКількість Connects: {connects}", ephemeral=False)
+    
+    # Then send the data to n8n
     await ResponseHandler.handle_response(
         interaction,
         command="connects_thisweek",
