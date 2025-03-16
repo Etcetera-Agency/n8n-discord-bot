@@ -194,52 +194,20 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Workload today command from {interaction.user}")
-            view = create_view("workload", "workload_today", str(interaction.user.id))
+            
+            # First send the command usage message and store it
             if not interaction.response.is_done():
-                await interaction.response.defer(ephemeral=False)
+                await interaction.response.send_message(f"{interaction.user} used workload_today")
+            command_msg = await interaction.original_response()
             
-            # Get the original message
-            message = await interaction.original_response()
-            if message:
-                # Add processing reaction
-                await message.add_reaction("⏳")
-            
-            try:
-                # Send webhook
-                success, data = await webhook_service.send_webhook(
-                    interaction,
-                    command="workload_today",
-                    status="ok",
-                    result={},
-                    view=view
-                )
-                
-                if message:
-                    # Remove processing reaction
-                    await message.remove_reaction("⏳", interaction.client.user)
-                
-                if success and data and "output" in data:
-                    if message:
-                        # Add success reaction before deleting
-                        await message.add_reaction("✅")
-                        await asyncio.sleep(1)
-                        await message.delete()
-                    await interaction.followup.send(data["output"])
-                else:
-                    error_msg = "Ваш запит: Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?\nПомилка: Не вдалося виконати команду."
-                    if message:
-                        await message.edit(content=error_msg)
-                        await message.add_reaction("❌")
-                    else:
-                        await interaction.followup.send(error_msg)
-                    
-            except Exception as e:
-                logger.error(f"Error in workload today command: {e}")
-                if message:
-                    await message.remove_reaction("⏳", interaction.client.user)
-                    error_msg = "Ваш запит: Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?\nПомилка: Сталася неочікувана помилка."
-                    await message.edit(content=error_msg)
-                    await message.add_reaction("❌")
+            # Then send the buttons in a separate message
+            view = create_view("workload", "workload_today", str(interaction.user.id))
+            view.command_msg = command_msg  # Store reference to command message
+            buttons_msg = await interaction.channel.send(
+                "Оберіть кількість годин:",
+                view=view
+            )
+            view.buttons_msg = buttons_msg  # Store reference to buttons message
 
         @self.bot.tree.command(
             name="workload_nextweek",
@@ -253,52 +221,20 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Workload nextweek command from {interaction.user}")
-            view = create_view("workload", "workload_nextweek", str(interaction.user.id))
+            
+            # First send the command usage message and store it
             if not interaction.response.is_done():
-                await interaction.response.defer(ephemeral=False)
+                await interaction.response.send_message(f"{interaction.user} used workload_nextweek")
+            command_msg = await interaction.original_response()
             
-            # Get the original message
-            message = await interaction.original_response()
-            if message:
-                # Add processing reaction
-                await message.add_reaction("⏳")
-            
-            try:
-                # Send webhook
-                success, data = await webhook_service.send_webhook(
-                    interaction,
-                    command="workload_nextweek",
-                    status="ok",
-                    result={},
-                    view=view
-                )
-                
-                if message:
-                    # Remove processing reaction
-                    await message.remove_reaction("⏳", interaction.client.user)
-                
-                if success and data and "output" in data:
-                    if message:
-                        # Add success reaction before deleting
-                        await message.add_reaction("✅")
-                        await asyncio.sleep(1)
-                        await message.delete()
-                    await interaction.followup.send(data["output"])
-                else:
-                    error_msg = "Ваш запит: Скільки годин підтверджено на НАСТУПНИЙ тиждень?\nПомилка: Не вдалося виконати команду."
-                    if message:
-                        await message.edit(content=error_msg)
-                        await message.add_reaction("❌")
-                    else:
-                        await interaction.followup.send(error_msg)
-                    
-            except Exception as e:
-                logger.error(f"Error in workload nextweek command: {e}")
-                if message:
-                    await message.remove_reaction("⏳", interaction.client.user)
-                    error_msg = "Ваш запит: Скільки годин підтверджено на НАСТУПНИЙ тиждень?\nПомилка: Сталася неочікувана помилка."
-                    await message.edit(content=error_msg)
-                    await message.add_reaction("❌")
+            # Then send the buttons in a separate message
+            view = create_view("workload", "workload_nextweek", str(interaction.user.id))
+            view.command_msg = command_msg  # Store reference to command message
+            buttons_msg = await interaction.channel.send(
+                "Оберіть кількість годин:",
+                view=view
+            )
+            view.buttons_msg = buttons_msg  # Store reference to buttons message
 
         @self.bot.tree.command(
             name="connects_thisweek",

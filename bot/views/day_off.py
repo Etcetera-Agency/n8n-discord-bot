@@ -305,8 +305,8 @@ class DayOffView(discord.ui.View):
         self.selected_days = []
         self.selected_dates = []
         self.weekday_map = {
-            "Пн": 0, "Вт": 1, "Ср": 2, "Чт": 3, 
-            "Пт": 4, "Сб": 5, "Нд": 6
+            "Понеділок": 0, "Вівторок": 1, "Середа": 2, "Четвер": 3, 
+            "П'ятниця": 4, "Субота": 5, "Неділя": 6
         }
         self.command_msg = None  # Reference to the command message
         self.buttons_msg = None  # Reference to the buttons message
@@ -349,13 +349,13 @@ def create_day_off_view(
     
     # Add day off buttons
     days = [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday"
+        "Понеділок",
+        "Вівторок",
+        "Середа",
+        "Четвер",
+        "П'ятниця",
+        "Субота",
+        "Неділя"
     ]
     
     for day in days:
