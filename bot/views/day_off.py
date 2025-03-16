@@ -196,6 +196,17 @@ class DeclineButton(discord.ui.Button):
                 await message.add_reaction("⏳")
             
             try:
+                # Reset all button selections
+                view.selected_days.clear()
+                view.selected_dates.clear()
+                for child in view.children:
+                    if isinstance(child, DayOffButton):
+                        child.is_selected = False
+                        child.style = discord.ButtonStyle.secondary
+                
+                # Update the message with reset buttons
+                await interaction.message.edit(view=view)
+                
                 if view.has_survey:
                     # Dynamic survey flow
                     state = survey_manager.get_survey(view.user_id)
