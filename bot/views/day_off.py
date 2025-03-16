@@ -35,9 +35,11 @@ class DayOffButton(discord.ui.Button):
             view = self.view
             if isinstance(view, DayOffView):
                 if self.is_selected:
-                    view.selected_days.append(self.label)
+                    if self.label not in view.selected_days:
+                        view.selected_days.append(self.label)
                 else:
-                    view.selected_days.remove(self.label)
+                    if self.label in view.selected_days:
+                        view.selected_days.remove(self.label)
             
             # Update the message with the new button states
             await interaction.message.edit(view=self.view)
@@ -278,10 +280,12 @@ class DeclineButton(discord.ui.Button):
                     await message.add_reaction("❌")
 
 class DayOffView(discord.ui.View):
-    def __init__(self, cmd_or_step: str, timeout: Optional[float] = 180):
+    def __init__(self, cmd_or_step: str, user_id: str, timeout: Optional[float] = 180, has_survey: bool = False):
         super().__init__(timeout=timeout)
         self.selected_days: List[str] = []
         self.cmd_or_step = cmd_or_step
+        self.user_id = user_id
+        self.has_survey = has_survey
         # Map of weekday names to their numeric values (0 = Monday, 6 = Sunday)
         self.weekday_map = {
             "Monday": 0,
@@ -300,7 +304,7 @@ def create_day_off_view(
     has_survey: bool = False
 ) -> DayOffView:
     """Create a day off view with buttons."""
-    view = DayOffView(cmd_or_step, timeout=timeout)
+    view = DayOffView(cmd_or_step, user_id, timeout=timeout, has_survey=has_survey)
     
     # Get current weekday (0 = Monday, 6 = Sunday)
     current_date = datetime.datetime.now()

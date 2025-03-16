@@ -151,8 +151,11 @@ class WorkloadButton(discord.ui.Button):
                 await message.add_reaction("❌")
 
 class WorkloadView(discord.ui.View):
-    def __init__(self, timeout: Optional[float] = 180):
+    def __init__(self, cmd_or_step: str, user_id: str, timeout: Optional[float] = 180, has_survey: bool = False):
         super().__init__(timeout=timeout)
+        self.cmd_or_step = cmd_or_step
+        self.user_id = user_id
+        self.has_survey = has_survey
 
 def create_workload_view(
     cmd_or_step: str,
@@ -161,7 +164,7 @@ def create_workload_view(
     has_survey: bool = False
 ) -> WorkloadView:
     """Create a workload view with buttons."""
-    view = WorkloadView(timeout=timeout)
+    view = WorkloadView(cmd_or_step, user_id, timeout=timeout, has_survey=has_survey)
     
     # Add workload buttons
     buttons = [
