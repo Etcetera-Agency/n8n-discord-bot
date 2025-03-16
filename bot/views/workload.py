@@ -93,7 +93,7 @@ class WorkloadButton(discord.ui.Button):
                         interaction,
                         command=view.cmd_or_step,
                         status="ok",
-                        result={"value": value}
+                        result={"workload_hours": value}
                     )
                     
                     if success and data and "output" in data:
