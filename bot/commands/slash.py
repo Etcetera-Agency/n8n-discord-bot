@@ -38,13 +38,17 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Day off thisweek command from {interaction.user}")
-            view = create_view("day_off", "day_off_thisweek", str(interaction.user.id))
+            
+            # First send the command usage message
             if not interaction.response.is_done():
-                await interaction.response.send_message(
-                    "Оберіть свої вихідні (цей тиждень), потім натисніть кнопку:",
-                    view=view,
-                    ephemeral=False
-                )
+                await interaction.response.send_message(f"{interaction.user} used day_off_thisweek")
+            
+            # Then send the buttons in a separate message
+            view = create_view("day_off", "day_off_thisweek", str(interaction.user.id))
+            await interaction.channel.send(
+                "Оберіть свої вихідні (цей тиждень), потім натисніть кнопку:",
+                view=view
+            )
 
         @day_off_group.command(name="nextweek", description="Оберіть вихідні на НАСТУПНИЙ тиждень.")
         async def day_off_nextweek(interaction: discord.Interaction):
@@ -55,13 +59,17 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Day off nextweek command from {interaction.user}")
-            view = create_view("day_off", "day_off_nextweek", str(interaction.user.id))
+            
+            # First send the command usage message
             if not interaction.response.is_done():
-                await interaction.response.send_message(
-                    "Оберіть свої вихідні (наступний тиждень), потім натисніть кнопку:",
-                    view=view,
-                    ephemeral=False
-                )
+                await interaction.response.send_message(f"{interaction.user} used day_off_nextweek")
+            
+            # Then send the buttons in a separate message
+            view = create_view("day_off", "day_off_nextweek", str(interaction.user.id))
+            await interaction.channel.send(
+                "Оберіть свої вихідні (наступний тиждень), потім натисніть кнопку:",
+                view=view
+            )
 
         self.bot.tree.add_command(day_off_group)
 
