@@ -38,13 +38,12 @@ class SlashCommands:
             """
             logger.info(f"Day off thisweek command from {interaction.user}")
             view = create_view("day_off", "day_off_thisweek", str(interaction.user.id))
-            await webhook_service.send_interaction_response(
-                interaction,
-                initial_message="Оберіть свої вихідні (цей тиждень), потім натисніть «Відправити»:",
-                command="day_off_thisweek",
-                result={},
-                view=view
-            )
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    "Оберіть свої вихідні (цей тиждень), потім натисніть кнопку:",
+                    view=view,
+                    ephemeral=False
+                )
 
         @day_off_group.command(name="nextweek", description="Оберіть вихідні на НАСТУПНИЙ тиждень.")
         async def day_off_nextweek(interaction: discord.Interaction):
@@ -56,13 +55,12 @@ class SlashCommands:
             """
             logger.info(f"Day off nextweek command from {interaction.user}")
             view = create_view("day_off", "day_off_nextweek", str(interaction.user.id))
-            await webhook_service.send_interaction_response(
-                interaction,
-                initial_message="Оберіть свої вихідні (наступний тиждень), потім натисніть «Відправити»:",
-                command="day_off_nextweek",
-                result={},
-                view=view
-            )
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    "Оберіть свої вихідні (наступний тиждень), потім натисніть кнопку:",
+                    view=view,
+                    ephemeral=False
+                )
 
         self.bot.tree.add_command(day_off_group)
 

@@ -20,10 +20,10 @@ class WorkloadButton(discord.ui.Button):
         if "workload_today" in self.cmd_or_step or "workload_nextweek" in self.cmd_or_step:
             # This is a slash command - send the actual command result
             value = "0" if self.label == "Нічого немає" else self.label
-            await webhook_service.send_webhook(
+            await webhook_service.send_interaction_response(
                 interaction,
+                initial_message=f"Обробка вибору: {self.label}",
                 command=self.cmd_or_step,
-                status="ok",
                 result={"value": value}
             )
         elif not any(cmd in self.cmd_or_step for cmd in ["survey", "workload_today", "workload_nextweek"]):
