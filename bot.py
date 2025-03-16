@@ -690,8 +690,8 @@ async def slash_workload_nextweek(interaction: discord.Interaction):
     connects="Кількість Upwork Connects, що залишилось на цьому тижні"
 )
 async def slash_connects_thisweek(interaction: discord.Interaction, connects: int):
-    # Use response.send_message with empty content to preserve the Discord command attribution
-    await interaction.response.send_message("\u200B", ephemeral=False)
+    # Use defer to preserve the Discord command attribution
+    await interaction.response.defer(ephemeral=False)
     
     # Then handle the response through the standard handler
     await ResponseHandler.handle_response(
