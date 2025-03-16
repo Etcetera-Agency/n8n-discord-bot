@@ -7,7 +7,6 @@ from discord.ext import commands
 from config import Config, logger
 from services.session import session_manager
 from services.survey import survey_manager
-from bot.views.factory import create_view
 
 # Import survey-related globals and functions
 # These will be imported at runtime to avoid circular imports
@@ -223,7 +222,7 @@ class WebhookService:
             
             # Send the message with view if provided
             response_message = await interaction.followup.send(initial_message, view=view, wait=True)
-            await response_message.add_reaction("⏳")
+            await response_message.add_reaction("⏳")  # Show processing
             
             # Send the webhook
             success, data = await self.send_webhook(
@@ -241,7 +240,7 @@ class WebhookService:
             # If webhook was successful and we got output, delete the original message
             if success and data and "output" in data:
                 # Add success reaction before deleting
-                await response_message.add_reaction("✅")
+                await response_message.add_reaction("✅")  # Show success
                 await asyncio.sleep(1)  # Give a moment to see the success reaction
                 await response_message.delete()
                 await interaction.followup.send(data["output"])
@@ -254,11 +253,9 @@ class WebhookService:
                     elif "value" in result:
                         user_input = f"Вибрано: {result['value']}"
                 
-                # Remove processing reaction and add error reaction
-                await response_message.remove_reaction("⏳", interaction.client.user)
                 error_msg = f"{user_input}\nПомилка: Не вдалося виконати команду." if user_input else f"{initial_message}\nПомилка: Не вдалося виконати команду."
                 await response_message.edit(content=error_msg)
-                await response_message.add_reaction("❌")
+                await response_message.add_reaction("❌")  # Show error
                 
         except Exception as e:
             logger.error(f"Error in send_interaction_response: {e}")
@@ -267,9 +264,9 @@ class WebhookService:
                     "Помилка: Не вдалося обробити команду.",
                     ephemeral=False
                 )
-                await message.add_reaction("❌")
                 await message.add_reaction("⏳")  # Show that processing was attempted
-                await message.remove_reaction("⏳", interaction.client.user)  # Remove processing indicator
+                await message.remove_reaction("⏳", interaction.client.user)
+                await message.add_reaction("❌")  # Show error
     
     async def send_webhook_with_retry(
         self,
