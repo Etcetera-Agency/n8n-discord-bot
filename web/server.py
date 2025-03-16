@@ -1,10 +1,10 @@
 import ssl
 import asyncio
+import discord
 from aiohttp import web
 from typing import Optional, Dict, Any
 from config import Config, logger
 from services import webhook_service, survey_manager, session_manager
-from bot.commands.survey import handle_start_daily_survey
 import os
 
 class WebServer:
@@ -47,9 +47,8 @@ class WebServer:
             data = await request.json()
             user_id = data.get("userId")
             channel_id = data.get("channelId")
-            steps = data.get("steps", [])
             
-            if not user_id or not channel_id or not steps:
+            if not user_id or not channel_id:
                 return web.json_response({"error": "Missing parameters"}, status=400)
 
             logger.info(f"Attempting to find channel {channel_id}")
@@ -82,15 +81,48 @@ class WebServer:
                 logger.error(f"Channel registration check failed - success: {success_check}, data: {data_check}")
                 return web.json_response({"error": "Channel is not registered"}, status=403)
 
-            # If n8n returned new steps, use them instead of the ones from the request
+            # Get steps from n8n response
             if "steps" in data_check:
                 logger.info(f"Using steps from n8n response: {data_check['steps']}")
                 steps = data_check["steps"]
             else:
-                logger.info(f"Using steps from request: {steps}")
+                logger.error("No steps provided in n8n response")
+                return web.json_response({"error": "No steps provided by n8n"}, status=400)
 
-            await handle_start_daily_survey(self.bot, user_id, channel_id, steps)
-            return web.json_response({"status": "Survey started"})
+            # Instead of starting the survey immediately, send a greeting message with a button
+            class StartSurveyButton(discord.ui.Button):
+                def __init__(self, user_id: str, channel_id: str, steps: list):
+                    super().__init__(
+                        style=discord.ButtonStyle.success,
+                        label="Так",
+                        custom_id=f"start_survey_{channel_id}"
+                    )
+                    self.user_id = user_id
+                    self.channel_id = channel_id
+                    self.steps = steps
+                    
+                async def callback(self, interaction):
+                    # First, acknowledge the interaction to prevent timeout
+                    if not interaction.response.is_done():
+                        await interaction.response.defer(ephemeral=False)
+                    
+                    try:
+                        # Start the survey
+                        from bot.commands.survey import handle_start_daily_survey
+                        await handle_start_daily_survey(interaction.client, self.user_id, self.channel_id, self.steps)
+                        
+                    except Exception as e:
+                        logger.error(f"Error starting survey: {e}")
+
+            class StartSurveyView(discord.ui.View):
+                def __init__(self, user_id: str, channel_id: str, steps: list):
+                    super().__init__(timeout=None)  # No timeout - button stays forever
+                    self.add_item(StartSurveyButton(user_id, channel_id, steps))
+            
+            view = StartSurveyView(user_id, channel_id, steps)
+            await channel.send(f"Привіт <@{user_id}>! Готовий почати робочий день?", view=view)
+            
+            return web.json_response({"status": "Greeting message sent"})
         
         except Exception as e:
             logger.error(f"Error in start_survey_http: {e}")
