@@ -160,7 +160,7 @@ def get_session_id(user_id: str) -> str:
     sessions[user_id] = new_session_id
     return new_session_id
 
-async def send_webhook_with_retry(target_channel, payload, headers, max_retries=3, retry_delay=1):
+async def send_webhook_with_retry(target_channel, payload, headers, max_retries=3, retry_delay=30):
     """Sends a POST request to n8n with retry logic. Returns (success, data)."""
     request_id = str(uuid.uuid4())[:8]
     logger.info(f"[{request_id}] Sending webhook to URL: {N8N_WEBHOOK_URL}")
