@@ -213,22 +213,22 @@ class WebhookService:
             result: Result dictionary
             extra_headers: Additional headers
         """
-        # Create view if needed
-        view = None
-        if command.startswith("day_off"):
-            view = create_view("day_off", command, str(interaction.user.id))
-        elif command.startswith("workload"):
-            view = create_view("workload", command, str(interaction.user.id))
-        
-        # Defer the response first if not already done
-        if not interaction.response.is_done():
-            await interaction.response.defer(thinking=True, ephemeral=False)
-        
-        # Send initial message with processing reaction
-        response_message = await interaction.followup.send(initial_message, view=view, ephemeral=False)
-        await response_message.add_reaction("⏳")
-        
         try:
+            # Create view if needed
+            view = None
+            if command.startswith("day_off"):
+                view = create_view("day_off", command, str(interaction.user.id))
+            elif command.startswith("workload"):
+                view = create_view("workload", command, str(interaction.user.id))
+            
+            # Send immediate response with view
+            if not interaction.response.is_done():
+                await interaction.response.send_message(initial_message, view=view, ephemeral=False)
+            
+            # Add processing reaction
+            response_message = await interaction.original_response()
+            await response_message.add_reaction("⏳")
+            
             # Send the webhook
             success, data = await self.send_webhook(
                 interaction,
@@ -248,16 +248,14 @@ class WebhookService:
             elif not success:
                 error_msg = f"{initial_message}\nПомилка: Не вдалося виконати команду."
                 await response_message.edit(content=error_msg)
-            
-            # Add appropriate reaction
-            await response_message.add_reaction("✅" if success else "❌")
-            
+                
         except Exception as e:
-            logger.error(f"Error in interaction response: {e}")
-            await response_message.remove_reaction("⏳", interaction.client.user)
-            error_msg = f"{initial_message}\nПомилка: Сталася неочікувана помилка."
-            await response_message.edit(content=error_msg)
-            await response_message.add_reaction("❌")
+            logger.error(f"Error in send_interaction_response: {e}")
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    "Помилка: Не вдалося обробити команду.",
+                    ephemeral=False
+                )
     
     async def send_webhook_with_retry(
         self,
