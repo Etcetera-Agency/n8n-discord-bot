@@ -207,17 +207,20 @@ class WebhookService:
         try:
             # Call the continue_survey endpoint
             async with aiohttp.ClientSession() as session:
-                url = f"{Config.HOST}:{Config.PORT}/continue_survey"
+                # Construct the URL correctly
+                host = Config.HOST if Config.HOST != "0.0.0.0" else "localhost"
+                url = f"http://{host}:{Config.PORT}/continue_survey"
                 headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
                 payload = {"userId": user_id}
                 
-                logger.info(f"Calling continue_survey endpoint for user {user_id}")
+                logger.info(f"Calling continue_survey endpoint for user {user_id} at {url}")
                 async with session.post(url, json=payload, headers=headers) as response:
                     if response.status == 200:
                         logger.info(f"Successfully continued survey for user {user_id}")
                     else:
-                        logger.error(f"Failed to continue survey for user {user_id}: {response.status}")
-                        await channel.send(f"<@{user_id}> Помилка при продовженні опитування.")
+                        response_text = await response.text()
+                        logger.error(f"Failed to continue survey for user {user_id}: {response.status}, response: {response_text}")
+                        await channel.send(f"<@{user_id}> Помилка при продовженні опитування: код {response.status}")
         except Exception as e:
             logger.error(f"Error in handle_survey_continuation: {e}")
             await channel.send(f"<@{user_id}> Помилка при продовженні опитування: {str(e)}")

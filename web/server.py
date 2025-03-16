@@ -85,14 +85,57 @@ class WebServer:
                         break
                 
                 if command:
-                    # Create a mock interaction to execute the command
-                    # This is a simplified approach - in a real implementation,
-                    # you would need to create a proper interaction object
-                    # or use the bot's command system directly
-                    logger.info(f"Executing next command {next_step} for user {user_id}")
+                    # Find the user
+                    user = None
+                    try:
+                        user = await self.bot.fetch_user(int(user_id))
+                    except Exception as e:
+                        logger.error(f"Error fetching user {user_id}: {e}")
+                        return web.json_response({"error": f"User not found: {e}"}, status=404)
                     
-                    # For now, just send a message to the channel
-                    await channel.send(f"<@{user_id}> Наступний крок опитування: {next_step}")
+                    if not user:
+                        logger.error(f"User {user_id} not found")
+                        return web.json_response({"error": "User not found"}, status=404)
+                    
+                    # Create a mock interaction
+                    class MockInteraction:
+                        def __init__(self, user, channel, client):
+                            self.user = user
+                            self.channel = channel
+                            self.client = client
+                            self.response = MockResponse()
+                            self.followup = MockFollowup(channel)
+                        
+                        async def original_response(self):
+                            return await self.channel.send(f"{self.user} used {next_step}")
+                    
+                    class MockResponse:
+                        def __init__(self):
+                            self.is_done_flag = False
+                            
+                        def is_done(self):
+                            return self.is_done_flag
+                            
+                        async def defer(self, ephemeral=False):
+                            self.is_done_flag = True
+                            
+                        async def send_message(self, content, ephemeral=False, view=None):
+                            self.is_done_flag = True
+                            return None
+                    
+                    class MockFollowup:
+                        def __init__(self, channel):
+                            self.channel = channel
+                            
+                        async def send(self, content, ephemeral=False, view=None, wait=False):
+                            return await self.channel.send(content, view=view)
+                    
+                    # Create the mock interaction
+                    mock_interaction = MockInteraction(user, channel, self.bot)
+                    
+                    # Execute the command
+                    logger.info(f"Executing next command {next_step} for user {user_id}")
+                    await command.callback(mock_interaction)
                     
                     return web.json_response({"status": "Command executed"})
                 else:
