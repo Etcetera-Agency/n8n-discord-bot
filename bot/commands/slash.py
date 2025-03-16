@@ -142,7 +142,7 @@ class SlashCommands:
                 interaction,
                 initial_message="Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?\nЯкщо нічого, оберіть «Нічого немає».",
                 command="workload_today",
-                result={"view": create_view("workload", "workload_today", str(interaction.user.id))}
+                result={}
             )
 
         @self.bot.tree.command(
@@ -161,7 +161,7 @@ class SlashCommands:
                 interaction,
                 initial_message="Скільки годин підтверджено на НАСТУПНИЙ тиждень?\nЯкщо нічого, оберіть «Нічого немає».",
                 command="workload_nextweek",
-                result={"view": create_view("workload", "workload_nextweek", str(interaction.user.id))}
+                result={}
             )
 
         @self.bot.tree.command(
@@ -179,7 +179,7 @@ class SlashCommands:
             logger.info(f"Connects thisweek command from {interaction.user}: {connects}")
             await webhook_service.send_interaction_response(
                 interaction,
-                initial_message=f"Connects: {connects}",
+                initial_message=f"Обробка запиту на Connects: {connects}",
                 command="connects_thisweek",
                 result={"connects": connects}
             ) 
