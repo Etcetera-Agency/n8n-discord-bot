@@ -82,6 +82,13 @@ class WebServer:
                 logger.error(f"Channel registration check failed - success: {success_check}, data: {data_check}")
                 return web.json_response({"error": "Channel is not registered"}, status=403)
 
+            # If n8n returned new steps, use them instead of the ones from the request
+            if "steps" in data_check:
+                logger.info(f"Using steps from n8n response: {data_check['steps']}")
+                steps = data_check["steps"]
+            else:
+                logger.info(f"Using steps from request: {steps}")
+
             await handle_start_daily_survey(self.bot, user_id, channel_id, steps)
             return web.json_response({"status": "Survey started"})
         
