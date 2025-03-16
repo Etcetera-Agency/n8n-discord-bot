@@ -239,7 +239,8 @@ class WebhookService:
             if success and data and "output" in data:
                 await response_message.edit(content=data["output"])
             else:
-                await response_message.edit(content="Помилка: Не вдалося виконати команду.")
+                error_msg = f"{initial_message}\nПомилка: Не вдалося виконати команду."
+                await response_message.edit(content=error_msg)
             
             # Add appropriate reaction
             await response_message.add_reaction("✅" if success else "❌")
@@ -247,7 +248,8 @@ class WebhookService:
         except Exception as e:
             logger.error(f"Error in interaction response: {e}")
             await response_message.remove_reaction("⏳", interaction.client.user)
-            await response_message.edit(content="Помилка: Сталася неочікувана помилка.")
+            error_msg = f"{initial_message}\nПомилка: Сталася неочікувана помилка."
+            await response_message.edit(content=error_msg)
             await response_message.add_reaction("❌")
     
     async def send_webhook_with_retry(
