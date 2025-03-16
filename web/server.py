@@ -102,13 +102,22 @@ class WebServer:
                             steps = default_steps
                         elif str(data_check.get("output", "false")).lower() != "true":
                             logger.error(f"Channel registration check returned false - success: {success_check}, data: {data_check}")
-                            await interaction.followup.send(""Канал не зареєстровано. Будь ласка, зареєструйте його перед початком спілкування з ботом."", ephemeral=True)
+                            await interaction.followup.send("Канал не зареєстровано. Будь ласка, зареєструйте його перед початком спілкування з ботом.", ephemeral=True)
                             return
                         else:
                             # Get steps from n8n response
                             if "steps" in data_check:
-                                logger.info(f"Using steps from n8n response: {data_check['steps']}")
-                                steps = data_check["steps"]
+                                # Filter out unknown steps
+                                known_steps = ["workload_today", "workload_nextweek", 
+                                              "day_off_nextweek", "connects_thisweek"]
+                                filtered_steps = [step for step in data_check["steps"] if step in known_steps]
+                                
+                                if filtered_steps:
+                                    logger.info(f"Using filtered steps from n8n response: {filtered_steps}")
+                                    steps = filtered_steps
+                                else:
+                                    logger.warning(f"No known steps in n8n response: {data_check['steps']}. Using default steps: {default_steps}")
+                                    steps = default_steps
                             else:
                                 logger.warning(f"No steps provided in n8n response. Using default steps: {default_steps}")
                                 steps = default_steps
