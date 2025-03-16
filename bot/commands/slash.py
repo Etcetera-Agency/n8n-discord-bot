@@ -39,16 +39,19 @@ class SlashCommands:
             """
             logger.info(f"Day off thisweek command from {interaction.user}")
             
-            # First send the command usage message
+            # First send the command usage message and store it
             if not interaction.response.is_done():
                 await interaction.response.send_message(f"{interaction.user} used day_off_thisweek")
+            command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
             view = create_view("day_off", "day_off_thisweek", str(interaction.user.id))
-            await interaction.channel.send(
+            view.command_msg = command_msg  # Store reference to command message
+            buttons_msg = await interaction.channel.send(
                 "Оберіть свої вихідні (цей тиждень), потім натисніть кнопку:",
                 view=view
             )
+            view.buttons_msg = buttons_msg  # Store reference to buttons message
 
         @day_off_group.command(name="nextweek", description="Оберіть вихідні на НАСТУПНИЙ тиждень.")
         async def day_off_nextweek(interaction: discord.Interaction):
@@ -60,16 +63,19 @@ class SlashCommands:
             """
             logger.info(f"Day off nextweek command from {interaction.user}")
             
-            # First send the command usage message
+            # First send the command usage message and store it
             if not interaction.response.is_done():
                 await interaction.response.send_message(f"{interaction.user} used day_off_nextweek")
+            command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
             view = create_view("day_off", "day_off_nextweek", str(interaction.user.id))
-            await interaction.channel.send(
+            view.command_msg = command_msg  # Store reference to command message
+            buttons_msg = await interaction.channel.send(
                 "Оберіть свої вихідні (наступний тиждень), потім натисніть кнопку:",
                 view=view
             )
+            view.buttons_msg = buttons_msg  # Store reference to buttons message
 
         self.bot.tree.add_command(day_off_group)
 
