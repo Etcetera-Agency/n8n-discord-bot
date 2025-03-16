@@ -75,6 +75,12 @@ class ConfirmButton(discord.ui.Button):
             
             # Get the original message
             message = interaction.message
+            if message and message.reference and message.reference.message_id:
+                # If this is a reply, get the original message
+                original_message = await message.channel.fetch_message(message.reference.message_id)
+            else:
+                original_message = None
+            
             if message:
                 # Add processing reaction
                 await message.add_reaction("⏳")
@@ -126,7 +132,7 @@ class ConfirmButton(discord.ui.Button):
                     next_step = state.current_step()
                     
                     if message:
-                        # Show success reaction and delete message
+                        # Show success reaction and delete message with buttons
                         await message.add_reaction("✅")
                         await asyncio.sleep(1)
                         await message.delete()
@@ -154,7 +160,7 @@ class ConfirmButton(discord.ui.Button):
                     
                     if success and data and "output" in data:
                         if message:
-                            # Add success reaction and delete message
+                            # Add success reaction and delete message with buttons
                             await message.add_reaction("✅")
                             await asyncio.sleep(1)
                             await message.delete()
@@ -193,6 +199,12 @@ class DeclineButton(discord.ui.Button):
             
             # Get the original message
             message = interaction.message
+            if message and message.reference and message.reference.message_id:
+                # If this is a reply, get the original message
+                original_message = await message.channel.fetch_message(message.reference.message_id)
+            else:
+                original_message = None
+            
             if message:
                 # Add processing reaction
                 await message.add_reaction("⏳")
@@ -237,7 +249,7 @@ class DeclineButton(discord.ui.Button):
                     next_step = state.current_step()
                     
                     if message:
-                        # Show success reaction and delete message
+                        # Show success reaction and delete message with buttons
                         await message.add_reaction("✅")
                         await asyncio.sleep(1)
                         await message.delete()
@@ -265,7 +277,7 @@ class DeclineButton(discord.ui.Button):
                     
                     if success and data and "output" in data:
                         if message:
-                            # Add success reaction and delete message
+                            # Add success reaction and delete message with buttons
                             await message.add_reaction("✅")
                             await asyncio.sleep(1)
                             await message.delete()
