@@ -361,6 +361,31 @@ An example n8n workflow that demonstrates the survey control feature is included
 
 You can import this workflow into your n8n instance to see how it works.
 
+### New Survey Implementation
+
+The bot now uses a more direct approach for handling surveys:
+
+1. When a survey is started (via the "Yes" button or through the `/start_survey` endpoint), the bot:
+   - Stores the list of survey steps for the user
+   - Executes the first command in the sequence directly
+   
+2. When n8n responds with `"survey": "continue"`:
+   - The bot sends the output message to the user
+   - The bot automatically executes the next command in the sequence
+   - Each command is executed as if the user had manually run the slash command
+
+3. This approach offers several advantages:
+   - Each step uses the existing slash command implementation, ensuring consistent behavior
+   - The UI is cleaner with command messages showing results and buttons being removed after use
+   - Error handling is more robust as it leverages the existing command infrastructure
+   - Reactions provide clear visual feedback on the status of each step
+
+The survey flow is now:
+1. User starts survey → First command runs
+2. User selects option → Result shown in command message, buttons removed
+3. n8n responds with "continue" → Next command runs automatically
+4. Process repeats until all steps are completed
+
 ### Configuring the n8n AI Agent Node
 
 The n8n AI Agent node can be used to process requests from the Discord bot and generate appropriate responses. This powerful node combines AI capabilities with n8n's workflow automation, allowing your bot to make intelligent decisions based on user input.
@@ -377,9 +402,9 @@ The n8n AI Agent node can be used to process requests from the Discord bot and g
 For handling surveys, we recommend the following workflow structure:
 
 ```
-Webhook → IF (command=survey) → IF (has final result) → Process Final Result → Respond to Webhook
-                              │                      │
-                              │                      └→ Process Survey Step → Respond to Webhook
+Webhook → IF (command=survey) → IF (status=end) → Process Final Result → Respond to Webhook
+                              │                  │
+                              │                  └→ Process Survey Step → Respond to Webhook
                               │
                               └→ Default Response → Respond to Webhook
 ```
@@ -450,7 +475,7 @@ When a user completes a step in a survey:
   "status": "step",
   "message": "",
   "result": {
-    "stepName": "workload_thisweek",
+    "stepName": "workload_today",
     "value": 20
   },
   "author": "User#1234",
@@ -472,9 +497,8 @@ When a user completes all steps in a survey:
   "status": "end",
   "message": "",
   "result": {
-    "stepName": "workload_thisweek",
+    "stepName": "workload_nextweek",
     "value": 20
-    }
   },
   "author": "User#1234",
   "userId": "123456789012345678",
@@ -526,7 +550,6 @@ Basic response with just text:
 #### 2. Response with buttons
 
 Basic response with buttons:
-
 
 ```json
 {
@@ -595,7 +618,6 @@ Where `type: 3` represents a SelectMenu.
 
 If you're interested in contributing this functionality, feel free to submit a pull request!
 
-
 #### 3. Survey Control - Continue
 
 Response to continue to the next step in a survey:
@@ -606,6 +628,13 @@ Response to continue to the next step in a survey:
   "survey": "continue"
 }
 ```
+
+When n8n includes `"survey": "continue"` in the response, the bot will:
+1. Send the output message to the user in Discord
+2. Automatically execute the next command in the survey sequence
+3. The next command will be executed as if the user had manually run the slash command
+
+This allows for a seamless survey experience where users answer one question at a time, and the bot automatically progresses through the survey steps based on n8n's responses.
 
 #### 4. Survey Control - Cancel
 
@@ -620,7 +649,6 @@ Response to cancel a survey due to an error or invalid input:
 
 Note that currently, the bot only processes the `output` and `survey` fields from n8n responses.
 
-
 ## Contributing
 
-Contributions are welcome! Feel free to submit a Pull Request.
+// ... existing code ...

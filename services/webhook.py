@@ -189,7 +189,38 @@ class WebhookService:
         # Send webhook and get response
         success, data = await self.send_webhook_with_retry(ctx_or_interaction, payload, headers)
         
+        # Check if n8n wants to continue the survey
+        if success and data and "survey" in data and data["survey"] == "continue":
+            logger.info(f"n8n requested survey continuation for user {payload['userId']}")
+            await self.handle_survey_continuation(payload["userId"], channel)
+        
         return success, data
+
+    async def handle_survey_continuation(self, user_id: str, channel: discord.TextChannel) -> None:
+        """
+        Handle survey continuation by calling the continue_survey endpoint.
+        
+        Args:
+            user_id: User ID
+            channel: Discord channel
+        """
+        try:
+            # Call the continue_survey endpoint
+            async with aiohttp.ClientSession() as session:
+                url = f"{Config.HOST}:{Config.PORT}/continue_survey"
+                headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
+                payload = {"userId": user_id}
+                
+                logger.info(f"Calling continue_survey endpoint for user {user_id}")
+                async with session.post(url, json=payload, headers=headers) as response:
+                    if response.status == 200:
+                        logger.info(f"Successfully continued survey for user {user_id}")
+                    else:
+                        logger.error(f"Failed to continue survey for user {user_id}: {response.status}")
+                        await channel.send(f"<@{user_id}> Помилка при продовженні опитування.")
+        except Exception as e:
+            logger.error(f"Error in handle_survey_continuation: {e}")
+            await channel.send(f"<@{user_id}> Помилка при продовженні опитування: {str(e)}")
 
     async def send_interaction_response(
         self,

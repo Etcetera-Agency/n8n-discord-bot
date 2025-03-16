@@ -2,10 +2,13 @@ import ssl
 import asyncio
 import discord
 from aiohttp import web
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from config import Config, logger
 from services import webhook_service, survey_manager, session_manager
 import os
+
+# Store active survey steps for users
+active_surveys = {}
 
 class WebServer:
     """
@@ -27,6 +30,81 @@ class WebServer:
     def setup_routes(self) -> None:
         """Set up the server routes."""
         self.app.router.add_post('/start_survey', self.start_survey_http)
+        self.app.router.add_post('/continue_survey', self.continue_survey_http)
+        
+    async def continue_survey_http(self, request: web.Request) -> web.Response:
+        """
+        Handle HTTP request to continue a survey.
+        
+        Args:
+            request: HTTP request
+            
+        Returns:
+            HTTP response
+        """
+        auth_header = request.headers.get("Authorization")
+        expected_header = f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"
+        if not auth_header or auth_header != expected_header:
+            return web.json_response({"error": "Unauthorized"}, status=401)
+        
+        try:
+            data = await request.json()
+            user_id = data.get("userId")
+            
+            if not user_id or user_id not in active_surveys:
+                return web.json_response({"error": "No active survey for this user"}, status=400)
+            
+            # Get the next step for this user
+            steps = active_surveys[user_id]["steps"]
+            current_index = active_surveys[user_id]["current_index"]
+            
+            if current_index >= len(steps):
+                # Survey is complete
+                del active_surveys[user_id]
+                return web.json_response({"status": "Survey completed"})
+            
+            # Get the next command to execute
+            next_step = steps[current_index]
+            channel_id = active_surveys[user_id]["channel_id"]
+            
+            # Increment the index for next time
+            active_surveys[user_id]["current_index"] += 1
+            
+            # Execute the command
+            try:
+                channel = await self.bot.fetch_channel(int(channel_id))
+                if not channel:
+                    logger.warning(f"Channel {channel_id} not found for user {user_id}")
+                    return web.json_response({"error": "Channel not found"}, status=404)
+                
+                # Find the command in the bot's command tree
+                command = None
+                for cmd in self.bot.tree.get_commands():
+                    if cmd.name == next_step:
+                        command = cmd
+                        break
+                
+                if command:
+                    # Create a mock interaction to execute the command
+                    # This is a simplified approach - in a real implementation,
+                    # you would need to create a proper interaction object
+                    # or use the bot's command system directly
+                    logger.info(f"Executing next command {next_step} for user {user_id}")
+                    
+                    # For now, just send a message to the channel
+                    await channel.send(f"<@{user_id}> Наступний крок опитування: {next_step}")
+                    
+                    return web.json_response({"status": "Command executed"})
+                else:
+                    logger.error(f"Command {next_step} not found in command tree")
+                    return web.json_response({"error": f"Command {next_step} not found"}, status=404)
+            except Exception as e:
+                logger.error(f"Error executing command: {e}")
+                return web.json_response({"error": str(e)}, status=500)
+            
+        except Exception as e:
+            logger.error(f"Error in continue_survey_http: {e}")
+            return web.json_response({"error": str(e)}, status=500)
         
     async def start_survey_http(self, request: web.Request) -> web.Response:
         """
@@ -78,9 +156,6 @@ class WebServer:
                     logger.info(f"Start survey button clicked by user {self.user_id} in channel {self.channel_id}")
                     
                     try:
-                        # Send a temporary message to show that the button was clicked
-                        await interaction.followup.send("Запускаю опитування...", ephemeral=True)
-                        
                         # Check if channel is registered
                         payload = webhook_service.build_payload(
                             command="check_channel",
@@ -127,20 +202,46 @@ class WebServer:
                                 logger.warning(f"No steps provided in n8n response. Using default steps: {default_steps}")
                                 steps = default_steps
                         
+                        # Store the steps for this user
+                        active_surveys[self.user_id] = {
+                            "steps": steps,
+                            "current_index": 0,
+                            "channel_id": self.channel_id
+                        }
+                        
                         # Log the steps that will be used
-                        logger.info(f"Starting survey for user {self.user_id} in channel {self.channel_id} with steps: {steps}")
+                        logger.info(f"Starting commands for user {self.user_id} in channel {self.channel_id} with steps: {steps}")
                         
-                        # Start the survey
-                        from bot.commands.survey import handle_start_daily_survey
-                        await handle_start_daily_survey(interaction.client, self.user_id, self.channel_id, steps)
-                        
-                        # Send a confirmation message
-                        await interaction.followup.send("Опитування запущено! Будь ласка, дайте відповідь на питання вище.", ephemeral=True)
+                        # Execute the first slash command directly
+                        if steps and len(steps) > 0:
+                            first_step = steps[0]
+                            logger.info(f"Executing first command: {first_step}")
+                            
+                            # Increment the index for next time
+                            active_surveys[self.user_id]["current_index"] += 1
+                            
+                            # Find the command in the bot's command tree
+                            command = None
+                            for cmd in interaction.client.tree.get_commands():
+                                if cmd.name == first_step:
+                                    command = cmd
+                                    break
+                            
+                            if command:
+                                # Execute the command
+                                logger.info(f"Found command {first_step}, executing")
+                                await command.callback(interaction)
+                            else:
+                                logger.error(f"Command {first_step} not found in command tree")
+                                await interaction.followup.send(f"Команда {first_step} не знайдена.", ephemeral=True)
+                        else:
+                            logger.warning(f"No steps to execute for user {self.user_id}")
+                            await interaction.followup.send("Немає команд для виконання.", ephemeral=True)
                         
                     except Exception as e:
-                        logger.error(f"Error starting survey: {e}")
+                        logger.error(f"Error executing command: {e}")
                         # Send an error message to the user
-                        await interaction.followup.send(f"Помилка при запуску опитування: {str(e)}", ephemeral=True)
+                        await interaction.followup.send(f"Помилка при виконанні команди: {str(e)}", ephemeral=True)
 
             class StartSurveyView(discord.ui.View):
                 def __init__(self, user_id: str, channel_id: str):

@@ -42,8 +42,9 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{$json.result.final}}",
-              "operation": "exists"
+              "value1": "={{$json.status}}",
+              "operation": "equal",
+              "value2": "end"
             }
           ]
         }
@@ -59,7 +60,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Process the survey step\nconst result = $input.item.json.result;\nconst stepName = Object.keys(result)[0];\nconst stepValue = result[stepName];\n\n// Validate the step value\nlet isValid = true;\nlet errorMessage = \"\";\n\n// Example validation for workload steps\nif (stepName.startsWith('workload_') && (isNaN(stepValue) || stepValue < 0 || stepValue > 50)) {\n  isValid = false;\n  errorMessage = \"Invalid workload value. Please enter a number between 0 and 50.\";\n}\n\n// Check if we should end the survey early\n// For example, if the workload is 0, we might not need additional information\nconst shouldEndEarly = stepName === 'workload_thisweek' && stepValue === 0;\n\n// Return the appropriate response\nif (!isValid) {\n  return {\n    output: errorMessage,\n    survey: \"cancel\"\n  };\n} else if (shouldEndEarly) {\n  return {\n    output: \"Thank you for your response. Since your workload is 0, we don't need additional information.\",\n    survey: \"cancel\"\n  };\n} else {\n  return {\n    output: \"Survey step recorded. Thank you!\",\n    survey: \"continue\"\n  };\n}"
+        "jsCode": "// Process the survey step\nconst result = $input.item.json.result;\nconst stepName = result.stepName;\nconst stepValue = result.value;\n\n// Validate the step value\nlet isValid = true;\nlet errorMessage = \"\";\n\n// Example validation for workload steps\nif (stepName.startsWith('workload_') && (isNaN(stepValue) || stepValue < 0 || stepValue > 50)) {\n  isValid = false;\n  errorMessage = \"Invalid workload value. Please enter a number between 0 and 50.\";\n}\n\n// Check if we should end the survey early\n// For example, if the workload is 0, we might not need additional information\nconst shouldEndEarly = stepName === 'workload_today' && stepValue === 0;\n\n// Return the appropriate response\nif (!isValid) {\n  return {\n    output: errorMessage,\n    survey: \"cancel\"\n  };\n} else if (shouldEndEarly) {\n  return {\n    output: \"Thank you for your response. Since your workload is 0, we don't need additional information.\",\n    survey: \"cancel\"\n  };\n} else {\n  return {\n    output: `Thank you for submitting ${stepName}: ${stepValue}`,\n    survey: \"continue\"\n  };\n}"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 1.1,
@@ -72,7 +73,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Process the final survey result\nconst finalResult = $input.item.json.result.final;\n\n// Here you can save the survey results to a database or perform other actions\n\nreturn {\n  output: \"Thank you for completing the survey!\"\n};"
+        "jsCode": "// Process the final survey result\nconst result = $input.item.json.result;\nconst stepName = result.stepName;\nconst stepValue = result.value;\n\n// Here you can save the survey results to a database or perform other actions\n\nreturn {\n  output: \"Thank you for completing the survey! All your responses have been recorded.\"\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 1.1,
