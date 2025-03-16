@@ -178,8 +178,33 @@ class SlashCommands:
                 connects: Number of connects
             """
             logger.info(f"Connects thisweek command from {interaction.user}: {connects}")
-            await webhook_service.send_webhook(
-                interaction,
-                command="connects_thisweek",
-                result={"connects": connects}
-            ) 
+            # Defer the response first
+            await interaction.response.defer(thinking=True, ephemeral=False)
+            
+            # Send initial message and add processing reaction
+            initial_message = await interaction.followup.send("Processing...", ephemeral=False)
+            await initial_message.add_reaction("⏳")
+            
+            try:
+                success, data = await webhook_service.send_webhook(
+                    interaction,
+                    command="connects_thisweek",
+                    result={"connects": connects}
+                )
+                
+                # Remove processing reaction
+                await initial_message.remove_reaction("⏳", interaction.client.user)
+                
+                # Add success/error reaction based on the result
+                await initial_message.add_reaction("✅" if success else "❌")
+                
+                # Edit the message with the actual response if we got data
+                if success and data and "output" in data:
+                    await initial_message.edit(content=data["output"])
+                elif not success:
+                    await initial_message.edit(content="Помилка: Не вдалося оновити connects.")
+            except Exception as e:
+                logger.error(f"Error in connects_thisweek: {e}")
+                await initial_message.remove_reaction("⏳", interaction.client.user)
+                await initial_message.add_reaction("❌")
+                await initial_message.edit(content="Помилка: Сталася неочікувана помилка.") 
