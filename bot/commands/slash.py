@@ -37,11 +37,13 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Day off thisweek command from {interaction.user}")
+            view = create_view("day_off", "day_off_thisweek", str(interaction.user.id))
             await webhook_service.send_interaction_response(
                 interaction,
                 initial_message="Оберіть свої вихідні (цей тиждень), потім натисніть «Відправити»:",
                 command="day_off_thisweek",
-                result={}
+                result={},
+                view=view
             )
 
         @day_off_group.command(name="nextweek", description="Оберіть вихідні на НАСТУПНИЙ тиждень.")
@@ -53,11 +55,13 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Day off nextweek command from {interaction.user}")
+            view = create_view("day_off", "day_off_nextweek", str(interaction.user.id))
             await webhook_service.send_interaction_response(
                 interaction,
                 initial_message="Оберіть свої вихідні (наступний тиждень), потім натисніть «Відправити»:",
                 command="day_off_nextweek",
-                result={}
+                result={},
+                view=view
             )
 
         self.bot.tree.add_command(day_off_group)
@@ -138,11 +142,13 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Workload today command from {interaction.user}")
+            view = create_view("workload", "workload_today", str(interaction.user.id))
             await webhook_service.send_interaction_response(
                 interaction,
                 initial_message="Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?\nЯкщо нічого, оберіть «Нічого немає».",
                 command="workload_today",
-                result={}
+                result={},
+                view=view
             )
 
         @self.bot.tree.command(
@@ -157,11 +163,13 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Workload nextweek command from {interaction.user}")
+            view = create_view("workload", "workload_nextweek", str(interaction.user.id))
             await webhook_service.send_interaction_response(
                 interaction,
                 initial_message="Скільки годин підтверджено на НАСТУПНИЙ тиждень?\nЯкщо нічого, оберіть «Нічого немає».",
                 command="workload_nextweek",
-                result={}
+                result={},
+                view=view
             )
 
         @self.bot.tree.command(

@@ -200,7 +200,8 @@ class WebhookService:
         status: str = "ok",
         message: str = "",
         result: Optional[Dict[str, Any]] = None,
-        extra_headers: Optional[Dict[str, str]] = None
+        extra_headers: Optional[Dict[str, str]] = None,
+        view: Optional[discord.ui.View] = None
     ) -> None:
         """
         Send an interaction response with consistent reaction handling.
@@ -213,24 +214,15 @@ class WebhookService:
             message: Message string
             result: Result dictionary
             extra_headers: Additional headers
+            view: Optional Discord view to attach to the message
         """
         try:
             # First, acknowledge the interaction to prevent timeout
             if not interaction.response.is_done():
                 await interaction.response.defer(ephemeral=False)
             
-            # Create view if needed and set appropriate message
-            view = None
-            view_message = initial_message
-            if command.startswith("day_off"):
-                view = create_view("day_off", command, str(interaction.user.id))
-                view_message = "Виберіть дні, потім натисніть «Відправити»:"
-            elif command.startswith("workload"):
-                view = create_view("workload", command, str(interaction.user.id))
-                view_message = "Виберіть кількість годин:"
-            
-            # Send the message with view
-            response_message = await interaction.followup.send(view_message, view=view, wait=True)
+            # Send the message with view if provided
+            response_message = await interaction.followup.send(initial_message, view=view, wait=True)
             await response_message.add_reaction("⏳")
             
             # Send the webhook
@@ -254,7 +246,17 @@ class WebhookService:
                 await response_message.delete()
                 await interaction.followup.send(data["output"])
             elif not success:
-                error_msg = f"{view_message}\nПомилка: Не вдалося виконати команду."
+                # Show user's selection if available in result
+                user_input = ""
+                if result and isinstance(result, dict):
+                    if "connects" in result:
+                        user_input = f"Connects: {result['connects']}"
+                    elif "value" in result:
+                        user_input = f"Вибрано: {result['value']}"
+                
+                # Remove processing reaction and add error reaction
+                await response_message.remove_reaction("⏳", interaction.client.user)
+                error_msg = f"{user_input}\nПомилка: Не вдалося виконати команду." if user_input else f"{initial_message}\nПомилка: Не вдалося виконати команду."
                 await response_message.edit(content=error_msg)
                 await response_message.add_reaction("❌")
                 
@@ -266,6 +268,8 @@ class WebhookService:
                     ephemeral=False
                 )
                 await message.add_reaction("❌")
+                await message.add_reaction("⏳")  # Show that processing was attempted
+                await message.remove_reaction("⏳", interaction.client.user)  # Remove processing indicator
     
     async def send_webhook_with_retry(
         self,
