@@ -213,12 +213,19 @@ class WebhookService:
             result: Result dictionary
             extra_headers: Additional headers
         """
-        # Defer the response first
+        # Create view if needed
+        view = None
+        if command.startswith("day_off"):
+            view = create_view("day_off", command, str(interaction.user.id))
+        elif command.startswith("workload"):
+            view = create_view("workload", command, str(interaction.user.id))
+        
+        # Defer the response first if not already done
         if not interaction.response.is_done():
             await interaction.response.defer(thinking=True, ephemeral=False)
         
         # Send initial message with processing reaction
-        response_message = await interaction.followup.send(initial_message, ephemeral=False)
+        response_message = await interaction.followup.send(initial_message, view=view, ephemeral=False)
         await response_message.add_reaction("⏳")
         
         try:
@@ -235,10 +242,10 @@ class WebhookService:
             # Remove processing reaction
             await response_message.remove_reaction("⏳", interaction.client.user)
             
-            # Update message content
+            # Update message content if needed
             if success and data and "output" in data:
                 await response_message.edit(content=data["output"])
-            else:
+            elif not success:
                 error_msg = f"{initial_message}\nПомилка: Не вдалося виконати команду."
                 await response_message.edit(content=error_msg)
             

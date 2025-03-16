@@ -37,18 +37,9 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Day off thisweek command from {interaction.user}")
-            
-            # First send the view with the message
-            view = create_view("day_off", "day_off_thisweek", str(interaction.user.id))
-            await interaction.response.send_message(
-                "Оберіть свої вихідні (цей тиждень), потім натисніть «Відправити»:",
-                view=view,
-                ephemeral=False
-            )
-            
-            # Then send the webhook without the view
-            await webhook_service.send_webhook(
+            await webhook_service.send_interaction_response(
                 interaction,
+                initial_message="Оберіть свої вихідні (цей тиждень), потім натисніть «Відправити»:",
                 command="day_off_thisweek",
                 result={}
             )
@@ -62,18 +53,9 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Day off nextweek command from {interaction.user}")
-            
-            # First send the view with the message
-            view = create_view("day_off", "day_off_nextweek", str(interaction.user.id))
-            await interaction.response.send_message(
-                "Оберіть свої вихідні (наступний тиждень), потім натисніть «Відправити»:",
-                view=view,
-                ephemeral=False
-            )
-            
-            # Then send the webhook without the view
-            await webhook_service.send_webhook(
+            await webhook_service.send_interaction_response(
                 interaction,
+                initial_message="Оберіть свої вихідні (наступний тиждень), потім натисніть «Відправити»:",
                 command="day_off_nextweek",
                 result={}
             )
