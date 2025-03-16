@@ -189,14 +189,66 @@ class WebhookService:
         # Send webhook and get response
         success, data = await self.send_webhook_with_retry(ctx_or_interaction, payload, headers)
         
-        # If successful, send the reply via the appropriate channel
-        if success and data:
-            if is_interaction:
-                await self.send_n8n_reply_interaction(ctx_or_interaction, data)
-            else:
-                await self.send_n8n_reply_channel(channel, data)
-                
         return success, data
+
+    async def send_interaction_response(
+        self,
+        interaction: discord.Interaction,
+        initial_message: str = "Processing...",
+        command: str = "",
+        status: str = "ok",
+        message: str = "",
+        result: Optional[Dict[str, Any]] = None,
+        extra_headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        """
+        Send an interaction response with consistent reaction handling.
+        
+        Args:
+            interaction: Discord interaction
+            initial_message: Initial message to show while processing
+            command: Command name
+            status: Status string
+            message: Message string
+            result: Result dictionary
+            extra_headers: Additional headers
+        """
+        # Defer the response first
+        if not interaction.response.is_done():
+            await interaction.response.defer(thinking=True, ephemeral=False)
+        
+        # Send initial message with processing reaction
+        response_message = await interaction.followup.send(initial_message, ephemeral=False)
+        await response_message.add_reaction("⏳")
+        
+        try:
+            # Send the webhook
+            success, data = await self.send_webhook(
+                interaction,
+                command=command,
+                status=status,
+                message=message,
+                result=result,
+                extra_headers=extra_headers
+            )
+            
+            # Remove processing reaction
+            await response_message.remove_reaction("⏳", interaction.client.user)
+            
+            # Update message content
+            if success and data and "output" in data:
+                await response_message.edit(content=data["output"])
+            else:
+                await response_message.edit(content="Помилка: Не вдалося виконати команду.")
+            
+            # Add appropriate reaction
+            await response_message.add_reaction("✅" if success else "❌")
+            
+        except Exception as e:
+            logger.error(f"Error in interaction response: {e}")
+            await response_message.remove_reaction("⏳", interaction.client.user)
+            await response_message.edit(content="Помилка: Сталася неочікувана помилка.")
+            await response_message.add_reaction("❌")
     
     async def send_webhook_with_retry(
         self,

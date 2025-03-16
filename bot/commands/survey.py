@@ -72,14 +72,28 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             text_q = f"<@{user_id}> Скільки CONNECTS на ЦЬОГО тижня?"
         else:
             text_q = f"<@{user_id}> Будь ласка, оберіть кількість годин:"
-        view = create_view("workload", step_name, user_id, ViewType.DYNAMIC)
-        await channel.send(text_q, view=view)
+            
+        await webhook_service.send_interaction_response(
+            channel,
+            initial_message=text_q,
+            command=step_name,
+            result={"view": create_view("workload", step_name, user_id, ViewType.DYNAMIC)}
+        )
     elif step_name.startswith("day_off"):
         text_q = f"<@{user_id}> Які дні вихідних на наступний тиждень?"
-        view = create_view("day_off", step_name, user_id, ViewType.DYNAMIC)
-        await channel.send(text_q, view=view)
+        await webhook_service.send_interaction_response(
+            channel,
+            initial_message=text_q,
+            command=step_name,
+            result={"view": create_view("day_off", step_name, user_id, ViewType.DYNAMIC)}
+        )
     else:
-        await channel.send(f"<@{user_id}> Невідомий крок опитування: {step_name}. Пропускаємо.")
+        await webhook_service.send_interaction_response(
+            channel,
+            initial_message=f"<@{user_id}> Невідомий крок опитування: {step_name}. Пропускаємо.",
+            command=step_name,
+            status="error"
+        )
         survey.next_step()
         await continue_survey(channel, survey)
 
@@ -106,8 +120,9 @@ async def finish_survey(channel: discord.TextChannel, survey: 'survey_manager.Su
         survey: Survey flow instance
     """
     if survey.is_done():
-        await webhook_service.send_webhook(
+        await webhook_service.send_interaction_response(
             channel,
+            initial_message="Завершення опитування...",
             command="survey",
             result={"final": survey.results}
         )

@@ -37,12 +37,11 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Day off thisweek command from {interaction.user}")
-            await interaction.response.defer(thinking=True, ephemeral=False)
-            view = create_view("day_off", "day_off_thisweek", str(interaction.user.id))
-            await interaction.followup.send(
-                "Оберіть свої вихідні (цей тиждень), потім натисніть «Відправити»:",
-                view=view,
-                ephemeral=False
+            await webhook_service.send_interaction_response(
+                interaction,
+                initial_message="Оберіть свої вихідні (цей тиждень), потім натисніть «Відправити»:",
+                command="day_off_thisweek",
+                result={"view": create_view("day_off", "day_off_thisweek", str(interaction.user.id))}
             )
 
         @day_off_group.command(name="nextweek", description="Оберіть вихідні на НАСТУПНИЙ тиждень.")
@@ -54,12 +53,11 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Day off nextweek command from {interaction.user}")
-            await interaction.response.defer(thinking=True, ephemeral=False)
-            view = create_view("day_off", "day_off_nextweek", str(interaction.user.id))
-            await interaction.followup.send(
-                "Оберіть свої вихідні (наступний тиждень), потім натисніть «Відправити»:",
-                view=view,
-                ephemeral=False
+            await webhook_service.send_interaction_response(
+                interaction,
+                initial_message="Оберіть свої вихідні (наступний тиждень), потім натисніть «Відправити»:",
+                command="day_off_nextweek",
+                result={"view": create_view("day_off", "day_off_nextweek", str(interaction.user.id))}
             )
 
         self.bot.tree.add_command(day_off_group)
@@ -96,8 +94,9 @@ class SlashCommands:
                 return
             
             # Process vacation request
-            await webhook_service.send_webhook(
+            await webhook_service.send_interaction_response(
                 interaction,
+                initial_message=f"Обробка запиту на відпустку: {start_day}/{start_month} - {end_day}/{end_month}",
                 command="vacation",
                 result={
                     "start_day": str(start_day),
@@ -139,11 +138,11 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Workload today command from {interaction.user}")
-            view = create_view("workload", "workload_today", str(interaction.user.id))
-            await interaction.response.send_message(
-                "Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?\nЯкщо нічого, оберіть «Нічого немає».",
-                view=view,
-                ephemeral=False
+            await webhook_service.send_interaction_response(
+                interaction,
+                initial_message="Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?\nЯкщо нічого, оберіть «Нічого немає».",
+                command="workload_today",
+                result={"view": create_view("workload", "workload_today", str(interaction.user.id))}
             )
 
         @self.bot.tree.command(
@@ -158,11 +157,11 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Workload nextweek command from {interaction.user}")
-            view = create_view("workload", "workload_nextweek", str(interaction.user.id))
-            await interaction.response.send_message(
-                "Скільки годин підтверджено на НАСТУПНИЙ тиждень?\nЯкщо нічого, оберіть «Нічого немає».",
-                view=view,
-                ephemeral=False
+            await webhook_service.send_interaction_response(
+                interaction,
+                initial_message="Скільки годин підтверджено на НАСТУПНИЙ тиждень?\nЯкщо нічого, оберіть «Нічого немає».",
+                command="workload_nextweek",
+                result={"view": create_view("workload", "workload_nextweek", str(interaction.user.id))}
             )
 
         @self.bot.tree.command(
@@ -178,33 +177,9 @@ class SlashCommands:
                 connects: Number of connects
             """
             logger.info(f"Connects thisweek command from {interaction.user}: {connects}")
-            # Defer the response first
-            await interaction.response.defer(thinking=True, ephemeral=False)
-            
-            # Send initial message and add processing reaction
-            initial_message = await interaction.followup.send("Processing...", ephemeral=False)
-            await initial_message.add_reaction("⏳")
-            
-            try:
-                success, data = await webhook_service.send_webhook(
-                    interaction,
-                    command="connects_thisweek",
-                    result={"connects": connects}
-                )
-                
-                # Remove processing reaction
-                await initial_message.remove_reaction("⏳", interaction.client.user)
-                
-                # Add success/error reaction based on the result
-                await initial_message.add_reaction("✅" if success else "❌")
-                
-                # Edit the message with the actual response if we got data
-                if success and data and "output" in data:
-                    await initial_message.edit(content=data["output"])
-                elif not success:
-                    await initial_message.edit(content="Помилка: Не вдалося оновити connects.")
-            except Exception as e:
-                logger.error(f"Error in connects_thisweek: {e}")
-                await initial_message.remove_reaction("⏳", interaction.client.user)
-                await initial_message.add_reaction("❌")
-                await initial_message.edit(content="Помилка: Сталася неочікувана помилка.") 
+            await webhook_service.send_interaction_response(
+                interaction,
+                initial_message=f"Connects: {connects}",
+                command="connects_thisweek",
+                result={"connects": connects}
+            ) 
