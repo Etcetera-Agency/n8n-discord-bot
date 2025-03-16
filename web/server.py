@@ -59,39 +59,9 @@ class WebServer:
                 logger.error(f"Failed to fetch channel {channel_id}: {str(e)}")
                 return web.json_response({"error": "Channel not found or bot doesn't have access"}, status=404)
                 
-            # Check if channel is registered
-            payload = webhook_service.build_payload(
-                command="check_channel",
-                user_id=user_id,
-                channel_id=channel_id,
-                channel=channel,
-                is_system=True,
-                result={}  # Empty result for check_channel
-            )
-            
-            headers = {}
-            if Config.WEBHOOK_AUTH_TOKEN:
-                headers["Authorization"] = f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"
-            
-            logger.info(f"Sending check_channel webhook to n8n with payload: {payload}")
-            success_check, data_check = await webhook_service.send_webhook_with_retry(None, payload, headers)
-            logger.info(f"n8n webhook response - success: {success_check}, data: {data_check}")
-            
-            if not success_check or str(data_check.get("output", "false")).lower() != "true":
-                logger.error(f"Channel registration check failed - success: {success_check}, data: {data_check}")
-                return web.json_response({"error": "Channel is not registered"}, status=403)
-
-            # Get steps from n8n response
-            if "steps" in data_check:
-                logger.info(f"Using steps from n8n response: {data_check['steps']}")
-                steps = data_check["steps"]
-            else:
-                logger.error("No steps provided in n8n response")
-                return web.json_response({"error": "No steps provided by n8n"}, status=400)
-
-            # Instead of starting the survey immediately, send a greeting message with a button
+            # Instead of checking the channel now, just send a greeting message with a button
             class StartSurveyButton(discord.ui.Button):
-                def __init__(self, user_id: str, channel_id: str, steps: list):
+                def __init__(self, user_id: str, channel_id: str):
                     super().__init__(
                         style=discord.ButtonStyle.success,
                         label="Так",
@@ -99,7 +69,6 @@ class WebServer:
                     )
                     self.user_id = user_id
                     self.channel_id = channel_id
-                    self.steps = steps
                     
                 async def callback(self, interaction):
                     # First, acknowledge the interaction to prevent timeout
@@ -107,19 +76,56 @@ class WebServer:
                         await interaction.response.defer(ephemeral=False)
                     
                     try:
+                        # Check if channel is registered
+                        payload = webhook_service.build_payload(
+                            command="check_channel",
+                            user_id=self.user_id,
+                            channel_id=self.channel_id,
+                            channel=interaction.channel,
+                            is_system=True,
+                            result={}  # Empty result for check_channel
+                        )
+                        
+                        headers = {}
+                        if Config.WEBHOOK_AUTH_TOKEN:
+                            headers["Authorization"] = f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"
+                        
+                        logger.info(f"Sending check_channel webhook to n8n with payload: {payload}")
+                        success_check, data_check = await webhook_service.send_webhook_with_retry(None, payload, headers)
+                        logger.info(f"n8n webhook response - success: {success_check}, data: {data_check}")
+                        
+                        # Default steps to use if n8n fails or doesn't provide steps
+                        default_steps = ["workload_today"]
+                        
+                        if not success_check:
+                            logger.warning(f"Channel registration check failed with error. Using default steps: {default_steps}")
+                            steps = default_steps
+                        elif str(data_check.get("output", "false")).lower() != "true":
+                            logger.error(f"Channel registration check returned false - success: {success_check}, data: {data_check}")
+                            await interaction.followup.send(""Канал не зареєстровано. Будь ласка, зареєструйте його перед початком спілкування з ботом."", ephemeral=True)
+                            return
+                        else:
+                            # Get steps from n8n response
+                            if "steps" in data_check:
+                                logger.info(f"Using steps from n8n response: {data_check['steps']}")
+                                steps = data_check["steps"]
+                            else:
+                                logger.warning(f"No steps provided in n8n response. Using default steps: {default_steps}")
+                                steps = default_steps
+                        
                         # Start the survey
                         from bot.commands.survey import handle_start_daily_survey
-                        await handle_start_daily_survey(interaction.client, self.user_id, self.channel_id, self.steps)
+                        await handle_start_daily_survey(interaction.client, self.user_id, self.channel_id, steps)
                         
                     except Exception as e:
                         logger.error(f"Error starting survey: {e}")
 
             class StartSurveyView(discord.ui.View):
-                def __init__(self, user_id: str, channel_id: str, steps: list):
+                def __init__(self, user_id: str, channel_id: str):
                     super().__init__(timeout=None)  # No timeout - button stays forever
-                    self.add_item(StartSurveyButton(user_id, channel_id, steps))
+                    self.add_item(StartSurveyButton(user_id, channel_id))
             
-            view = StartSurveyView(user_id, channel_id, steps)
+            view = StartSurveyView(user_id, channel_id)
             await channel.send(f"Привіт <@{user_id}>! Готовий почати робочий день?", view=view)
             
             return web.json_response({"status": "Greeting message sent"})
