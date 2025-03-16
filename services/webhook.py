@@ -274,7 +274,7 @@ class WebhookService:
         payload: Dict[str, Any],
         headers: Dict[str, str],
         max_retries: int = 3,
-        retry_delay: int = 1
+        retry_delay: int = 30
     ) -> Tuple[bool, Optional[Dict[str, Any]]]:
         """
         Send a webhook request to n8n with retry logic.
