@@ -126,8 +126,10 @@ class ConfirmButton(discord.ui.Button):
                     next_step = state.current_step()
                     
                     if message:
-                        # Show success reaction
+                        # Show success reaction and delete message
                         await message.add_reaction("✅")
+                        await asyncio.sleep(1)
+                        await message.delete()
                     
                     # Continue survey
                     if next_step:
@@ -152,7 +154,7 @@ class ConfirmButton(discord.ui.Button):
                     
                     if success and data and "output" in data:
                         if message:
-                            # Add success reaction before deleting
+                            # Add success reaction and delete message
                             await message.add_reaction("✅")
                             await asyncio.sleep(1)
                             await message.delete()
@@ -196,17 +198,6 @@ class DeclineButton(discord.ui.Button):
                 await message.add_reaction("⏳")
             
             try:
-                # Reset all button selections
-                view.selected_days.clear()
-                view.selected_dates.clear()
-                for child in view.children:
-                    if isinstance(child, DayOffButton):
-                        child.is_selected = False
-                        child.style = discord.ButtonStyle.secondary
-                
-                # Update the message with reset buttons
-                await interaction.message.edit(view=view)
-                
                 if view.has_survey:
                     # Dynamic survey flow
                     state = survey_manager.get_survey(view.user_id)
@@ -246,8 +237,10 @@ class DeclineButton(discord.ui.Button):
                     next_step = state.current_step()
                     
                     if message:
-                        # Show success reaction
+                        # Show success reaction and delete message
                         await message.add_reaction("✅")
+                        await asyncio.sleep(1)
+                        await message.delete()
                     
                     # Continue survey
                     if next_step:
@@ -272,7 +265,7 @@ class DeclineButton(discord.ui.Button):
                     
                     if success and data and "output" in data:
                         if message:
-                            # Add success reaction before deleting
+                            # Add success reaction and delete message
                             await message.add_reaction("✅")
                             await asyncio.sleep(1)
                             await message.delete()
