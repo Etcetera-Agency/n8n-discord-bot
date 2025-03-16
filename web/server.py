@@ -75,7 +75,12 @@ class WebServer:
                     if not interaction.response.is_done():
                         await interaction.response.defer(ephemeral=False)
                     
+                    logger.info(f"Start survey button clicked by user {self.user_id} in channel {self.channel_id}")
+                    
                     try:
+                        # Send a temporary message to show that the button was clicked
+                        await interaction.followup.send("Запускаю опитування...", ephemeral=True)
+                        
                         # Check if channel is registered
                         payload = webhook_service.build_payload(
                             command="check_channel",
@@ -122,12 +127,20 @@ class WebServer:
                                 logger.warning(f"No steps provided in n8n response. Using default steps: {default_steps}")
                                 steps = default_steps
                         
+                        # Log the steps that will be used
+                        logger.info(f"Starting survey for user {self.user_id} in channel {self.channel_id} with steps: {steps}")
+                        
                         # Start the survey
                         from bot.commands.survey import handle_start_daily_survey
                         await handle_start_daily_survey(interaction.client, self.user_id, self.channel_id, steps)
                         
+                        # Send a confirmation message
+                        await interaction.followup.send("Опитування запущено! Будь ласка, дайте відповідь на питання вище.", ephemeral=True)
+                        
                     except Exception as e:
                         logger.error(f"Error starting survey: {e}")
+                        # Send an error message to the user
+                        await interaction.followup.send(f"Помилка при запуску опитування: {str(e)}", ephemeral=True)
 
             class StartSurveyView(discord.ui.View):
                 def __init__(self, user_id: str, channel_id: str):

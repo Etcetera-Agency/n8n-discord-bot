@@ -41,17 +41,40 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
         channel_id: Discord channel ID
         steps: List of survey step names
     """
-    channel = await bot_instance.fetch_channel(int(channel_id))
-    if not channel:
-        logger.warning(f"Channel {channel_id} not found for user {user_id}")
-        return
-
-    survey = survey_manager.create_survey(user_id, channel_id, steps)
-    step = survey.current_step()
-    if step:
-        await ask_dynamic_step(channel, survey, step)
-    else:
-        await channel.send(f"<@{user_id}> Не вказано кроків опитування.")
+    logger.info(f"Starting daily survey for user {user_id} in channel {channel_id} with steps: {steps}")
+    
+    try:
+        channel = await bot_instance.fetch_channel(int(channel_id))
+        if not channel:
+            logger.warning(f"Channel {channel_id} not found for user {user_id}")
+            return
+        
+        # Check if there's an existing survey for this user
+        existing_survey = survey_manager.get_survey(user_id)
+        if existing_survey:
+            logger.info(f"Found existing survey for user {user_id}, removing it")
+            survey_manager.remove_survey(user_id)
+        
+        # Create a new survey
+        survey = survey_manager.create_survey(user_id, channel_id, steps)
+        logger.info(f"Created survey for user {user_id} with steps: {steps}")
+        
+        # Get the first step
+        step = survey.current_step()
+        if step:
+            logger.info(f"Starting first step: {step} for user {user_id}")
+            await ask_dynamic_step(channel, survey, step)
+        else:
+            logger.warning(f"No steps provided for user {user_id}")
+            await channel.send(f"<@{user_id}> Не вказано кроків опитування.")
+    except Exception as e:
+        logger.error(f"Error in handle_start_daily_survey: {e}")
+        # Try to send an error message to the channel
+        try:
+            channel = await bot_instance.fetch_channel(int(channel_id))
+            await channel.send(f"<@{user_id}> Помилка при запуску опитування: {str(e)}")
+        except:
+            logger.error(f"Could not send error message to channel {channel_id}")
 
 async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager.SurveyFlow', step_name: str) -> None:
     """
@@ -63,48 +86,67 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
         step_name: Step name
     """
     user_id = survey.user_id
-    if step_name.startswith("workload") or step_name.startswith("connects"):
-        if step_name == "workload_nextweek":
-            text_q = f"<@{user_id}> Скільки годин на НАСТУПНИЙ тиждень?"
-        elif step_name == "workload_thisweek":
-            text_q = f"<@{user_id}> Скільки годин на ЦЬОГО тижня?"
-        elif step_name == "connects_thisweek":
-            text_q = f"<@{user_id}> Скільки CONNECTS на ЦЬОГО тижня?"
-        else:
-            text_q = f"<@{user_id}> Будь ласка, оберіть кількість годин:"
+    logger.info(f"Asking step {step_name} for user {user_id} in channel {channel.id}")
+    
+    try:
+        if step_name.startswith("workload") or step_name.startswith("connects"):
+            if step_name == "workload_nextweek":
+                text_q = f"<@{user_id}> Скільки годин на НАСТУПНИЙ тиждень?"
+            elif step_name == "workload_thisweek":
+                text_q = f"<@{user_id}> Скільки годин на ЦЬОГО тижня?"
+            elif step_name == "workload_today":
+                text_q = f"<@{user_id}> Скільки годин на СЬОГОДНІ?"
+            elif step_name == "connects_thisweek":
+                text_q = f"<@{user_id}> Скільки CONNECTS на ЦЬОГО тижня?"
+            else:
+                text_q = f"<@{user_id}> Будь ласка, оберіть кількість годин:"
+                
+            logger.info(f"Creating workload view for step {step_name}")
+            # Create and send the view with has_survey=True
+            view = create_view("workload", step_name, user_id, ViewType.DYNAMIC, has_survey=True)
+            message = await channel.send(text_q, view=view)
+            logger.info(f"Sent workload question for step {step_name}, message ID: {message.id}")
             
-        # Create and send the view
-        view = create_view("workload", step_name, user_id, ViewType.DYNAMIC)
-        await channel.send(text_q, view=view)
-        
-        # Send webhook without view
-        await webhook_service.send_webhook(
-            channel,
-            command=step_name,
-            result={}
-        )
-    elif step_name.startswith("day_off"):
-        text_q = f"<@{user_id}> Які дні вихідних на наступний тиждень?"
-        
-        # Create and send the view
-        view = create_view("day_off", step_name, user_id, ViewType.DYNAMIC)
-        await channel.send(text_q, view=view)
-        
-        # Send webhook without view
-        await webhook_service.send_webhook(
-            channel,
-            command=step_name,
-            result={}
-        )
-    else:
-        await webhook_service.send_webhook(
-            channel,
-            command=step_name,
-            status="error",
-            message=f"<@{user_id}> Невідомий крок опитування: {step_name}. Пропускаємо."
-        )
-        survey.next_step()
-        await continue_survey(channel, survey)
+            # Send webhook without view
+            await webhook_service.send_webhook(
+                channel,
+                command=step_name,
+                result={}
+            )
+        elif step_name.startswith("day_off"):
+            text_q = f"<@{user_id}> Які дні вихідних на наступний тиждень?"
+            
+            logger.info(f"Creating day_off view for step {step_name}")
+            # Create and send the view with has_survey=True
+            view = create_view("day_off", step_name, user_id, ViewType.DYNAMIC, has_survey=True)
+            message = await channel.send(text_q, view=view)
+            logger.info(f"Sent day_off question for step {step_name}, message ID: {message.id}")
+            
+            # Send webhook without view
+            await webhook_service.send_webhook(
+                channel,
+                command=step_name,
+                result={}
+            )
+        else:
+            logger.warning(f"Unknown step type: {step_name} for user {user_id}")
+            await webhook_service.send_webhook(
+                channel,
+                command=step_name,
+                status="error",
+                message=f"<@{user_id}> Невідомий крок опитування: {step_name}. Пропускаємо."
+            )
+            survey.next_step()
+            await continue_survey(channel, survey)
+    except Exception as e:
+        logger.error(f"Error in ask_dynamic_step for step {step_name}: {e}")
+        await channel.send(f"<@{user_id}> Помилка при запуску кроку {step_name}: {str(e)}")
+        # Try to continue with the next step
+        try:
+            survey.next_step()
+            await continue_survey(channel, survey)
+        except Exception as e2:
+            logger.error(f"Error continuing survey after step failure: {e2}")
 
 async def continue_survey(channel: discord.TextChannel, survey: 'survey_manager.SurveyFlow') -> None:
     """
