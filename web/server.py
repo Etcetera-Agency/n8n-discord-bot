@@ -135,9 +135,13 @@ class WebServer:
                     
                     # Execute the command
                     logger.info(f"Executing next command {next_step} for user {user_id}")
-                    await command.callback(mock_interaction)
-                    
-                    return web.json_response({"status": "Command executed"})
+                    try:
+                        await command.callback(mock_interaction)
+                        logger.info(f"Successfully executed command {next_step} for user {user_id}")
+                        return web.json_response({"status": "Command executed"})
+                    except Exception as e:
+                        logger.error(f"Error executing command {next_step}: {e}")
+                        return web.json_response({"error": f"Error executing command: {e}"}, status=500)
                 else:
                     logger.error(f"Command {next_step} not found in command tree")
                     return web.json_response({"error": f"Command {next_step} not found"}, status=404)
@@ -230,9 +234,9 @@ class WebServer:
                         else:
                             # Get steps from n8n response
                             if "steps" in data_check:
-                                # Filter out unknown steps
+                                # Only use known steps
                                 known_steps = ["workload_today", "workload_nextweek", 
-                                              "day_off_nextweek", "connects_thisweek"]
+                                               "day_off_nextweek", "connects_thisweek"]
                                 filtered_steps = [step for step in data_check["steps"] if step in known_steps]
                                 
                                 if filtered_steps:

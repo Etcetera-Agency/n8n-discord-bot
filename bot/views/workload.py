@@ -58,7 +58,7 @@ class WorkloadButton(discord.ui.Button):
                         status="step",
                         result={
                             "stepName": view.cmd_or_step,
-                            "workload": value
+                            "value": value
                         }
                     )
                     
@@ -78,9 +78,6 @@ class WorkloadButton(discord.ui.Button):
                     # Update survey state
                     state.results[view.cmd_or_step] = value
                     logger.info(f"Updated survey results: {state.results}")
-                    state.next_step()
-                    next_step = state.current_step()
-                    logger.info(f"Advanced to next step: {next_step}")
                     
                     # Update command message with success
                     if view.command_msg:
@@ -94,16 +91,9 @@ class WorkloadButton(discord.ui.Button):
                         await view.buttons_msg.delete()
                         logger.info(f"Deleted buttons message")
                     
-                    # Continue survey
-                    if next_step:
-                        logger.info(f"Continuing survey with next step: {next_step}")
-                        from bot.commands.survey import ask_dynamic_step
-                        await ask_dynamic_step(interaction.channel, state, next_step)
-                    else:
-                        logger.info(f"Survey completed, finishing")
-                        from bot.commands.survey import finish_survey
-                        await finish_survey(interaction.channel, state)
-                        
+                    # Let n8n handle the survey continuation through webhook response
+                    # Don't advance the step here, as it will be handled by the webhook service
+                    
                 else:
                     logger.info(f"Processing as regular command: {view.cmd_or_step}")
                     # Regular slash command

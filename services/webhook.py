@@ -2,6 +2,7 @@ import uuid
 import asyncio
 import aiohttp
 import discord
+import os
 from typing import Dict, Any, Tuple, Optional, Union
 from discord.ext import commands
 from config import Config, logger
@@ -192,7 +193,13 @@ class WebhookService:
         # Check if n8n wants to continue the survey
         if success and data and "survey" in data and data["survey"] == "continue":
             logger.info(f"n8n requested survey continuation for user {payload['userId']}")
-            await self.handle_survey_continuation(payload["userId"], channel)
+            try:
+                # Add a small delay to ensure the current interaction is complete
+                await asyncio.sleep(1)
+                await self.handle_survey_continuation(payload['userId'], channel)
+                logger.info(f"Survey continuation initiated for user {payload['userId']}")
+            except Exception as e:
+                logger.error(f"Error handling survey continuation for user {payload['userId']}: {e}")
         
         return success, data
 
@@ -208,19 +215,36 @@ class WebhookService:
             # Call the continue_survey endpoint
             async with aiohttp.ClientSession() as session:
                 # Construct the URL correctly
-                host = Config.HOST if Config.HOST != "0.0.0.0" else "localhost"
-                url = f"http://{host}:{Config.PORT}/continue_survey"
+                host = Config.HOST
+                # If host is 0.0.0.0, use localhost for client connections
+                if host == "0.0.0.0":
+                    host = "localhost"
+                
+                # Use CAPTAIN_PORT if available (for CapRover deployment)
+                port = int(os.getenv("PORT", os.getenv("CAPTAIN_PORT", Config.PORT)))
+                
+                url = f"http://{host}:{port}/continue_survey"
                 headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
                 payload = {"userId": user_id}
                 
-                logger.info(f"Calling continue_survey endpoint for user {user_id} at {url}")
-                async with session.post(url, json=payload, headers=headers) as response:
-                    if response.status == 200:
-                        logger.info(f"Successfully continued survey for user {user_id}")
-                    else:
+                logger.info(f"Calling continue_survey endpoint for user {user_id} at {url} with payload: {payload}")
+                try:
+                    async with session.post(url, json=payload, headers=headers, timeout=30) as response:
                         response_text = await response.text()
-                        logger.error(f"Failed to continue survey for user {user_id}: {response.status}, response: {response_text}")
-                        await channel.send(f"<@{user_id}> Помилка при продовженні опитування: код {response.status}")
+                        logger.info(f"Continue survey response status: {response.status}")
+                        logger.info(f"Continue survey response text: {response_text}")
+                        
+                        if response.status == 200:
+                            logger.info(f"Successfully continued survey for user {user_id}")
+                        else:
+                            logger.error(f"Failed to continue survey for user {user_id}: {response.status}, response: {response_text}")
+                            await channel.send(f"<@{user_id}> Помилка при продовженні опитування: код {response.status}")
+                except asyncio.TimeoutError:
+                    logger.error(f"Timeout calling continue_survey endpoint for user {user_id}")
+                    await channel.send(f"<@{user_id}> Помилка при продовженні опитування: таймаут")
+                except Exception as e:
+                    logger.error(f"Error calling continue_survey endpoint for user {user_id}: {e}")
+                    await channel.send(f"<@{user_id}> Помилка при продовженні опитування: {str(e)}")
         except Exception as e:
             logger.error(f"Error in handle_survey_continuation: {e}")
             await channel.send(f"<@{user_id}> Помилка при продовженні опитування: {str(e)}")
