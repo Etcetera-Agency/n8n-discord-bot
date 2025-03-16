@@ -230,10 +230,14 @@ async def send_n8n_reply_channel(channel, data):
 async def send_n8n_reply_interaction(interaction, data):
     """Sends n8n response to an interaction."""
     if data and "output" in data:
-        if interaction.response.is_done():
+        # For connects_thisweek, always use followup to preserve the command attribution
+        if interaction.command and interaction.command.name == "connects_thisweek":
             await interaction.followup.send(data["output"], ephemeral=False)
         else:
-            await interaction.response.send_message(data["output"], ephemeral=False)
+            if interaction.response.is_done():
+                await interaction.followup.send(data["output"], ephemeral=False)
+            else:
+                await interaction.response.send_message(data["output"], ephemeral=False)
 
 async def send_button_pressed_info(interaction: discord.Interaction, button_or_select: Union[discord.ui.Button, discord.ui.Select]):
     """Sends to n8n the information about which button/select was pressed."""
@@ -691,7 +695,7 @@ async def slash_workload_nextweek(interaction: discord.Interaction):
 )
 async def slash_connects_thisweek(interaction: discord.Interaction, connects: int):
     # Use defer to preserve the Discord command attribution
-    await interaction.response.defer(ephemeral=False)
+    await interaction.response.defer(thinking=True, ephemeral=False)
     
     # Then handle the response through the standard handler
     await ResponseHandler.handle_response(
