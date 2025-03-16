@@ -79,11 +79,14 @@ class ConfirmButton(discord.ui.Button):
                 # Add processing reaction
                 await message.add_reaction("⏳")
             
-            # Sort days according to weekday_map
-            sorted_days = sorted(view.selected_days, 
-                               key=lambda x: view.weekday_map[x])
-            
             try:
+                # Convert selected days to dates
+                dates = []
+                for day in sorted(view.selected_days, key=lambda x: view.weekday_map[x]):
+                    date = view.get_date_for_day(day)
+                    if date:
+                        dates.append(date)
+                
                 if view.has_survey:
                     # Dynamic survey flow
                     state = survey_manager.get_survey(view.user_id)
@@ -102,7 +105,7 @@ class ConfirmButton(discord.ui.Button):
                         status="step",
                         result={
                             "stepName": view.cmd_or_step,
-                            "daysSelected": sorted_days
+                            "daysSelected": dates
                         }
                     )
                     
@@ -111,14 +114,14 @@ class ConfirmButton(discord.ui.Button):
                         await message.remove_reaction("⏳", interaction.client.user)
                     
                     if not success:
-                        error_msg = f"Ваш запит: Вихідні дні = {', '.join(sorted_days)}\nПомилка: Не вдалося виконати крок опитування."
+                        error_msg = f"Ваш запит: Вихідні дні = {', '.join(dates)}\nПомилка: Не вдалося виконати крок опитування."
                         if message:
                             await message.edit(content=error_msg)
                             await message.add_reaction("❌")
                         return
                     
                     # Update survey state
-                    state.results[view.cmd_or_step] = sorted_days
+                    state.results[view.cmd_or_step] = dates
                     state.next_step()
                     next_step = state.current_step()
                     
@@ -140,7 +143,7 @@ class ConfirmButton(discord.ui.Button):
                         interaction,
                         command=view.cmd_or_step,
                         status="ok",
-                        result={"value": sorted_days}
+                        result={"value": dates}
                     )
                     
                     if message:
@@ -155,7 +158,7 @@ class ConfirmButton(discord.ui.Button):
                             await message.delete()
                         await interaction.followup.send(data["output"])
                     else:
-                        error_msg = f"Ваш запит: Вихідні дні = {', '.join(sorted_days)}\nПомилка: Не вдалося виконати команду."
+                        error_msg = f"Ваш запит: Вихідні дні = {', '.join(dates)}\nПомилка: Не вдалося виконати команду."
                         if message:
                             await message.edit(content=error_msg)
                             await message.add_reaction("❌")
@@ -166,7 +169,7 @@ class ConfirmButton(discord.ui.Button):
                 logger.error(f"Error in confirm button: {e}")
                 if message:
                     await message.remove_reaction("⏳", interaction.client.user)
-                    error_msg = f"Ваш запит: Вихідні дні = {', '.join(sorted_days)}\nПомилка: Сталася неочікувана помилка."
+                    error_msg = f"Ваш запит: Вихідні дні = {', '.join(view.selected_days)}\nПомилка: Сталася неочікувана помилка."
                     await message.edit(content=error_msg)
                     await message.add_reaction("❌")
 
@@ -211,7 +214,7 @@ class DeclineButton(discord.ui.Button):
                         status="step",
                         result={
                             "stepName": view.cmd_or_step,
-                            "daysSelected": ["Nothing"]
+                            "daysSelected": ["Nothing"]  # Keep as "Nothing" for backward compatibility
                         }
                     )
                     
@@ -227,7 +230,7 @@ class DeclineButton(discord.ui.Button):
                         return
                     
                     # Update survey state
-                    state.results[view.cmd_or_step] = ["Nothing"]
+                    state.results[view.cmd_or_step] = ["Nothing"]  # Keep as "Nothing" for backward compatibility
                     state.next_step()
                     next_step = state.current_step()
                     
@@ -249,7 +252,7 @@ class DeclineButton(discord.ui.Button):
                         interaction,
                         command=view.cmd_or_step,
                         status="ok",
-                        result={"value": "Nothing"}
+                        result={"value": "Nothing"}  # Keep as "Nothing" for backward compatibility
                     )
                     
                     if message:
@@ -282,7 +285,8 @@ class DeclineButton(discord.ui.Button):
 class DayOffView(discord.ui.View):
     def __init__(self, cmd_or_step: str, user_id: str, timeout: Optional[float] = 180, has_survey: bool = False):
         super().__init__(timeout=timeout)
-        self.selected_days: List[str] = []
+        self.selected_days: List[str] = []  # Store weekday names for button states
+        self.selected_dates: List[str] = []  # Store actual dates
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
         self.has_survey = has_survey
@@ -296,6 +300,29 @@ class DayOffView(discord.ui.View):
             "Saturday": 5,
             "Sunday": 6
         }
+        
+    def get_date_for_day(self, day: str) -> str:
+        """Get the date for a given weekday name."""
+        # Get current date and its weekday
+        current_date = datetime.datetime.now()
+        current_weekday = current_date.weekday()
+        
+        # Calculate target date
+        day_number = self.weekday_map[day]
+        
+        if "day_off_nextweek" in self.cmd_or_step:
+            # For next week, add 7 days to get to next week
+            days_ahead = day_number - current_weekday + 7
+        else:
+            # For this week
+            days_ahead = day_number - current_weekday
+            if days_ahead <= 0 and "day_off_thisweek" in self.cmd_or_step:
+                # If the day has passed this week and it's thisweek command,
+                # we shouldn't include it (this is a safety check)
+                return None
+        
+        target_date = current_date + datetime.timedelta(days=days_ahead)
+        return target_date.strftime("%d.%m.%Y")
 
 def create_day_off_view(
     cmd_or_step: str,
