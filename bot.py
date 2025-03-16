@@ -690,31 +690,11 @@ async def slash_workload_nextweek(interaction: discord.Interaction):
     connects="Кількість Upwork Connects, що залишилось на цьому тижні"
 )
 async def slash_connects_thisweek(interaction: discord.Interaction, connects: int):
-    # First send a message acknowledging the command
-    await interaction.response.send_message(f"Команда: /connects_thisweek\nКількість Connects: {connects}", ephemeral=False)
-    
-    # Then send the data to n8n but tell it not to send a response message
-    # We'll handle the response manually
-    success, data = await send_webhook_with_retry(
+    await ResponseHandler.handle_response(
         interaction,
-        {
-            "command": "connects_thisweek",
-            "author": str(interaction.user),
-            "userId": str(interaction.user.id),
-            "sessionId": get_session_id(str(interaction.user.id)),
-            "channelId": str(interaction.channel_id),
-            "channelName": getattr(interaction.channel, 'name', 'DM'),
-            "timestamp": int(asyncio.get_event_loop().time()),
-            "connects": connects
-        },
-        {"Authorization": f"Bearer {WEBHOOK_AUTH_TOKEN}"} if WEBHOOK_AUTH_TOKEN else {}
+        command="connects_thisweek",
+        result={"connects": connects}
     )
-    
-    # If we got a response from n8n, update the original message instead of sending a new one
-    if success and data and "output" in data:
-        # Wait a moment to ensure the first message is sent
-        await asyncio.sleep(0.5)
-        await interaction.followup.send(f"Результат: {data['output']}", ephemeral=False)
 
 ###############################################################################
 # HTTP/HTTPS Server for Survey Activation (CapRover)
