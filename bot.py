@@ -690,11 +690,30 @@ async def slash_workload_nextweek(interaction: discord.Interaction):
     connects="Кількість Upwork Connects, що залишилось на цьому тижні"
 )
 async def slash_connects_thisweek(interaction: discord.Interaction, connects: int):
-    await ResponseHandler.handle_response(
+    # First defer the response to ensure Discord shows the command usage
+    await interaction.response.defer(thinking=True, ephemeral=False)
+    
+    # Then send the data to n8n
+    success, data = await send_webhook_with_retry(
         interaction,
-        command="connects_thisweek",
-        result={"connects": connects}
+        {
+            "command": "connects_thisweek",
+            "author": str(interaction.user),
+            "userId": str(interaction.user.id),
+            "sessionId": get_session_id(str(interaction.user.id)),
+            "channelId": str(interaction.channel_id),
+            "channelName": getattr(interaction.channel, 'name', 'DM'),
+            "timestamp": int(asyncio.get_event_loop().time()),
+            "connects": connects
+        },
+        {"Authorization": f"Bearer {WEBHOOK_AUTH_TOKEN}"} if WEBHOOK_AUTH_TOKEN else {}
     )
+    
+    # Send the response as a followup
+    if success and data and "output" in data:
+        await interaction.followup.send(data["output"], ephemeral=False)
+    else:
+        await interaction.followup.send("Помилка при обробці команди.", ephemeral=False)
 
 ###############################################################################
 # HTTP/HTTPS Server for Survey Activation (CapRover)
