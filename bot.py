@@ -14,6 +14,14 @@ from aiohttp import web
 from config import Config
 from services.session import SessionManager
 from services.webhook import WebhookService, initialize_survey_functions
+from config import (
+    WORKLOAD_OPTIONS,
+    WEEKDAY_OPTIONS,
+    MONTHS,
+    ViewType,
+    logger,
+    WebhookService
+)
 
 ###############################################################################
 # Logging configuration
@@ -43,23 +51,6 @@ http_session = None
 ###############################################################################
 # Global Constants
 ###############################################################################
-WORKLOAD_OPTIONS = ["Нічого немає", "2", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50"]
-
-WEEKDAY_OPTIONS = [
-    discord.SelectOption(label="Monday", value="Monday"),
-    discord.SelectOption(label="Tuesday", value="Tuesday"),
-    discord.SelectOption(label="Wednesday", value="Wednesday"),
-    discord.SelectOption(label="Thursday", value="Thursday"),
-    discord.SelectOption(label="Friday", value="Friday"),
-    discord.SelectOption(label="Saturday", value="Saturday"),
-    discord.SelectOption(label="Sunday", value="Sunday")
-]
-
-MONTHS = [
-     "January", "February", "March", "April", "May", "June",
-     "July", "August", "September", "October", "November", "December"
-]
-
 VIEW_TYPES = {
     "dynamic": {"timeout": 900, "has_survey": True},
     "slash": {"timeout": None, "has_survey": False}

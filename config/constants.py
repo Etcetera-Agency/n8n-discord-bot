@@ -7,19 +7,19 @@ WORKLOAD_OPTIONS = ["Нічого немає", "2", "5", "10", "15", "20", "25",
 
 # Weekday options for day off selection
 WEEKDAY_OPTIONS = [
-    discord.SelectOption(label="Monday", value="Monday"),
-    discord.SelectOption(label="Tuesday", value="Tuesday"),
-    discord.SelectOption(label="Wednesday", value="Wednesday"),
-    discord.SelectOption(label="Thursday", value="Thursday"),
-    discord.SelectOption(label="Friday", value="Friday"),
-    discord.SelectOption(label="Saturday", value="Saturday"),
-    discord.SelectOption(label="Sunday", value="Sunday")
+    discord.SelectOption(label="Понеділок", value="Понеділок"),
+    discord.SelectOption(label="Вівторок", value="Вівторок"),
+    discord.SelectOption(label="Середа", value="Середа"),
+    discord.SelectOption(label="Четвер", value="Четвер"),
+    discord.SelectOption(label="П'ятниця", value="П'ятниця"),
+    discord.SelectOption(label="Субота", value="Субота"),
+    discord.SelectOption(label="Неділя", value="Неділя")
 ]
 
-# Month names
+# Month names in Ukrainian
 MONTHS = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+    "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
+    "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
 ]
 
 # View types enum

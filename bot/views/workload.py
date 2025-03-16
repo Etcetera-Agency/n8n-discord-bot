@@ -2,6 +2,7 @@ import discord
 from typing import Optional
 from config import ViewType, logger
 from services import survey_manager
+from config.constants import WORKLOAD_OPTIONS
 import asyncio
 
 class WorkloadButton(discord.ui.Button):
@@ -143,8 +144,7 @@ def create_workload_view(
     view = WorkloadView(cmd_or_step, user_id, has_survey=has_survey)
     
     # Add workload buttons
-    hours = ["Нічого немає", "20", "30", "40"]
-    for hour in hours:
+    for hour in WORKLOAD_OPTIONS:
         custom_id = f"workload_button_{hour}_{cmd_or_step}_{user_id}"
         button = WorkloadButton(label=hour, custom_id=custom_id, cmd_or_step=cmd_or_step)
         view.add_item(button)
