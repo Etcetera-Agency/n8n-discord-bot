@@ -97,7 +97,11 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             elif step_name == "workload_today":
                 text_q = f"<@{user_id}> Скільки годин на СЬОГОДНІ?"
             elif step_name == "connects_thisweek":
-                text_q = f"<@{user_id}> Скільки CONNECTS на ЦЬОГО тижня?"
+                text_q = f"<@{user_id}> Скільки CONNECTS Upwork Connects History показує ЦЬОГО тижня?\n\nВведіть кількість коннектів що ви бачите на [Upwork Connects History](https://www.upwork.com/nx/plans/connects/history/)"
+                logger.info(f"Creating text input for connects_thisweek step")
+                message = await channel.send(text_q)
+                survey.current_message = message
+                return
             else:
                 text_q = f"<@{user_id}> Будь ласка, оберіть кількість годин:"
                 
@@ -122,7 +126,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
                 command=step_name,
                 result={}
             )
-        elif step_name.startswith("day_off"):
+        elif step_name == "day_off_nextweek":
             text_q = f"<@{user_id}> Які дні вихідних на наступний тиждень?"
             
             logger.info(f"Creating day_off view for step {step_name}")
