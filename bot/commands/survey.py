@@ -103,9 +103,18 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
                 
             logger.info(f"Creating workload view for step {step_name}")
             # Create and send the view with has_survey=True
+            # Send initial message
+            initial_msg = await channel.send(text_q)
+            
+            # Create view with initial message reference
             view = create_view("workload", step_name, user_id, ViewType.DYNAMIC, has_survey=True)
-            message = await channel.send(text_q, view=view)
-            logger.info(f"Sent workload question for step {step_name}, message ID: {message.id}")
+            view.command_msg = initial_msg
+            
+            # Send follow-up message with buttons
+            buttons_msg = await channel.send("Оберіть кількість годин:", view=view)
+            view.buttons_msg = buttons_msg
+            
+            logger.info(f"Sent workload question for step {step_name}, initial message ID: {initial_msg.id}, buttons message ID: {buttons_msg.id}")
             
             # Send webhook without view
             await webhook_service.send_webhook(
@@ -118,9 +127,18 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             
             logger.info(f"Creating day_off view for step {step_name}")
             # Create and send the view with has_survey=True
+            # Send initial message
+            initial_msg = await channel.send(text_q)
+            
+            # Create view with initial message reference
             view = create_view("day_off", step_name, user_id, ViewType.DYNAMIC, has_survey=True)
-            message = await channel.send(text_q, view=view)
-            logger.info(f"Sent day_off question for step {step_name}, message ID: {message.id}")
+            view.command_msg = initial_msg
+            
+            # Send follow-up message with buttons
+            buttons_msg = await channel.send("Оберіть дні вихідних:", view=view)
+            view.buttons_msg = buttons_msg
+            
+            logger.info(f"Sent day_off question for step {step_name}, initial message ID: {initial_msg.id}, buttons message ID: {buttons_msg.id}")
             
             # Send webhook without view
             await webhook_service.send_webhook(
