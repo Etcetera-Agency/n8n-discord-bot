@@ -112,18 +112,17 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
     logger.info(f"Asking step {step_name} for user {user_id} in channel {channel.id}")
     
     try:
-        # Update or create initial message
-        if survey.current_message:
-            # Update existing message
-            initial_msg = survey.current_message
-        else:
-            # Create new message
-            initial_msg = await channel.send("Завантаження опитування...")
+        # Create initial message for first step
+        if not survey.current_message:
+            initial_msg = await channel.send(f"<@{user_id}> Починаємо опитування...")
             survey.current_message = initial_msg
+            await asyncio.sleep(1)  # Ensure message is visible
+        else:
+            initial_msg = survey.current_message
         
         if step_name.startswith("workload") or step_name.startswith("connects"):
             if step_name == "workload_nextweek":
-                text_q = f"<@{user_id}> Скільки годин на НАСТУПНИЙ тиждень?"
+                text_q = f"<@{user_id}> Скільки годин підтверджено на НАСТУПНИЙ тиждень?"
             elif step_name == "workload_thisweek":
                 text_q = f"<@{user_id}> Скільки годин на ЦЬОГО тижня?"
             elif step_name == "workload_today":
@@ -132,7 +131,36 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
                 text_q = f"<@{user_id}> Скільки CONNECTS Upwork Connects History показує ЦЬОГО тижня?\n\nВведіть кількість коннектів що ви бачите на [Upwork Connects History](https://www.upwork.com/nx/plans/connects/history/)"
                 logger.info(f"Creating text input for connects_thisweek step")
                 await initial_msg.edit(content=text_q)
-                return
+
+                class ConnectsModal(discord.ui.Modal):
+                    def __init__(self, survey, step_name):
+                        super().__init__(title="Введіть кількість коннектів", timeout=120)
+                        self.survey = survey
+                        self.step_name = step_name
+                        self.connects_input = discord.ui.TextInput(
+                            label="Кількість коннектів",
+                            placeholder="Введіть число",
+                            min_length=1,
+                            max_length=3
+                        )
+                        self.add_item(self.connects_input)
+
+                    async def on_submit(self, interaction: discord.Interaction):
+                        if str(interaction.user.id) != self.survey.user_id:
+                            await interaction.response.send_message("Це опитування не для вас.", ephemeral=True)
+                            return
+                            
+                        if not self.connects_input.value.isdigit():
+                            await interaction.response.send_message("Будь ласка, введіть числове значення.", ephemeral=True)
+                            return
+                            
+                        self.survey.results[self.step_name] = int(self.connects_input.value)
+                        await interaction.response.send_message(f"Збережено: {self.connects_input.value} коннектів", ephemeral=True)
+                        self.survey.next_step()
+                        await continue_survey(channel, self.survey)
+
+                modal = ConnectsModal(survey, step_name)
+                await channel.send_modal(modal)
             else:
                 text_q = f"<@{user_id}> Будь ласка, оберіть кількість годин:"
                 
