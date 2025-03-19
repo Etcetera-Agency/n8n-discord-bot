@@ -84,12 +84,13 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
         start_button.callback = start_callback
         start_view.add_item(start_button)
         
-        # Send start message
+        # Send persistent start message
         start_msg = await channel.send(
             f"<@{user_id}> Натисніть кнопку, щоб почати опитування:",
             view=start_view
         )
         survey.start_message = start_msg
+        survey.current_message = start_msg  # Track as current message
     except Exception as e:
         logger.error(f"Error in handle_start_daily_survey: {e}")
         # Try to send an error message to the channel
@@ -242,13 +243,7 @@ async def continue_survey(channel: discord.TextChannel, survey: 'survey_manager.
         survey: Survey flow instance
     """
     try:
-        # Update current message to show progress
-        if survey.current_message:
-            await survey.current_message.edit(content=f"<@{survey.user_id}> Перехід до наступного кроку...")
-            # Send new visible message for the step
-            new_msg = await channel.send(f"<@{survey.user_id}> Починаємо наступний крок опитування")
-            survey.current_message = new_msg
-            
+        # Keep previous messages intact, only proceed to next step
         next_step = survey.current_step()
         if next_step:
             await ask_dynamic_step(channel, survey, next_step)
