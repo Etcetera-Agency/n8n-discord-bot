@@ -59,14 +59,37 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
         survey = survey_manager.create_survey(user_id, channel_id, steps)
         logger.info(f"Created survey for user {user_id} with steps: {steps}")
         
-        # Get the first step
-        step = survey.current_step()
-        if step:
-            logger.info(f"Starting first step: {step} for user {user_id}")
-            await ask_dynamic_step(channel, survey, step)
-        else:
-            logger.warning(f"No steps provided for user {user_id}")
-            await channel.send(f"<@{user_id}> Не вказано кроків опитування.")
+        # Send persistent start button
+        start_view = discord.ui.View(timeout=None)
+        start_button = discord.ui.Button(
+            style=discord.ButtonStyle.primary,
+            label="Start Survey",
+            custom_id=f"survey_start_{user_id}"
+        )
+        
+        async def start_callback(interaction: discord.Interaction):
+            await interaction.response.defer()
+            # Disable start button but keep message
+            start_button.disabled = True
+            await interaction.message.edit(view=start_view)
+            # Start first step
+            step = survey.current_step()
+            if step:
+                logger.info(f"Starting first step: {step} for user {user_id}")
+                await ask_dynamic_step(channel, survey, step)
+            else:
+                logger.warning(f"No steps provided for user {user_id}")
+                await channel.send(f"<@{user_id}> Не вказано кроків опитування.")
+        
+        start_button.callback = start_callback
+        start_view.add_item(start_button)
+        
+        # Send start message
+        start_msg = await channel.send(
+            f"<@{user_id}> Натисніть кнопку, щоб почати опитування:",
+            view=start_view
+        )
+        survey.start_message = start_msg
     except Exception as e:
         logger.error(f"Error in handle_start_daily_survey: {e}")
         # Try to send an error message to the channel
@@ -89,6 +112,15 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
     logger.info(f"Asking step {step_name} for user {user_id} in channel {channel.id}")
     
     try:
+        # Update or create initial message
+        if survey.current_message:
+            # Update existing message
+            initial_msg = survey.current_message
+        else:
+            # Create new message
+            initial_msg = await channel.send("Завантаження опитування...")
+            survey.current_message = initial_msg
+        
         if step_name.startswith("workload") or step_name.startswith("connects"):
             if step_name == "workload_nextweek":
                 text_q = f"<@{user_id}> Скільки годин на НАСТУПНИЙ тиждень?"
@@ -99,16 +131,14 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             elif step_name == "connects_thisweek":
                 text_q = f"<@{user_id}> Скільки CONNECTS Upwork Connects History показує ЦЬОГО тижня?\n\nВведіть кількість коннектів що ви бачите на [Upwork Connects History](https://www.upwork.com/nx/plans/connects/history/)"
                 logger.info(f"Creating text input for connects_thisweek step")
-                message = await channel.send(text_q)
-                survey.current_message = message
+                await initial_msg.edit(content=text_q)
                 return
             else:
                 text_q = f"<@{user_id}> Будь ласка, оберіть кількість годин:"
                 
             logger.info(f"Creating workload view for step {step_name}")
-            # Create and send the view with has_survey=True
-            # Send initial message
-            initial_msg = await channel.send(text_q)
+            # Update initial message
+            await initial_msg.edit(content=text_q)
             
             # Create view with initial message reference
             view = create_view("workload", step_name, user_id, ViewType.DYNAMIC, has_survey=True)
@@ -117,6 +147,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             # Send follow-up message with buttons
             buttons_msg = await channel.send("Оберіть кількість годин:", view=view)
             view.buttons_msg = buttons_msg
+            survey.buttons_message = buttons_msg
             
             logger.info(f"Sent workload question for step {step_name}, initial message ID: {initial_msg.id}, buttons message ID: {buttons_msg.id}")
             
@@ -126,6 +157,11 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
                 command=step_name,
                 result={}
             )
+            
+            # Delete buttons message after choice
+            if survey.buttons_message:
+                await survey.buttons_message.delete()
+                survey.buttons_message = None
         elif step_name == "day_off_nextweek":
             text_q = f"<@{user_id}> Які дні вихідних на наступний тиждень?"
             
@@ -178,6 +214,10 @@ async def continue_survey(channel: discord.TextChannel, survey: 'survey_manager.
         channel: Discord text channel
         survey: Survey flow instance
     """
+    # Update current message to show progress
+    if survey.current_message:
+        await survey.current_message.edit(content=f"<@{survey.user_id}> Оновлення опитування...")
+    
     next_step = survey.current_step()
     if next_step:
         await ask_dynamic_step(channel, survey, next_step)

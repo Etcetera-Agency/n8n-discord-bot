@@ -21,7 +21,22 @@ class SurveyFlow:
         self.steps = steps
         self.current_index = 0
         self.results: Dict[str, Any] = {}
+        self.current_message: Optional[discord.Message] = None
+        self.buttons_message: Optional[discord.Message] = None
+        self.start_message: Optional[discord.Message] = None
         logger.info(f"Created survey flow for user {user_id} with steps: {steps}")
+        
+    async def cleanup(self) -> None:
+        """
+        Clean up survey messages.
+        """
+        try:
+            if self.buttons_message:
+                await self.buttons_message.delete()
+            if self.start_message:
+                await self.start_message.delete()
+        except Exception as e:
+            logger.error(f"Error cleaning up survey messages: {e}")
 
     def current_step(self) -> Optional[str]:
         """
