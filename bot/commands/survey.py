@@ -242,15 +242,23 @@ async def continue_survey(channel: discord.TextChannel, survey: 'survey_manager.
         channel: Discord text channel
         survey: Survey flow instance
     """
-    # Update current message to show progress
-    if survey.current_message:
-        await survey.current_message.edit(content=f"<@{survey.user_id}> Оновлення опитування...")
-    
-    next_step = survey.current_step()
-    if next_step:
-        await ask_dynamic_step(channel, survey, next_step)
-    else:
-        await finish_survey(channel, survey)
+    try:
+        # Update current message to show progress
+        if survey.current_message:
+            await survey.current_message.edit(content=f"<@{survey.user_id}> Перехід до наступного кроку...")
+            # Send new visible message for the step
+            new_msg = await channel.send(f"<@{survey.user_id}> Починаємо наступний крок опитування")
+            survey.current_message = new_msg
+            
+        next_step = survey.current_step()
+        if next_step:
+            await ask_dynamic_step(channel, survey, next_step)
+        else:
+            await finish_survey(channel, survey)
+            
+    except Exception as e:
+        logger.error(f"Error continuing survey: {e}")
+        await channel.send(f"<@{survey.user_id}> Помилка при переході між кроками: {str(e)}")
 
 async def finish_survey(channel: discord.TextChannel, survey: 'survey_manager.SurveyFlow') -> None:
     """
