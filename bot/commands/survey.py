@@ -112,13 +112,11 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
     logger.info(f"Asking step {step_name} for user {user_id} in channel {channel.id}")
     
     try:
-        # Create initial message for first step
-        if not survey.current_message:
-            initial_msg = await channel.send(f"<@{user_id}> Починаємо опитування...")
-            survey.current_message = initial_msg
-            await asyncio.sleep(1)  # Ensure message is visible
-        else:
-            initial_msg = survey.current_message
+        # Create new message for each step
+        initial_msg = await channel.send(f"<@{user_id}> 🟢 Початок кроку опитування...")
+        survey.current_message = initial_msg
+        await initial_msg.add_reaction("⏳")  # Add loading indicator
+        await asyncio.sleep(0.8)  # Visual feedback delay
         
         if step_name.startswith("workload") or step_name.startswith("connects"):
             if step_name == "workload_nextweek":
@@ -165,8 +163,9 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
                 text_q = f"<@{user_id}> Будь ласка, оберіть кількість годин:"
                 
             logger.info(f"Creating workload view for step {step_name}")
-            # Update initial message
-            await initial_msg.edit(content=text_q)
+            # Update initial message with persistent state
+            await initial_msg.edit(content=f"**Початок опитування**\n{text_q}")
+            await initial_msg.add_reaction("📝")  # Add pencil emoji reaction
             
             # Create view with initial message reference
             view = create_view("workload", step_name, user_id, ViewType.DYNAMIC, has_survey=True)
