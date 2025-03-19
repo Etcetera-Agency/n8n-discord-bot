@@ -42,7 +42,12 @@ class HttpSession:
         Returns:
             An aiohttp ClientSession instance
         """
-        connector = aiohttp.TCPConnector(limit=10, ttl_dns_cache=300)
+        connector = aiohttp.TCPConnector(
+            limit=50,
+            ttl_dns_cache=60,
+            force_close=False,
+            enable_cleanup_closed=True
+        )
         self.session = aiohttp.ClientSession(connector=connector)
         return self.session
         
