@@ -349,7 +349,7 @@ async def handle_start_daily_survey(bot, user_id: str, channel_id: str, steps: L
         if step:
             await ask_dynamic_step(channel, state, step)
         else:
-            await channel.send(f"<@{user_id}> Не вказано кроків опитування.")
+            await channel.send(f"<@{user_id}> -- Схоже всі данні вже занесені")
     except discord.NotFound:
         logger.error(f"Channel {channel_id} not found")
     except discord.Forbidden:

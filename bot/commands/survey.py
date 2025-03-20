@@ -34,7 +34,7 @@ async def handle_survey_incomplete(user_id: str) -> None:
 async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, channel_id: str, steps: List[str]) -> None:
     """
     Start a daily survey for a user.
-    
+
     Args:
         bot_instance: Discord bot instance
         user_id: Discord user ID
@@ -42,23 +42,39 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
         steps: List of survey step names
     """
     logger.info(f"Starting daily survey for user {user_id} in channel {channel_id} with steps: {steps}")
-    
+
+    # Define the desired order of steps
+    step_order = ["workload_today", "workload_nextweek", "connects", "dayoff_nextweek"]
+    ordered_steps = []
+    other_steps = []
+
+    # Separate and order the steps
+    for step in step_order:
+        if step in steps:
+            ordered_steps.append(step)
+            steps.remove(step)  # remove from original list to avoid duplicates
+
+    other_steps = [step for step in steps]  # remaining steps are "other" steps
+    final_steps = ordered_steps + other_steps  # combine ordered steps with other steps
+    steps = final_steps  # reassign steps with ordered steps
+
+    logger.info(f"Ordered survey steps: {steps}")
+
     try:
         channel = await bot_instance.fetch_channel(int(channel_id))
         if not channel:
             logger.warning(f"Channel {channel_id} not found for user {user_id}")
             return
-        
-        # Check if there's an existing survey for this user
+
+        # Check if there's an existing survey for this user and remove it
         existing_survey = survey_manager.get_survey(user_id)
         if existing_survey:
-            logger.info(f"Found existing survey for user {user_id}, removing it")
+            logger.info(f"Found existing survey for user {user_id}, removing it before sending start button")
             survey_manager.remove_survey(user_id)
-        
-        # Create a new survey
-        survey = survey_manager.create_survey(user_id, channel_id, steps)
-        logger.info(f"Created survey for user {user_id} with steps: {steps}")
-        
+
+        # Send persistent start button (survey object will be created on button press)
+
+
         # Send persistent start button
         start_view = discord.ui.View(timeout=None)
         start_button = discord.ui.Button(
@@ -70,8 +86,13 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
         async def start_callback(interaction: discord.Interaction):
             await interaction.response.defer()
             # Disable start button but keep message
-            start_button.disabled = True
-            await interaction.message.edit(view=start_view)
+            # start_button.disabled = True
+            # await interaction.message.edit(view=start_view)
+
+            # Create a new survey when button is pressed
+            survey = survey_manager.create_survey(user_id, channel_id, steps)
+            logger.info(f"Created survey for user {user_id} with steps: {steps}")
+
             # Start first step
             step = survey.current_step()
             if step:
@@ -79,7 +100,7 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
                 await ask_dynamic_step(channel, survey, step)
             else:
                 logger.warning(f"No steps provided for user {user_id}")
-                await channel.send(f"<@{user_id}> Не вказано кроків опитування.")
+                await channel.send(f"<@{user_id}> -- Схоже всі данні вже занесені")
         
         start_button.callback = start_callback
         start_view.add_item(start_button)
@@ -114,11 +135,12 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
     
     try:
         # Create new message for each step
-        initial_msg = await channel.send(f"<@{user_id}> 🟢 Початок кроку опитування...")
+        # Send combined initial message with view
+        initial_msg = await channel.send(f"<@{user_id}> 🟢 Початок опитування...")
         survey.current_message = initial_msg
         await initial_msg.add_reaction("⏳")  # Add loading indicator
         await asyncio.sleep(0.8)  # Visual feedback delay
-        
+
         if step_name.startswith("workload") or step_name.startswith("connects"):
             if step_name == "workload_nextweek":
                 text_q = f"<@{user_id}> Скільки годин підтверджено на НАСТУПНИЙ тиждень?"
@@ -164,13 +186,13 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
                 text_q = f"<@{user_id}> Будь ласка, оберіть кількість годин:"
                 
             logger.info(f"Creating workload view for step {step_name}")
-            # Update initial message with persistent state
-            await initial_msg.edit(content=f"**Початок опитування**\n{text_q}")
-            await initial_msg.add_reaction("📝")  # Add pencil emoji reaction
+            # Send question message
+            question_msg = await channel.send(text_q)
+            await question_msg.add_reaction("📝")  # Add pencil emoji reaction
             
-            # Create view with initial message reference
+            # Create view with question message reference
             view = create_view("workload", step_name, user_id, ViewType.DYNAMIC, has_survey=True)
-            view.command_msg = initial_msg
+            view.command_msg = question_msg
             
             # Send follow-up message with buttons
             buttons_msg = await channel.send("Оберіть кількість годин:", view=view)
@@ -271,4 +293,4 @@ async def finish_survey(channel: discord.TextChannel, survey: 'survey_manager.Su
         )
         logger.info(f"Survey completed for user {survey.user_id} with results: {survey.results}")
     
-    survey_manager.remove_survey(survey.user_id) 
+    survey_manager.remove_survey(survey.user_id)
