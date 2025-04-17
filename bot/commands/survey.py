@@ -224,45 +224,11 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             
             logger.info(f"Sent workload question for step {step_name}, initial message ID: {initial_msg.id}, buttons message ID: {buttons_msg.id}")
             
-            # Send webhook with empty result to notify step started
-            # The actual result will be sent when button is pressed in the view
-            try:
-                if isinstance(channel, discord.TextChannel):
-                    # Create a fully initialized dummy interaction with all required attributes
-                    class DummyInteraction:
-                        def __init__(self, channel, user_id):
-                            self.channel = channel
-                            self.user = discord.Object(id=int(user_id))
-                            self.author = self.user  # Required for Context compatibility
-                            self.response = type('Response', (), {
-                                'is_done': lambda: False,
-                                'defer': lambda *args, **kwargs: None,
-                                'send_message': lambda *args, **kwargs: None,
-                                'followup': type('Followup', (), {
-                                    'send': lambda *args, **kwargs: None
-                                })
-                            })
-                            self.client = type('Client', (), {
-                                'user': discord.Object(id=0),
-                                'get_user': lambda id: discord.Object(id=id)
-                            })
-                            self.message = None
-                            self.id = str(user_id)  # Required for interaction id
-                    
-                    dummy_interaction = DummyInteraction(channel, survey.user_id)
-                    await webhook_service.send_webhook(
-                        dummy_interaction,
-                        command=step_name,
-                        status="step",
-                        result={}
-                    )
-            except Exception as e:
-                logger.error(f"Error sending initial step webhook: {e}")
+            # Just display buttons and wait for user input
+            # Webhook will be sent by WorkloadView after button press
+            logger.info(f"Displayed buttons for step {step_name}, waiting for user input")
             
-            # Delete buttons message after choice
-            if survey.buttons_message:
-                await survey.buttons_message.delete()
-                survey.buttons_message = None
+            # Don't delete buttons message here - let the WorkloadView handle it after button press
         elif step_name == "day_off_nextweek":
             text_q = f"<@{user_id}> Які дні вихідних на наступний тиждень?"
             
@@ -358,15 +324,37 @@ async def finish_survey(channel: discord.TextChannel, survey: 'survey_manager.Su
                     self.id = str(user_id)  # Required for interaction id
             
             dummy_interaction = DummyInteraction(channel, survey.user_id)
-            await webhook_service.send_webhook(
-                dummy_interaction,
-                command="survey",
-                status="complete",
-                result={
+            try:
+                # Validate completion data
+                if not survey or not survey.user_id or not survey.channel_id:
+                    raise ValueError("Invalid survey completion data")
+                    
+                completion_data = {
                     "final": survey.results,
-                    "userId": survey.user_id
+                    "userId": str(survey.user_id),
+                    "channelId": str(survey.channel_id),
+                    "sessionId": str(getattr(survey, 'session_id', ''))
                 }
-            )
+                
+                # Send completion webhook
+                success, response = await webhook_service.send_webhook(
+                    interaction=dummy_interaction,
+                    command="survey",
+                    status="complete",
+                    result=completion_data
+                )
+                
+                if not success:
+                    raise Exception(f"Completion webhook failed: {response}")
+                    
+            except Exception as e:
+                logger.error(f"Completion webhook error: {str(e)}")
+                try:
+                    await channel.send(
+                        f"<@{survey.user_id}> Помилка при завершенні: {str(e)}"
+                    )
+                except Exception as send_error:
+                    logger.error(f"Failed to send completion error: {send_error}")
             logger.info(f"Survey completed for user {survey.user_id} with results: {survey.results}")
         except Exception as e:
             logger.error(f"Error sending survey completion webhook: {e}")
