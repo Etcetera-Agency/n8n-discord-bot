@@ -145,11 +145,14 @@ class WorkloadButton(discord.ui.Button):
                     state.results[view.cmd_or_step] = value
                     logger.info(f"Updated survey results: {state.results}")
                     
-                    # Update command message with success
+                    # Update command message with response
                     if view.command_msg:
                         await view.command_msg.remove_reaction("⏳", interaction.client.user)
-                        await view.command_msg.edit(content=f"Дякую! Навантаження: {value} годин записано.")
-                        logger.info(f"Updated command message with success")
+                        if "output" in data and data["output"].strip():
+                            await view.command_msg.edit(content=data["output"])
+                        else:
+                            await view.command_msg.edit(content=f"Дякую! Навантаження: {value} годин записано.")
+                        logger.info(f"Updated command message with response")
                     
                     # Delete buttons message
                     if view.buttons_msg:
