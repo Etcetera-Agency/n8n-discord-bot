@@ -228,18 +228,26 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             # The actual result will be sent when button is pressed in the view
             try:
                 if isinstance(channel, discord.TextChannel):
-                    # Create a fully initialized dummy interaction
+                    # Create a fully initialized dummy interaction with all required attributes
                     class DummyInteraction:
                         def __init__(self, channel, user_id):
                             self.channel = channel
                             self.user = discord.Object(id=int(user_id))
+                            self.author = self.user  # Required for Context compatibility
                             self.response = type('Response', (), {
                                 'is_done': lambda: False,
                                 'defer': lambda *args, **kwargs: None,
-                                'send_message': lambda *args, **kwargs: None
+                                'send_message': lambda *args, **kwargs: None,
+                                'followup': type('Followup', (), {
+                                    'send': lambda *args, **kwargs: None
+                                })
                             })
-                            self.client = type('Client', (), {'user': discord.Object(id=0)})
+                            self.client = type('Client', (), {
+                                'user': discord.Object(id=0),
+                                'get_user': lambda id: discord.Object(id=id)
+                            })
                             self.message = None
+                            self.id = str(user_id)  # Required for interaction id
                     
                     dummy_interaction = DummyInteraction(channel, survey.user_id)
                     await webhook_service.send_webhook(
@@ -335,19 +343,36 @@ async def finish_survey(channel: discord.TextChannel, survey: 'survey_manager.Su
     """
     if survey.is_done():
         try:
-            # Create a dummy interaction to pass to webhook service
+            # Create a fully initialized dummy interaction with all required attributes
             class DummyInteraction:
                 def __init__(self, channel, user_id):
                     self.channel = channel
                     self.user = discord.Object(id=int(user_id))
-                    self.response = type('Response', (), {'is_done': lambda: False})
+                    self.author = self.user  # Required for Context compatibility
+                    self.response = type('Response', (), {
+                        'is_done': lambda: False,
+                        'defer': lambda *args, **kwargs: None,
+                        'send_message': lambda *args, **kwargs: None,
+                        'followup': type('Followup', (), {
+                            'send': lambda *args, **kwargs: None
+                        })
+                    })
+                    self.client = type('Client', (), {
+                        'user': discord.Object(id=0),
+                        'get_user': lambda id: discord.Object(id=id)
+                    })
+                    self.message = None
+                    self.id = str(user_id)  # Required for interaction id
             
             dummy_interaction = DummyInteraction(channel, survey.user_id)
             await webhook_service.send_webhook(
                 dummy_interaction,
                 command="survey",
                 status="complete",
-                result={"final": survey.results}
+                result={
+                    "final": survey.results,
+                    "userId": survey.user_id
+                }
             )
             logger.info(f"Survey completed for user {survey.user_id} with results: {survey.results}")
         except Exception as e:
