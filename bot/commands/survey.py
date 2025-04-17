@@ -228,12 +228,18 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             # The actual result will be sent when button is pressed in the view
             try:
                 if isinstance(channel, discord.TextChannel):
-                    # Create a dummy interaction to pass to webhook service
+                    # Create a fully initialized dummy interaction
                     class DummyInteraction:
                         def __init__(self, channel, user_id):
                             self.channel = channel
                             self.user = discord.Object(id=int(user_id))
-                            self.response = type('Response', (), {'is_done': lambda: False})
+                            self.response = type('Response', (), {
+                                'is_done': lambda: False,
+                                'defer': lambda *args, **kwargs: None,
+                                'send_message': lambda *args, **kwargs: None
+                            })
+                            self.client = type('Client', (), {'user': discord.Object(id=0)})
+                            self.message = None
                     
                     dummy_interaction = DummyInteraction(channel, survey.user_id)
                     await webhook_service.send_webhook(
@@ -272,8 +278,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
                 channel,
                 command=step_name,
                 status="step",
-                result={},
-                user_id=survey.user_id
+                result={"userId": survey.user_id}
             )
         else:
             logger.warning(f"Unknown step type: {step_name} for user {user_id}")
