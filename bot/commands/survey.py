@@ -1,3 +1,4 @@
+import asyncio
 import discord
 from typing import Optional, List
 from config import ViewType, logger, Strings, Config
@@ -153,11 +154,8 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
     
     try:
         # Create new message for each step
-        # Send combined initial message with view
-        initial_msg = await channel.send(f"<@{user_id}> 🟢 Початок опитування...")
-        survey.current_message = initial_msg
-        await initial_msg.add_reaction("⏳")  # Add loading indicator
-        await asyncio.sleep(0.8)  # Visual feedback delay
+        # Initialize step
+        survey.current_message = None
 
         if step_name.startswith("workload") or step_name.startswith("connects"):
             if step_name == "workload_nextweek":
@@ -304,9 +302,8 @@ async def finish_survey(channel: discord.TextChannel, survey: 'survey_manager.Su
         survey: Survey flow instance
     """
     if survey.is_done():
-        await webhook_service.send_interaction_response(
+        await webhook_service.send_webhook(
             channel,
-            initial_message="Завершення опитування...",
             command="survey",
             result={"final": survey.results}
         )
