@@ -15,12 +15,20 @@ class WorkloadButton(discord.ui.Button):
         self.cmd_or_step = cmd_or_step
         
     async def callback(self, interaction: discord.Interaction):
-        """Handle button interaction and wait for user input"""
-        # Validate interaction object and attributes
-        required_attrs = ['response', 'user', 'channel', 'client']
-        if not all(hasattr(interaction, attr) for attr in required_attrs):
-            logger.error(f"Incomplete interaction object: {interaction}")
+        """Handle button press with complete validation"""
+        # Detailed interaction validation
+        if interaction is None:
+            logger.error("Null interaction received in callback")
             return
+            
+        missing_attrs = [attr for attr in ['response', 'user', 'channel', 'client']
+                        if not hasattr(interaction, attr)]
+                        
+        if missing_attrs:
+            logger.error(f"Interaction missing attributes: {missing_attrs}")
+            return
+            
+        logger.debug(f"Processing interaction from {interaction.user.id}")
             
         try:
             # Ensure we have a valid view
