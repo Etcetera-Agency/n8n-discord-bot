@@ -44,7 +44,13 @@ class WorkloadButton(discord.ui.Button):
             return
             
         from services import webhook_service
+        if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView):
+            logger.error(f"Invalid view in callback: {getattr(self, 'view', None)}")
+            return
+            
         view = self.view
+        logger.info(f"Processing WorkloadView callback - view user: {view.user_id}, interaction user: {interaction.user.id}")
+        
         if isinstance(view, WorkloadView):
             # First, acknowledge the interaction to prevent timeout
             try:
@@ -194,11 +200,24 @@ class WorkloadView(discord.ui.View):
         
     async def on_timeout(self):
         logger.warning(f"WorkloadView timed out for user {self.user_id}")
-        if self.buttons_msg:
-            try:
+        try:
+            # Validate survey state before cleanup
+            survey = survey_manager.get_survey(self.user_id)
+            if survey and survey.channel_id != getattr(self, 'channel_id', None):
+                logger.warning(f"Survey channel mismatch - view: {getattr(self, 'channel_id', None)}, survey: {survey.channel_id}")
+            
+            # Clean up buttons message if it exists
+            if hasattr(self, 'buttons_msg') and self.buttons_msg:
+                logger.info(f"Deleting buttons message {self.buttons_msg.id} on timeout")
                 await self.buttons_msg.delete()
-            except Exception as e:
-                logger.error(f"Error deleting buttons message on timeout: {e}")
+                
+            # Clean up command message if it exists
+            if hasattr(self, 'command_msg') and self.command_msg:
+                logger.info(f"Deleting command message {self.command_msg.id} on timeout")
+                await self.command_msg.delete()
+                
+        except Exception as e:
+            logger.error(f"Error in WorkloadView timeout handler: {str(e)}", exc_info=True)
 
 def create_workload_view(
     cmd_or_step: str,

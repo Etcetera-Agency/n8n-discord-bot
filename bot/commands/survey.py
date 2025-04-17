@@ -205,8 +205,10 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
                         self.add_item(self.connects_input)
 
                     async def on_submit(self, interaction: discord.Interaction):
-                        if not interaction or str(interaction.channel.id) != str(self.survey.channel_id):
-                            if interaction:
+                        logger.info(f"ConnectsModal submit - interaction: {type(interaction)}, channel: {getattr(interaction, 'channel', None)}")
+                        if not interaction or not hasattr(interaction, 'channel') or str(interaction.channel.id) != str(self.survey.channel_id):
+                            logger.error(f"Invalid interaction in ConnectsModal - interaction: {interaction}, channel match: {str(interaction.channel.id) if interaction and hasattr(interaction, 'channel') else 'N/A'} vs {self.survey.channel_id}")
+                            if interaction and hasattr(interaction, 'response'):
                                 await interaction.response.send_message("Це опитування не для цього каналу.", ephemeral=True)
                             return
                         # Ensure consistent types (string vs int)
@@ -221,8 +223,18 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
                         self.survey.next_step()
                         await continue_survey(channel, self.survey)
 
+                if not channel:
+                    logger.error("Cannot send modal - channel is None")
+                    return
+
+                if not survey or not hasattr(survey, 'user_id'):
+                    logger.error("Invalid survey state when creating ConnectsModal")
+                    return
+
+                logger.info(f"Creating ConnectsModal for step {step_name}, user {survey.user_id}")
                 modal = ConnectsModal(survey, step_name)
                 await channel.send_modal(modal)
+                logger.info(f"Sent modal for step {step_name}")
             else:
                 text_q = f"<@{user_id}> Будь ласка, оберіть кількість годин:"
                 
@@ -290,7 +302,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             await channel.send(f"<@{user_id}> Invalid survey step configuration")
             await finish_survey(channel, survey)
     except Exception as e:
-        logger.error(f"Error in ask_dynamic_step for step {step_name}: {e}")
+        logger.error(f"Error in ask_dynamic_step for step {step_name}: {str(e)}", exc_info=True)
         await channel.send(f"<@{user_id}> {Strings.STEP_ERROR}: {str(e)}")
         # Try to continue with the next step
         try:
