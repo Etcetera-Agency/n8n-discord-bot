@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from typing import List
-from config import MONTHS, ViewType, logger
+from config import MONTHS, ViewType, logger, Strings
 from services import webhook_service
 from bot.views.factory import create_view
 import asyncio
@@ -23,13 +23,77 @@ class SlashCommands:
         self.bot = bot
         self.register_commands()
         
+    async def handle_webhook_command(self, interaction: discord.Interaction, command: str, result: dict):
+        """
+        Handle webhook command with standard processing flow.
+        
+        Args:
+            interaction: Discord interaction
+            command: Command name for webhook
+            result: Data to send to webhook
+        """
+        # Get the original message
+        message = await interaction.original_response() if interaction.response.is_done() else None
+        
+        try:
+            if message:
+                await message.add_reaction("⏳")
+                
+            success, data = await webhook_service.send_webhook(
+                interaction,
+                command=command,
+                result=result
+            )
+            
+            if message:
+                await message.remove_reaction("⏳", interaction.client.user)
+                
+            if success and data and "output" in data:
+                if message:
+                    await message.add_reaction("✅")
+                return data["output"]
+            else:
+                error_msg = f"Помилка: Не вдалося виконати команду."
+                if message:
+                    await message.add_reaction("❌")
+                return error_msg
+                
+        except Exception as e:
+            logger.error(f"Error in {command} command: {e}")
+            if message:
+                await message.remove_reaction("⏳", interaction.client.user)
+                await message.add_reaction("❌")
+            return f"Помилка: Сталася неочікувана помилка."
+    
+    async def create_interactive_command(self, interaction: discord.Interaction, view_type: str, command_name: str):
+        """
+        Create an interactive command with view.
+        
+        Args:
+            interaction: Discord interaction
+            view_type: Type of view to create
+            command_name: Command name for the view
+        """
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=False)
+            
+        command_msg = await interaction.original_response()
+        view = create_view(view_type, command_name, str(interaction.user.id))
+        view.command_msg = command_msg
+        
+        buttons_msg = await interaction.channel.send(
+            "Оберіть варіант:",
+            view=view
+        )
+        view.buttons_msg = buttons_msg
+        
     def register_commands(self) -> None:
         """Register all slash commands."""
         
         # Day off command group
-        day_off_group = app_commands.Group(name="day_off", description="Команди для вихідних")
+        day_off_group = app_commands.Group(name="day_off", description=Strings.DAY_OFF_GROUP)
 
-        @day_off_group.command(name="thisweek", description="Оберіть вихідні на ЦЕЙ тиждень.")
+        @day_off_group.command(name="thisweek", description=Strings.DAY_OFF_THISWEEK)
         async def day_off_thisweek(interaction: discord.Interaction):
             """
             Select days off for the current week.
