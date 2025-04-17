@@ -22,6 +22,11 @@ async def handle_survey_incomplete(user_id: str) -> None:
         return
     
     incomplete = survey.incomplete_steps()
+    # Validate IDs before webhook call
+    if not survey.user_id or not survey.channel_id or not survey.session_id:
+        logger.error(f"Missing required IDs for incomplete survey - user: {survey.user_id}, channel: {survey.channel_id}")
+        return
+        
     await webhook_service.send_webhook(
         channel,
         command="survey",
@@ -47,7 +52,6 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
     # Check if channel is registered
     payload = {
         "command": "check_channel",
-        "userId": user_id,
         "channelId": channel_id
     }
     headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
@@ -102,7 +106,6 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
         # Verify channel with n8n and get steps
         payload = {
             "command": "check_channel",
-            "userId": user_id,
             "channelId": channel_id
         }
         headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}

@@ -89,10 +89,8 @@ class WebhookService:
     def build_payload(
         self,
         command: str,
-        user_id: Optional[str] = None,
-        channel_id: Optional[str] = None,
-        channel: Optional[discord.TextChannel] = None,
-        user: Optional[Union[discord.User, discord.Member]] = None,
+        user_id: str,
+        channel_id: str,
         status: str = "ok",
         message: str = "",
         result: Optional[Dict[str, Any]] = None,
@@ -118,15 +116,14 @@ class WebhookService:
         if result is None:
             result = {}
             
-        # Get channel info if channel object is provided
-        if channel and not channel_id:
-            channel_id = str(channel.id)
+        # Validate required IDs
+        if not user_id or not channel_id:
+            raise ValueError("Both user_id and channel_id are required")
             
-        # Get user info if user object is provided
-        if user and not user_id:
-            user_id = str(user.id)
+        # Generate session ID from channel+user IDs
+        session_id = f"{channel_id}_{user_id}"
             
-        # Build the payload
+        # Build the payload (keep same structure for n8n)
         payload = {
             "command": command,
             "status": status,
@@ -134,7 +131,7 @@ class WebhookService:
             "result": result,
             "author": "system" if is_system else (str(user) if user else "unknown"),
             "userId": user_id if user_id else "system",
-            "sessionId": session_manager.get_session_id(user_id) if user_id else "system",
+            "sessionId": session_id,
             "channelId": channel_id if channel_id else "",
             "channelName": getattr(channel, 'name', 'DM') if channel else "",
             "timestamp": int(asyncio.get_event_loop().time())

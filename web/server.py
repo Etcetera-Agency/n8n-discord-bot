@@ -25,19 +25,19 @@ class WebServer:
             user_id = data.get("userId")
             channel_id = data.get("channelId")
             
-            if not user_id or not channel_id:
-                logger.error("Missing required parameters")
-                return web.json_response(
-                    {"error": "Missing userId or channelId"}, 
-                    status=400
-                )
-
-            # Just validate channel_id is an integer
+            # Validate IDs are strings and not empty
+            if not isinstance(user_id, str) or not user_id.strip():
+                logger.error(f"Invalid user ID: {user_id}")
+                return web.json_response({"error": "Invalid user ID"}, status=400)
+                
             try:
-                channel_id = int(channel_id)
-            except ValueError:
+                channel_id = str(int(channel_id))  # Ensure numeric string format
+            except (ValueError, TypeError):
                 logger.error(f"Invalid channel ID: {channel_id}")
                 return web.json_response({"error": "Invalid channel ID"}, status=400)
+                
+            # Create consistent session ID format
+            session_id = f"{channel_id}_{user_id}"
 
             class StartSurveyButton(discord.ui.Button):
                 def __init__(self, user_id: str, channel_id: str):
@@ -45,12 +45,11 @@ class WebServer:
                     super().__init__(
                         style=discord.ButtonStyle.success,
                         label=Strings.START_SURVEY_BUTTON,
-                        custom_id=f"survey_start_{channel_id}_{user_id}"  # Changed format
+                        custom_id=f"survey_start_{session_id}"  # Use consistent session ID format
                     )
                     self.user_id = user_id
                     self.channel_id = channel_id
-                    # Create session ID that combines both values
-                    self.session_id = f"{channel_id}_{user_id}"
+                    self.session_id = session_id  # Use pre-validated session ID
                     
                 async def callback(self, interaction: discord.Interaction):
                     await interaction.response.defer()

@@ -7,18 +7,22 @@ class SurveyFlow:
     Holds a list of survey steps for dynamic surveys.
     Manages the state of a survey in progress.
     """
-    def __init__(self, user_id: str, channel_id: str, steps: List[str]):
-        """
-        Initialize a new survey flow.
+    def __init__(self, channel_id: str, steps: List[str], user_id: str, session_id: str):
+        """Initialize survey with required IDs:
+        - channel_id: Discord channel ID where survey is running
+        - steps: List of survey step names
+        - user_id: Discord user ID participating in survey
+        - session_id: Combined channel.user ID from initial request
         
-        Args:
-            user_id: The Discord user ID
-            channel_id: The Discord channel ID
-            steps: List of survey step names
-        """
+        Raises:
+            ValueError: If any required ID is missing or invalid"""
+        if not channel_id or not user_id or not session_id:
+            raise ValueError("channel_id, user_id and session_id are required")
+            
         self.user_id = user_id
         self.channel_id = channel_id
         self.steps = steps
+        self.session_id = session_id
         self.current_index = 0
         self.results: Dict[str, Any] = {}
         self.current_message: Optional[discord.Message] = None
@@ -93,32 +97,48 @@ class SurveyManager:
         self.surveys: Dict[str, SurveyFlow] = {}
         
     def create_survey(self, user_id: str, channel_id: str, steps: List[str]) -> SurveyFlow:
-        """
-        Create a new survey for a user.
+        """Create and track a new survey instance.
         
         Args:
-            user_id: The Discord user ID
-            channel_id: The Discord channel ID
+            user_id: Discord user ID
+            channel_id: Discord channel ID
             steps: List of survey step names
             
         Returns:
             The created SurveyFlow instance
+            
+        Raises:
+            ValueError: If parameters are invalid
         """
-        survey = SurveyFlow(user_id, channel_id, steps)
-        self.surveys[user_id] = survey
-        return survey
+        if not all([user_id, channel_id]) or not isinstance(steps, list):
+            raise ValueError("Invalid survey parameters")
+            
+        try:
+            session_id = f"{channel_id}_{user_id}"
+            survey = SurveyFlow(channel_id, steps, user_id, session_id)
+            self.surveys[str(user_id)] = survey
+            return survey
+        except Exception as e:
+            logger.error(f"Failed to create survey: {e}")
+            raise ValueError("Survey creation failed") from e
         
-    def get_survey(self, user_id: str) -> Optional[SurveyFlow]:
-        """
-        Get an active survey for a user.
+    def get_survey(self, user_id: str, channel_id: Optional[str] = None) -> Optional[SurveyFlow]:
+        """Get survey by user ID with optional channel validation.
         
         Args:
-            user_id: The Discord user ID
+            user_id: Discord user ID to lookup
+            channel_id: Optional channel ID to verify
             
         Returns:
-            The SurveyFlow instance or None if not found
+            Matching SurveyFlow or None if not found
         """
-        return self.surveys.get(user_id)
+        survey = self.surveys.get(str(user_id))
+        if not survey:
+            return None
+            
+        if channel_id and str(survey.channel_id) != str(channel_id):
+            return None
+        return survey
         
     def remove_survey(self, user_id: str) -> None:
         """
