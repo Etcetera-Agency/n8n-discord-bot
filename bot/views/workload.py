@@ -90,8 +90,15 @@ class WorkloadButton(discord.ui.Button):
                         await view.buttons_msg.delete()
                         logger.info(f"Deleted buttons message")
                     
+                    # Log survey state before continuation
+                    logger.info(f"Survey state before continuation - current step: {state.current_step()}, results: {state.results}")
+                    
                     # Let n8n handle the survey continuation through webhook response
                     # Don't advance the step here, as it will be handled by the webhook service
+                    # But verify we have a valid state for continuation
+                    if not state or not state.user_id:
+                        logger.error("Invalid survey state for continuation")
+                        return
                     
                 else:
                     logger.info(f"Processing as regular command: {view.cmd_or_step}")
@@ -138,12 +145,20 @@ class WorkloadButton(discord.ui.Button):
 
 class WorkloadView(discord.ui.View):
     def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False):
-        super().__init__()
+        super().__init__(timeout=300)  # 5 minute timeout
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
         self.has_survey = has_survey
         self.command_msg = None  # Reference to the command message
         self.buttons_msg = None  # Reference to the buttons message
+        
+    async def on_timeout(self):
+        logger.warning(f"WorkloadView timed out for user {self.user_id}")
+        if self.buttons_msg:
+            try:
+                await self.buttons_msg.delete()
+            except Exception as e:
+                logger.error(f"Error deleting buttons message on timeout: {e}")
 
 def create_workload_view(
     cmd_or_step: str,

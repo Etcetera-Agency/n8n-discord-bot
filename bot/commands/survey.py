@@ -289,14 +289,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
                 result={"userId": survey.user_id}
             )
         else:
-            logger.warning(f"Unknown step type: {step_name} for user {user_id}")
-            await webhook_service.send_webhook(
-                channel,
-                command=step_name,
-                status="error",
-                message=f"<@{user_id}> Невідомий крок опитування: {step_name}. Пропускаємо.",
-                user_id=user_id
-            )
+            logger.warning(f"Unknown step type: {step_name} for user {user_id} - skipping automatically")
             survey.next_step()
             await continue_survey(channel, survey)
     except Exception as e:
