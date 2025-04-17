@@ -122,7 +122,7 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
             return
 
         # Create survey and start immediately
-        survey = survey_manager.create_survey(channel_id, steps, user_id, session_id)  # Use combined session ID
+        survey = survey_manager.create_survey(user_id, channel_id, steps)  # Let SurveyManager handle session_id internally
         logger.info(f"Created survey for channel {channel_id} with steps: {steps}")
 
         # Start first step or show completion
