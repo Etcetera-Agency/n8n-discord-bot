@@ -80,43 +80,6 @@ class WebServer:
         except Exception as e:
             logger.error(f"Server error: {str(e)}")
             return web.json_response({"error": "Internal server error"}, status=500)
-
-    async def continue_survey_http(self, request):
-        """Handle HTTP requests to continue surveys"""
-        try:
-            # Verify authorization
-            auth_header = request.headers.get("Authorization")
-            expected_header = f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"
-            if not auth_header or auth_header != expected_header:
-                logger.warning("Unauthorized continue survey attempt")
-                return web.json_response({"error": "Unauthorized"}, status=401)
-            
-            # Parse JSON payload
-            data = await request.json()
-            user_id = data.get("userId")
-            
-            # Validate user ID
-            if not isinstance(user_id, str) or not user_id.strip():
-                logger.error(f"Invalid user ID: {user_id}")
-                return web.json_response({"error": "Invalid user ID"}, status=400)
-            
-            try:
-                from bot.commands.survey import continue_survey
-                channel = await self.bot.fetch_channel(user_id.split('_')[0])  # Extract channel ID from session
-                survey = survey_manager.get_survey(user_id)
-                if survey:
-                    await continue_survey(channel, survey)
-                    return web.json_response({"status": "Survey continued"})
-                else:
-                    return web.json_response({"error": "Survey not found"}, status=404)
-            except Exception as e:
-                logger.error(f"Survey continuation error: {str(e)}")
-                return web.json_response({"error": "Failed to continue survey"}, status=500)
-                
-        except Exception as e:
-            logger.error(f"Continue survey server error: {str(e)}")
-            return web.json_response({"error": "Internal server error"}, status=500)
-
     @staticmethod
     async def run_server(bot):
         """Run the HTTP/HTTPS server"""
@@ -126,7 +89,6 @@ class WebServer:
         # Create instance and bind method
         server = WebServer(bot)
         app.router.add_post('/start_survey', server.start_survey_http)
-        app.router.add_post('/continue_survey', server.continue_survey_http)
         
         port = int(Config.PORT or "3000")
         host = "0.0.0.0"

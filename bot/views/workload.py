@@ -147,7 +147,10 @@ class WorkloadButton(discord.ui.Button):
                     
                     # Update command message with response
                     if view.command_msg:
-                        await view.command_msg.remove_reaction("⏳", interaction.client.user)
+                        # Clear all reactions except ❌
+                        for reaction in view.command_msg.reactions:
+                            if str(reaction.emoji) != "❌":
+                                await reaction.remove(interaction.client.user)
                         if "output" in data and data["output"].strip():
                             await view.command_msg.edit(content=data["output"])
                         else:
