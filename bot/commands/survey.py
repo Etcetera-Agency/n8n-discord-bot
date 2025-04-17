@@ -121,10 +121,21 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
             await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
             return
 
-        # Filter out unexpected steps silently
-        expected_steps = ["workload_today", "workload_nextweek", "connects", "dayoff_nextweek"]
-        valid_steps = [step for step in steps if step in expected_steps]
+        # Only allow known step types, skip others silently
+        ALLOWED_STEPS = {
+            "workload_today": "workload",
+            "workload_nextweek": "workload",
+            "connects": "connects",
+            "dayoff_nextweek": "day_off"
+        }
         
+        valid_steps = []
+        for step in steps:
+            if step in ALLOWED_STEPS:
+                valid_steps.append(ALLOWED_STEPS[step])
+            else:
+                logger.debug(f"Skipping invalid step type: {step}")
+
         if not valid_steps:
             logger.warning(f"No valid steps for user {user_id}")
             return
