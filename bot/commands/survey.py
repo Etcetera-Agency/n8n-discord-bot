@@ -1,6 +1,6 @@
 import discord
 from typing import Optional, List
-from config import ViewType, logger, Strings
+from config import ViewType, logger, Strings, Config
 from services import survey_manager, webhook_service
 from bot.views.factory import create_view
 
