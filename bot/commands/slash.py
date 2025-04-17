@@ -187,24 +187,31 @@ class SlashCommands:
                 await message.add_reaction("⏳")
             
             try:
-                # Send webhook
-                # Create datetime objects in Kyiv time
-                # Parse start date as naive datetime first
-                start_naive = datetime.datetime.strptime(
-                    f"{start_day} {start_month} {datetime.datetime.now().year}",
-                    "%d %B %Y"
-                )
-                # Localize to Kyiv timezone (handles DST properly)
-                start_date = constants.KYIV_TIMEZONE.localize(start_naive)
+                # Get month numbers from constants
+                start_month_num = constants.MONTHS.index(start_month) + 1
+                end_month_num = constants.MONTHS.index(end_month) + 1
                 
-                # Parse end date as naive datetime first
-                end_naive = datetime.datetime.strptime(
-                    f"{end_day} {end_month} {datetime.datetime.now().year}",
-                    "%d %B %Y"
-                )
-                # Localize to Kyiv timezone (handles DST properly)
-                end_date = constants.KYIV_TIMEZONE.localize(end_naive)
+                # Determine correct years
+                current_year = datetime.datetime.now().year
+                current_month = datetime.datetime.now().month
                 
+                start_year = current_year
+                if start_month_num < current_month:
+                    start_year += 1
+                    
+                end_year = start_year
+                if end_month_num < start_month_num:
+                    end_year += 1
+                
+                # Create datetime objects in Kyiv timezone
+                start_date = constants.KYIV_TIMEZONE.localize(
+                    datetime.datetime(start_year, start_month_num, start_day)
+                )
+                end_date = constants.KYIV_TIMEZONE.localize(
+                    datetime.datetime(end_year, end_month_num, end_day)
+                )
+                
+                # Send ISO formatted dates to n8n
                 success, data = await webhook_service.send_webhook(
                     interaction,
                     command="vacation",
