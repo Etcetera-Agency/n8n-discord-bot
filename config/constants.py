@@ -1,4 +1,6 @@
 import discord
+import datetime
+import pytz
 from enum import Enum, auto
 from typing import Dict, Any, List
 
@@ -32,4 +34,7 @@ class ViewType(Enum):
 VIEW_CONFIGS: Dict[ViewType, Dict[str, Any]] = {
     ViewType.DYNAMIC: {"timeout": 900, "has_survey": True},
     ViewType.SLASH: {"timeout": None, "has_survey": False}
-} 
+}
+
+# Timezone constants
+KYIV_TIMEZONE = pytz.timezone('Europe/Kiev')  # Uses EEST (UTC+3) with DST

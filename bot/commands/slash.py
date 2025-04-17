@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from typing import List
-from config import MONTHS, ViewType, logger, Strings
+from config import MONTHS, ViewType, logger, Strings, constants
 from services import webhook_service
 from bot.views.factory import create_view
 import asyncio
@@ -187,15 +187,30 @@ class SlashCommands:
             
             try:
                 # Send webhook
+                # Create datetime objects in Kyiv time
+                # Parse start date as naive datetime first
+                start_naive = datetime.datetime.strptime(
+                    f"{start_day} {start_month} {datetime.datetime.now().year}",
+                    "%d %B %Y"
+                )
+                # Localize to Kyiv timezone (handles DST properly)
+                start_date = constants.KYIV_TIMEZONE.localize(start_naive)
+                
+                # Parse end date as naive datetime first
+                end_naive = datetime.datetime.strptime(
+                    f"{end_day} {end_month} {datetime.datetime.now().year}",
+                    "%d %B %Y"
+                )
+                # Localize to Kyiv timezone (handles DST properly)
+                end_date = constants.KYIV_TIMEZONE.localize(end_naive)
+                
                 success, data = await webhook_service.send_webhook(
                     interaction,
                     command="vacation",
                     status="ok",
                     result={
-                        "start_day": str(start_day),
-                        "start_month": start_month,
-                        "end_day": str(end_day),
-                        "end_month": end_month
+                        "start_date": start_date.isoformat(),
+                        "end_date": end_date.isoformat()
                     }
                 )
                 

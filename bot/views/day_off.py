@@ -1,7 +1,7 @@
 import discord
 from typing import Optional, List
 import datetime
-from config import ViewType, logger
+from config import ViewType, logger, constants
 from services import survey_manager
 import asyncio
 
@@ -142,8 +142,8 @@ class ConfirmButton(discord.ui.Button):
                         
                 else:
                     # Regular slash command
-                    # Format dates for n8n (YYYY-MM-DD)
-                    dates = [
+                    # Format dates for n8n (YYYY-MM-DD) in Kyiv time
+                    formatted_dates = [
                         view.get_date_for_day(day).strftime("%Y-%m-%d")
                         for day in sorted(view.selected_days, key=lambda x: view.weekday_map[x])
                         if view.get_date_for_day(day) is not None
@@ -153,7 +153,7 @@ class ConfirmButton(discord.ui.Button):
                         interaction,
                         command=view.cmd_or_step,
                         status="ok",
-                        result={"value": dates}
+                        result={"value": formatted_dates}
                     )
                     
                     if success and data and "output" in data:
@@ -316,10 +316,9 @@ class DayOffView(discord.ui.View):
         self.buttons_msg = None  # Reference to the buttons message
 
     def get_date_for_day(self, day: str) -> datetime.datetime:
-        """Get the date for a given weekday name in Kyiv time (UTC+3)."""
+        """Get the date for a given weekday name in Kyiv time."""
         # Get current date in Kyiv time
-        kyiv_tz = datetime.timezone(datetime.timedelta(hours=3))
-        current_date = datetime.datetime.now(kyiv_tz)
+        current_date = datetime.datetime.now(constants.KYIV_TIMEZONE)
         current_weekday = current_date.weekday()
         
         # Calculate target date
