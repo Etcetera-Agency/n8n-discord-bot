@@ -161,6 +161,7 @@ class ConfirmButton(discord.ui.Button):
                     else:
                         if view.command_msg:
                             await view.command_msg.remove_reaction("⏳", interaction.client.user)
+                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
                             error_msg = f"Ваш запит: Вихідні дні = {', '.join(dates)}\nПомилка: Не вдалося виконати команду."
                             await view.command_msg.edit(content=error_msg)
                             await view.command_msg.add_reaction("❌")
@@ -170,7 +171,8 @@ class ConfirmButton(discord.ui.Button):
             except Exception as e:
                 logger.error(f"Error in confirm button: {e}")
                 if view.command_msg:
-                    await view.command_msg.remove_reaction("⏳", interaction.client.user)
+                    if view.command_msg:
+                        await view.command_msg.remove_reaction("⏳", interaction.client.user)
                     error_msg = f"Ваш запит: Вихідні дні = {', '.join(view.selected_days)}\nПомилка: Сталася неочікувана помилка."
                     await view.command_msg.edit(content=error_msg)
                     await view.command_msg.add_reaction("❌")
