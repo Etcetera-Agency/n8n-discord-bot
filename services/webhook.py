@@ -353,7 +353,12 @@ class WebhookService:
             Tuple of (success, response_data)
         """
         if not self.http_session:
-            raise WebhookError("HTTP session not initialized")
+            # Try to initialize if session is missing
+            try:
+                await self.initialize()
+            except Exception as e:
+                logger.error(f"Failed to initialize HTTP session: {e}")
+                raise WebhookError("Failed to initialize HTTP session")
             
         request_id = str(uuid.uuid4())[:8]
         logger.info(f"[{request_id}] Sending webhook to URL: {self.url}")
