@@ -250,12 +250,16 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             
             logger.info(f"Sent day_off question for step {step_name}, initial message ID: {initial_msg.id}, buttons message ID: {buttons_msg.id}")
             
-            # Send webhook without view
+            # Send simplified webhook with all required data
             await webhook_service.send_webhook(
                 channel,
                 command=step_name,
                 status="step",
-                result={"userId": survey.user_id}
+                result={
+                    "userId": str(survey.user_id),
+                    "channelId": str(channel.id),
+                    "stepName": step_name
+                }
             )
         else:
             logger.warning(f"Unknown step type: {step_name} for user {user_id} - skipping automatically")
