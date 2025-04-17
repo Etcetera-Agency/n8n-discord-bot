@@ -98,46 +98,41 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
         # Send persistent start button (survey object will be created on button press)
 
 
-        # Send persistent start button
-        start_view = discord.ui.View(timeout=None)
-        start_button = discord.ui.Button(
-            style=discord.ButtonStyle.primary,
-            label="Start Survey",
-            custom_id=f"survey_start_{user_id}"
-        )
+        # Verify channel with n8n and get steps
+        payload = {
+            "command": "check_channel",
+            "userId": user_id,
+            "channelId": channel_id
+        }
+        headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
+        success, data = await webhook_service.send_webhook_with_retry(None, payload, headers)
         
-        async def start_callback(interaction: discord.Interaction):
-            await interaction.response.defer()
-            # Disable start button but keep message
-            # start_button.disabled = True
-            # await interaction.message.edit(view=start_view)
+        if not success or str(data.get("output", "false")).lower() != "true":
+            logger.warning(f"Channel {channel_id} not registered for surveys")
+            return
 
-            # Create a new survey when button is pressed
-            survey = survey_manager.create_survey(user_id, channel_id, steps)
-            logger.info(f"Created survey for user {user_id} with steps: {steps}")
+        # Check if steps are provided
+        steps = data.get("steps", [])
+        if not steps:
+            await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
+            return
 
-            # Start first step
-            step = survey.current_step()
-            if step:
-                logger.info(f"Starting first step: {step} for user {user_id}")
-                await ask_dynamic_step(channel, survey, step)
-            else:
-                logger.warning(f"No steps provided for user {user_id}")
-                await channel.send(f"<@{user_id}> -- Схоже всі данні вже занесені")
-        
-        start_button.callback = start_callback
-        start_view.add_item(start_button)
-        
-        # Send persistent start message
-        start_msg = await channel.send(
-            f"<@{user_id}> Натисніть кнопку, щоб почати опитування:",
-            view=start_view
-        )
-        survey.start_message = start_msg
-        survey.current_message = start_msg  # Track as current message
+        # Create survey and start immediately
+        survey = survey_manager.create_survey(user_id, channel_id, steps)
+        logger.info(f"Created survey for user {user_id} with steps: {steps}")
+
+        # Start first step or show completion
+        step = survey.current_step()
+        if step:
+            logger.info(f"Starting first step: {step} for user {user_id}")
+            await ask_dynamic_step(channel, survey, step)
+        else:
+            logger.warning(f"No steps provided for user {user_id}")
+            await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
     except Exception as e:
         logger.error(f"Error in handle_start_daily_survey: {e}")
         # Try to send an error message to the channel
+        survey = None
         try:
             channel = await bot_instance.fetch_channel(int(channel_id))
             await channel.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}: {str(e)}")
