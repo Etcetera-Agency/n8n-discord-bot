@@ -178,8 +178,8 @@ class WebhookService:
         # Build the payload using the unified builder
         payload = self.build_payload(
             command=command,
-            user=user,
-            channel=channel,
+            user_id=str(user.id),
+            channel_id=str(channel.id),
             status=status,
             message=message,
             result=result
