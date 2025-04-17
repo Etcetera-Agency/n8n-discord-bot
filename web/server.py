@@ -5,8 +5,12 @@ from config import Config, logger
 from services.webhook import WebhookService
 
 class WebServer:
-    @staticmethod
-    async def start_survey_http(request):
+    def __init__(self, bot):
+        """Initialize the web server."""
+        self.bot = bot
+        self.active_surveys = {}  # Track active surveys
+
+    async def start_survey_http(self, request):
         """Handle HTTP requests to start surveys"""
         auth_header = request.headers.get("Authorization")
         expected_header = f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"
@@ -17,36 +21,73 @@ class WebServer:
             data = await request.json()
             user_id = data.get("userId")
             channel_id = data.get("channelId")
-            steps = data.get("steps", [])
             
-            if not user_id or not channel_id or not steps:
+            if not user_id or not channel_id:
                 return web.json_response({"error": "Missing parameters"}, status=400)
 
+            logger.info(f"Attempting to find channel {channel_id}")
             try:
-                channel = await request.app['bot'].fetch_channel(int(channel_id))
-                if not channel:
-                    logger.warning(f"Channel {channel_id} not found")
-                    return web.json_response({"error": "Channel not found"}, status=404)
+                channel = await self.bot.fetch_channel(int(channel_id))
+                logger.info(f"Found channel: {channel.name} ({channel.id})")
             except Exception as e:
-                logger.error(f"Channel error: {e}")
-                return web.json_response({"error": "Channel error"}, status=500)
+                logger.error(f"Failed to fetch channel {channel_id}: {str(e)}")
+                return web.json_response({"error": "Channel not found or bot doesn't have access"}, status=404)
                 
-            payload = {
-                "command": "check_channel",
-                "channelId": channel_id,
-                "userId": user_id
-            }
-            
-            headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
-            success_check, data_check = await WebhookService.send_webhook_with_retry(
-                None, payload, headers
-            )
-            
-            if not success_check or str(data_check.get("output", "false")).lower() != "true":
-                return web.json_response({"error": "Channel is not registered"}, status=403)
+            # Send greeting message with start button
+            class StartSurveyButton(discord.ui.Button):
+                def __init__(self, user_id: str, channel_id: str):
+                    super().__init__(
+                        style=discord.ButtonStyle.success,
+                        label="Start Survey",
+                        custom_id=f"start_survey_{user_id}"
+                    )
+                    self.user_id = user_id
+                    self.channel_id = channel_id
+                    
+                async def callback(self, interaction):
+                    await interaction.response.defer()
+                    
+                    # Verify channel access when button is clicked
+                    try:
+                        channel = await self.bot.fetch_channel(self.channel_id)
+                        if not channel:
+                            await interaction.followup.send("Channel not found", ephemeral=True)
+                            return
+                    except Exception as e:
+                        logger.error(f"Failed to fetch channel {self.channel_id}: {str(e)}")
+                        await interaction.followup.send("Channel access error", ephemeral=True)
+                        return
+                    
+                    # Get steps from n8n or use defaults
+                    payload = {
+                        "command": "get_survey_steps",
+                        "userId": self.user_id,
+                        "channelId": self.channel_id
+                    }
+                    headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
+                    success, data = await WebhookService.send_webhook_with_retry(None, payload, headers)
+                    
+                    if success and data.get("steps"):
+                        steps = data["steps"]
+                    else:
+                        steps = ["workload_today", "workload_nextweek", "connects", "dayoff_nextweek"]
+                    
+                    # Create new survey only when button is clicked
+                    survey = survey_manager.create_survey(self.user_id, self.channel_id, steps)
+                    logger.info(f"Created survey for user {self.user_id} with steps: {steps}")
 
-            await request.app['bot'].handle_start_daily_survey(user_id, channel_id, steps)
-            return web.json_response({"status": "Survey started"})
+                    # Start first step
+                    step = survey.current_step()
+                    if step:
+                        await ask_dynamic_step(interaction.channel, survey, step)
+                    else:
+                        await interaction.followup.send(f"<@{self.user_id}> No survey steps available")
+
+            view = discord.ui.View(timeout=None)
+            view.add_item(StartSurveyButton(user_id, channel_id))
+            await channel.send(f"<@{user_id}> Ready to start your daily survey?", view=view)
+            
+            return web.json_response({"status": "Greeting message sent"})
         
         except Exception as e:
             logger.error(f"Error in start_survey_http: {e}")
