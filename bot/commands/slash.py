@@ -228,10 +228,9 @@ class SlashCommands:
                 
                 if success and data and "output" in data:
                     if message:
-                        # Add success reaction before deleting
-                        await asyncio.sleep(1)
-                        await message.delete()
-                    await interaction.followup.send(data["output"])
+                        await message.edit(content=data["output"])
+                    else:
+                        await interaction.followup.send(data["output"])
                 else:
                     error_msg = f"Ваш запит: Відпустка {start_day}/{start_month} - {end_day}/{end_month}\nПомилка: Не вдалося виконати команду."
                     if message:
