@@ -1,6 +1,6 @@
 import discord
 from typing import Optional, List
-from config import ViewType, logger
+from config import ViewType, logger, Strings
 from services import survey_manager, webhook_service
 from bot.views.factory import create_view
 
@@ -41,7 +41,30 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
         channel_id: Discord channel ID
         steps: List of survey step names
     """
-    logger.info(f"Starting daily survey for user {user_id} in channel {channel_id} with steps: {steps}")
+    logger.info(f"Starting daily survey for user {user_id} in channel {channel_id}")
+    
+    # Check if channel is registered
+    payload = {
+        "command": "check_channel",
+        "userId": user_id,
+        "channelId": channel_id
+    }
+    headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
+    success, data = await webhook_service.send_webhook_with_retry(None, payload, headers)
+    
+    if not success or str(data.get("output", "false")).lower() != "true":
+        logger.warning(f"Channel {channel_id} not registered for surveys")
+        return
+    
+    # Check if steps are provided and non-empty
+    steps = data.get("steps", ["workload_today", "workload_nextweek", "connects", "dayoff_nextweek"])
+    if len(steps) == 0:
+        channel = await bot_instance.fetch_channel(channel_id)
+        if channel:
+            await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
+        return
+    
+    logger.info(f"Starting survey with steps: {steps}")
 
     # Define the desired order of steps
     step_order = ["workload_today", "workload_nextweek", "connects", "dayoff_nextweek"]
@@ -117,7 +140,7 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
         # Try to send an error message to the channel
         try:
             channel = await bot_instance.fetch_channel(int(channel_id))
-            await channel.send(f"<@{user_id}> Помилка при запуску опитування: {str(e)}")
+            await channel.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}: {str(e)}")
         except:
             logger.error(f"Could not send error message to channel {channel_id}")
 
@@ -248,7 +271,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             await continue_survey(channel, survey)
     except Exception as e:
         logger.error(f"Error in ask_dynamic_step for step {step_name}: {e}")
-        await channel.send(f"<@{user_id}> Помилка при запуску кроку {step_name}: {str(e)}")
+        await channel.send(f"<@{user_id}> {Strings.STEP_ERROR}: {str(e)}")
         # Try to continue with the next step
         try:
             survey.next_step()
@@ -275,6 +298,7 @@ async def continue_survey(channel: discord.TextChannel, survey: 'survey_manager.
     except Exception as e:
         logger.error(f"Error continuing survey: {e}")
         await channel.send(f"<@{survey.user_id}> Помилка при переході між кроками: {str(e)}")
+
 
 async def finish_survey(channel: discord.TextChannel, survey: 'survey_manager.SurveyFlow') -> None:
     """

@@ -17,12 +17,12 @@ class Strings:
     CONNECTS_PARAM = "Кількість Upwork Connects, що залишилось на цьому тижні"
 
     # Messages
-    SELECT_DAYS_THISWEEK = "{user} Оберіть свої вихідні (цей тиждень):"
-    SELECT_DAYS_NEXTWEEK = "{user} Оберіть свої вихідні на наступний тиждень:"
+    SELECT_DAYS_THISWEEK = "Оберіть свої вихідні (цей тиждень):"
+    SELECT_DAYS_NEXTWEEK = "Оберіть свої вихідні на наступний тиждень:"
     CONFIRM_BUTTON = "В кінці натисніть кнопку Підтверджую"
     SELECT_OPTION = "Оберіть варіант:"
-    WORKLOAD_TODAY_QUESTION = "{user} На скільки годин у тебе підтверджена зайнятість з СЬОГОДНІ до кінця тижня?"
-    WORKLOAD_NEXTWEEK_QUESTION = "{user} Скажи, а чи є підтверджені завдання на наступний тиждень?"
+    WORKLOAD_TODAY_QUESTION = "На скільки годин у тебе підтверджена зайнятість з СЬОГОДНІ до кінця тижня?"
+    WORKLOAD_NEXTWEEK_QUESTION = "Скажи, а чи є підтверджені завдання на наступний тиждень?"
     SELECT_HOURS = "Оберіть кількість годин:"
 
     # Errors
@@ -35,3 +35,15 @@ class Strings:
     # Success/Processing
     PROCESSING = "⏳"
     ERROR = "❌"
+    SURVEY_GREETING = "Готовий почати робочий день?"
+    SURVEY_COMPLETE_MESSAGE = "Схоже всі данні вже занесені"
+    SURVEY_START_PROMPT = "Натисніть кнопку, щоб почати опитування:"
+    SURVEY_START_ERROR = "Помилка при запуску опитування"
+    CONNECTS_QUESTION = "Скільки CONNECTS Upwork Connects History показує ЦЬОГО тижня?"
+    CONNECTS_INPUT_PROMPT = "Введіть кількість коннектів що ви бачите на [Upwork Connects History](https://www.upwork.com/nx/plans/connects/history/)"
+    DAY_OFF_QUESTION = "Які дні вихідних на наступний тиждень?"
+    STEP_ERROR = "Помилка при запуску кроку"
+    START_SURVEY_BUTTON = "Почати опитування"
+    SURVEY_COMPLETE_MESSAGE = "Схоже всі данні вже занесені"
+    SURVEY_START_PROMPT = "Натисніть кнопку, щоб почати опитування:"
+    SURVEY_START_ERROR = "Помилка при запуску опитування"
