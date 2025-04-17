@@ -1,5 +1,6 @@
 import os
 import ssl
+import discord
 from aiohttp import web
 from config import Config, logger, Strings
 from services.webhook import WebhookService
@@ -8,93 +9,68 @@ class WebServer:
     def __init__(self, bot):
         """Initialize the web server."""
         self.bot = bot
-        self.active_surveys = {}  # Track active surveys
 
     async def start_survey_http(self, request):
         """Handle HTTP requests to start surveys"""
-        auth_header = request.headers.get("Authorization")
-        expected_header = f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"
-        if not auth_header or auth_header != expected_header:
-            return web.json_response({"error": "Unauthorized"}, status=401)
-        
         try:
+            # Verify authorization
+            auth_header = request.headers.get("Authorization")
+            expected_header = f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"
+            if not auth_header or auth_header != expected_header:
+                logger.warning("Unauthorized request attempt")
+                return web.json_response({"error": "Unauthorized"}, status=401)
+            
+            # Parse JSON payload
             data = await request.json()
             user_id = data.get("userId")
             channel_id = data.get("channelId")
             
             if not user_id or not channel_id:
-                return web.json_response({"error": "Missing parameters"}, status=400)
+                logger.error("Missing required parameters")
+                return web.json_response(
+                    {"error": "Missing userId or channelId"}, 
+                    status=400
+                )
 
-            logger.info(f"Attempting to find channel {channel_id}")
+            # Just validate channel_id is an integer
             try:
-                channel = await self.bot.fetch_channel(int(channel_id))
-                if not channel:
-                    logger.error(f"Channel {channel_id} not found")
-                    return web.json_response({"error": "Channel not found"}, status=404)
-                logger.info(f"Found channel: {channel.name} ({channel.id})")
+                channel_id = int(channel_id)
             except ValueError:
-                logger.error(f"Invalid channel ID format: {channel_id}")
-                return web.json_response({"error": "Invalid channel ID format"}, status=400)
-            except Exception as e:
-                logger.error(f"Failed to fetch channel {channel_id}: {str(e)}", exc_info=True)
-                return web.json_response(
-                    {"error": "Error accessing channel"},
-                    status=500
-                )
-                
-            # Verify we can send messages to this channel
-            try:
-                test_msg = await channel.send("Verifying channel access...")
-                await test_msg.delete()
-            except discord.Forbidden:
-                logger.error(f"Bot lacks permissions in channel {channel.id}")
-                return web.json_response(
-                    {"error": "Bot lacks required permissions in channel"},
-                    status=403
-                )
-            except Exception as e:
-                logger.error(f"Channel verification failed: {str(e)}")
-                return web.json_response(
-                    {"error": "Channel communication failed"},
-                    status=500
-                )
-                # Send greeting message with survey start button
-                class StartSurveyButton(discord.ui.Button):
-                    def __init__(self, user_id: str, channel_id: str):
-                        super().__init__(
-                            style=discord.ButtonStyle.success,
-                            label=Strings.START_SURVEY_BUTTON,
-                            custom_id=f"survey_start_{user_id}"
-                        )
-                        self.user_id = user_id
-                        self.channel_id = channel_id
-                        
-                    async def callback(self, interaction: discord.Interaction):
-                        await interaction.response.defer()
-                        try:
-                            # Simply trigger survey start - let survey manager handle steps
-                            from bot.commands.survey import handle_start_daily_survey
-                            await handle_start_daily_survey(interaction.client, self.user_id, self.channel_id)
-                        except Exception as e:
-                            logger.error(f"Error starting survey: {e}", exc_info=True)
-                            await interaction.followup.send(f"<@{self.user_id}> {Strings.SURVEY_START_ERROR}: {str(e)}")
+                logger.error(f"Invalid channel ID: {channel_id}")
+                return web.json_response({"error": "Invalid channel ID"}, status=400)
 
-                try:
-                    view = discord.ui.View(timeout=None)
-                    view.add_item(StartSurveyButton(user_id, str(channel_id)))
-                    await channel.send(f"<@{user_id}> {Strings.SURVEY_GREETING}", view=view)
-                except Exception as e:
-                    logger.error(f"Failed to send survey message: {str(e)}", exc_info=True)
-                    return web.json_response(
-                        {"error": "Failed to initialize survey"},
-                        status=500
+            class StartSurveyButton(discord.ui.Button):
+                def __init__(self, user_id: str, channel_id: str):
+                    super().__init__(
+                        style=discord.ButtonStyle.success,
+                        label=Strings.START_SURVEY_BUTTON,
+                        custom_id=f"survey_start_{user_id}"
                     )
+                    self.user_id = user_id
+                    self.channel_id = channel_id
+                    
+                async def callback(self, interaction: discord.Interaction):
+                    await interaction.response.defer()
+                    try:
+                        from bot.commands.survey import handle_start_daily_survey
+                        await handle_start_daily_survey(interaction.client, self.user_id, self.channel_id)
+                    except Exception as e:
+                        logger.error(f"Survey start error: {str(e)}")
+                        await interaction.followup.send(f"<@{self.user_id}> {Strings.SURVEY_START_ERROR}")
+
+            try:
+                channel = await self.bot.fetch_channel(channel_id)
+                view = discord.ui.View(timeout=None)
+                view.add_item(StartSurveyButton(user_id, str(channel_id)))
+                await channel.send(f"<@{user_id}> {Strings.SURVEY_GREETING}", view=view)
+                return web.json_response({"status": "Greeting message sent"})
+            except Exception as e:
+                logger.error(f"Failed to send button: {str(e)}")
+                return web.json_response({"error": "Failed to initialize survey"}, status=500)
             
-            return web.json_response({"status": "Greeting message sent"})
-        
         except Exception as e:
-            logger.error(f"Error in start_survey_http: {e}")
-            return web.json_response({"error": str(e)}, status=500)
+            logger.error(f"Server error: {str(e)}")
+            return web.json_response({"error": "Internal server error"}, status=500)
 
     @staticmethod
     async def run_server(bot):
@@ -102,11 +78,9 @@ class WebServer:
         app = web.Application()
         app['bot'] = bot
         
-        # Create instance and bind method properly
+        # Create instance and bind method
         server = WebServer(bot)
         app.router.add_post('/start_survey', server.start_survey_http)
-        
-        logger.info("Registered POST /start_survey endpoint")
         
         port = int(Config.PORT or "3000")
         host = "0.0.0.0"
@@ -118,9 +92,6 @@ class WebServer:
                 certfile=Config.SSL_CERT_PATH,
                 keyfile=Config.SSL_KEY_PATH
             )
-            logger.info(f"Starting HTTPS server on {host}:{port}")
-        else:
-            logger.info(f"Starting HTTP server on {host}:{port}")
         
         runner = web.AppRunner(app)
         await runner.setup()
