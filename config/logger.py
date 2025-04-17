@@ -30,4 +30,13 @@ def setup_logging(level: int = logging.INFO, name: str = 'discord_bot') -> loggi
     return logger
 
 # Default logger instance
-logger = setup_logging() 
+logger = setup_logging(level=logging.DEBUG)
+
+# Add file handler
+file_handler = logging.FileHandler('server.log')
+file_handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+logger.info("Logger initialized in debug mode with file output")

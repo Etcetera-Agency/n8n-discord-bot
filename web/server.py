@@ -101,7 +101,12 @@ class WebServer:
         """Run the HTTP/HTTPS server"""
         app = web.Application()
         app['bot'] = bot
-        app.router.add_post('/start_survey', WebServer.start_survey_http)
+        
+        # Create instance and bind method properly
+        server = WebServer(bot)
+        app.router.add_post('/start_survey', server.start_survey_http)
+        
+        logger.info("Registered POST /start_survey endpoint")
         
         port = int(Config.PORT or "3000")
         host = "0.0.0.0"
@@ -121,6 +126,7 @@ class WebServer:
         await runner.setup()
         site = web.TCPSite(runner, host, port, ssl_context=ssl_context)
         await site.start()
+        logger.info(f"Server started on {host}:{port}")
 
 async def create_and_start_server(bot):
     """Wrapper function to maintain backward compatibility"""
