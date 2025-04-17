@@ -119,8 +119,8 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
             return
 
         # Create survey and start immediately
-        survey = survey_manager.create_survey(user_id, channel_id, steps)
-        logger.info(f"Created survey for user {user_id} with steps: {steps}")
+        survey = survey_manager.create_survey(channel_id, steps, user_id)  # Channel-bound with optional user_id
+        logger.info(f"Created survey for channel {channel_id} with steps: {steps}")
 
         # Start first step or show completion
         step = survey.current_step()
@@ -155,6 +155,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
     try:
         # Create new message for each step
         # Initialize step
+        initial_msg = None
         survey.current_message = None
 
         if step_name.startswith("workload") or step_name.startswith("connects"):
@@ -183,9 +184,12 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
                         self.add_item(self.connects_input)
 
                     async def on_submit(self, interaction: discord.Interaction):
-                        if str(interaction.user.id) != self.survey.user_id:
-                            await interaction.response.send_message("Це опитування не для вас.", ephemeral=True)
+                        if not interaction or str(interaction.channel.id) != str(self.survey.channel_id):
+                            if interaction:
+                                await interaction.response.send_message("Це опитування не для цього каналу.", ephemeral=True)
                             return
+                        # Ensure consistent types (string vs int)
+                        channel_id = str(interaction.channel.id)
                             
                         if not self.connects_input.value.isdigit():
                             await interaction.response.send_message("Будь ласка, введіть числове значення.", ephemeral=True)
@@ -309,4 +313,4 @@ async def finish_survey(channel: discord.TextChannel, survey: 'survey_manager.Su
         )
         logger.info(f"Survey completed for user {survey.user_id} with results: {survey.results}")
     
-    survey_manager.remove_survey(survey.user_id)
+    survey_manager.remove_survey(survey.channel_id)  # Now removing by channel_id
