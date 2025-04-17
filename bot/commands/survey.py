@@ -305,12 +305,22 @@ async def finish_survey(channel: discord.TextChannel, survey: 'survey_manager.Su
     """
     if survey.is_done():
         try:
-            # Create a fully initialized dummy interaction with all required attributes
-            class DummyInteraction:
+            # Create validated interaction object
+            class ValidInteraction:
                 def __init__(self, channel, user_id):
+                    if not channel or not user_id:
+                        raise ValueError("Missing channel or user_id")
                     self.channel = channel
                     self.user = discord.Object(id=int(user_id))
-                    self.author = self.user  # Required for Context compatibility
+                    self.author = self.user
+                    self.id = str(user_id)
+                    self.response = type('Response', (), {
+                        'is_done': lambda: False,
+                        'defer': lambda *args, **kwargs: None
+                    })
+                    self.client = type('Client', (), {
+                        'user': discord.Object(id=0)
+                    })
                     self.response = type('Response', (), {
                         'is_done': lambda: False,
                         'defer': lambda *args, **kwargs: None,

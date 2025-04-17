@@ -141,7 +141,7 @@ class WebhookService:
     
     async def send_webhook(
         self,
-        ctx_or_interaction: Union[commands.Context, discord.Interaction],
+        target: Union[commands.Context, discord.Interaction, discord.TextChannel],
         command: str,
         status: str = "ok",
         message: str = "",
@@ -152,7 +152,7 @@ class WebhookService:
         Send a webhook request to n8n.
         
         Args:
-            ctx_or_interaction: Discord context or interaction
+            target: Discord Context, Interaction or TextChannel
             command: Command name
             status: Status string
             message: Message string
