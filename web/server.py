@@ -28,35 +28,67 @@ class WebServer:
             logger.info(f"Attempting to find channel {channel_id}")
             try:
                 channel = await self.bot.fetch_channel(int(channel_id))
+                if not channel:
+                    logger.error(f"Channel {channel_id} not found")
+                    return web.json_response({"error": "Channel not found"}, status=404)
                 logger.info(f"Found channel: {channel.name} ({channel.id})")
+            except ValueError:
+                logger.error(f"Invalid channel ID format: {channel_id}")
+                return web.json_response({"error": "Invalid channel ID format"}, status=400)
             except Exception as e:
-                logger.error(f"Failed to fetch channel {channel_id}: {str(e)}")
-                return web.json_response({"error": "Channel not found or bot doesn't have access"}, status=404)
+                logger.error(f"Failed to fetch channel {channel_id}: {str(e)}", exc_info=True)
+                return web.json_response(
+                    {"error": "Error accessing channel"},
+                    status=500
+                )
                 
-            # Send greeting message with survey start button
-            class StartSurveyButton(discord.ui.Button):
-                def __init__(self, user_id: str, channel_id: str):
-                    super().__init__(
-                        style=discord.ButtonStyle.success,
-                        label=Strings.START_SURVEY_BUTTON,
-                        custom_id=f"survey_start_{user_id}"
-                    )
-                    self.user_id = user_id
-                    self.channel_id = channel_id
-                    
-                async def callback(self, interaction: discord.Interaction):
-                    await interaction.response.defer()
-                    try:
-                        # Simply trigger survey start - let survey manager handle steps
-                        from bot.commands.survey import handle_start_daily_survey
-                        await handle_start_daily_survey(interaction.client, self.user_id, self.channel_id)
-                    except Exception as e:
-                        logger.error(f"Error starting survey: {e}")
-                        await interaction.followup.send(f"<@{self.user_id}> {Strings.SURVEY_START_ERROR}: {str(e)}")
+            # Verify we can send messages to this channel
+            try:
+                test_msg = await channel.send("Verifying channel access...")
+                await test_msg.delete()
+            except discord.Forbidden:
+                logger.error(f"Bot lacks permissions in channel {channel.id}")
+                return web.json_response(
+                    {"error": "Bot lacks required permissions in channel"},
+                    status=403
+                )
+            except Exception as e:
+                logger.error(f"Channel verification failed: {str(e)}")
+                return web.json_response(
+                    {"error": "Channel communication failed"},
+                    status=500
+                )
+                # Send greeting message with survey start button
+                class StartSurveyButton(discord.ui.Button):
+                    def __init__(self, user_id: str, channel_id: str):
+                        super().__init__(
+                            style=discord.ButtonStyle.success,
+                            label=Strings.START_SURVEY_BUTTON,
+                            custom_id=f"survey_start_{user_id}"
+                        )
+                        self.user_id = user_id
+                        self.channel_id = channel_id
+                        
+                    async def callback(self, interaction: discord.Interaction):
+                        await interaction.response.defer()
+                        try:
+                            # Simply trigger survey start - let survey manager handle steps
+                            from bot.commands.survey import handle_start_daily_survey
+                            await handle_start_daily_survey(interaction.client, self.user_id, self.channel_id)
+                        except Exception as e:
+                            logger.error(f"Error starting survey: {e}", exc_info=True)
+                            await interaction.followup.send(f"<@{self.user_id}> {Strings.SURVEY_START_ERROR}: {str(e)}")
 
-            view = discord.ui.View(timeout=None)
-            view.add_item(StartSurveyButton(user_id, str(channel_id)))
-            await channel.send(f"<@{user_id}> {Strings.SURVEY_GREETING}", view=view)
+                try:
+                    view = discord.ui.View(timeout=None)
+                    view.add_item(StartSurveyButton(user_id, str(channel_id)))
+                    await channel.send(f"<@{user_id}> {Strings.SURVEY_GREETING}", view=view)
+                except Exception as e:
+                    logger.error(f"Failed to send survey message: {str(e)}", exc_info=True)
+                    return web.json_response(
+                        {"error": "Failed to initialize survey"},
+                        status=500
+                    )
             
             return web.json_response({"status": "Greeting message sent"})
         
