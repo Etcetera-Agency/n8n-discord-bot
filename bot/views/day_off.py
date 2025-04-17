@@ -142,6 +142,13 @@ class ConfirmButton(discord.ui.Button):
                         
                 else:
                     # Regular slash command
+                    # Format dates for n8n (YYYY-MM-DD)
+                    dates = [
+                        view.get_date_for_day(day).strftime("%Y-%m-%d")
+                        for day in sorted(view.selected_days, key=lambda x: view.weekday_map[x])
+                        if view.get_date_for_day(day) is not None
+                    ]
+                    
                     success, data = await webhook_service.send_webhook(
                         interaction,
                         command=view.cmd_or_step,
@@ -308,10 +315,11 @@ class DayOffView(discord.ui.View):
         self.command_msg = None  # Reference to the command message
         self.buttons_msg = None  # Reference to the buttons message
 
-    def get_date_for_day(self, day: str) -> str:
-        """Get the date for a given weekday name."""
-        # Get current date and its weekday
-        current_date = datetime.datetime.now()
+    def get_date_for_day(self, day: str) -> datetime.datetime:
+        """Get the date for a given weekday name in Kyiv time (UTC+3)."""
+        # Get current date in Kyiv time
+        kyiv_tz = datetime.timezone(datetime.timedelta(hours=3))
+        current_date = datetime.datetime.now(kyiv_tz)
         current_weekday = current_date.weekday()
         
         # Calculate target date
@@ -328,8 +336,9 @@ class DayOffView(discord.ui.View):
                 # we shouldn't include it (this is a safety check)
                 return None
         
+        # Calculate target date in Kyiv time
         target_date = current_date + datetime.timedelta(days=days_ahead)
-        return target_date.strftime("%d.%m.%Y")
+        return target_date
 
 def create_day_off_view(
     cmd_or_step: str,
