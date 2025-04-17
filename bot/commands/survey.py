@@ -163,15 +163,25 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
 
 async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager.SurveyFlow', step_name: str) -> None:
     """
-    Ask a dynamic survey step.
+    Ask a dynamic survey step with robust validation.
     
     Args:
         channel: Discord text channel
         survey: Survey flow instance
         step_name: Step name
     """
+    # Validate inputs
+    if not channel or not survey or not step_name:
+        logger.error(f"Invalid ask_dynamic_step params - channel: {channel}, survey: {survey}, step: {step_name}")
+        return
+
     user_id = survey.user_id
     logger.info(f"Asking step {step_name} for user {user_id} in channel {channel.id}")
+
+    # Validate survey state
+    if not survey.user_id or not survey.channel_id:
+        logger.error(f"Invalid survey state - user_id: {survey.user_id}, channel_id: {survey.channel_id}")
+        return
     
     try:
         # Create new message for each step
@@ -343,73 +353,44 @@ async def finish_survey(channel: discord.TextChannel, survey: 'survey_manager.Su
         channel: Discord text channel
         survey: Survey flow instance
     """
-    if survey.is_done():
-        try:
-            # Create validated interaction object
-            class ValidInteraction:
-                def __init__(self, channel, user_id):
-                    if not channel or not user_id:
-                        raise ValueError("Missing channel or user_id")
-                    self.channel = channel
-                    self.user = discord.Object(id=int(user_id))
-                    self.author = self.user
-                    self.id = str(user_id)
-                    self.response = type('Response', (), {
-                        'is_done': lambda: False,
-                        'defer': lambda *args, **kwargs: None
-                    })
-                    self.client = type('Client', (), {
-                        'user': discord.Object(id=0)
-                    })
-                    self.response = type('Response', (), {
-                        'is_done': lambda: False,
-                        'defer': lambda *args, **kwargs: None,
-                        'send_message': lambda *args, **kwargs: None,
-                        'followup': type('Followup', (), {
-                            'send': lambda *args, **kwargs: None
-                        })
-                    })
-                    self.client = type('Client', (), {
-                        'user': discord.Object(id=0),
-                        'get_user': lambda id: discord.Object(id=id)
-                    })
-                    self.message = None
-                    self.id = str(user_id)  # Required for interaction id
+    if not survey.is_done():
+        return
+        
+    try:
+        # Validate completion data
+        if not survey or not survey.user_id or not survey.channel_id:
+            raise ValueError("Invalid survey completion data")
             
-            dummy_interaction = DummyInteraction(channel, survey.user_id)
-            try:
-                # Validate completion data
-                if not survey or not survey.user_id or not survey.channel_id:
-                    raise ValueError("Invalid survey completion data")
-                    
-                completion_data = {
-                    "final": survey.results,
-                    "userId": str(survey.user_id),
-                    "channelId": str(survey.channel_id),
-                    "sessionId": str(getattr(survey, 'session_id', ''))
-                }
-                
-                # Send completion webhook
-                success, response = await webhook_service.send_webhook(
-                    interaction=dummy_interaction,
-                    command="survey",
-                    status="complete",
-                    result=completion_data
-                )
-                
-                if not success:
-                    raise Exception(f"Completion webhook failed: {response}")
-                    
-            except Exception as e:
-                logger.error(f"Completion webhook error: {str(e)}")
-                try:
-                    await channel.send(
-                        f"<@{survey.user_id}> Помилка при завершенні: {str(e)}"
-                    )
-                except Exception as send_error:
-                    logger.error(f"Failed to send completion error: {send_error}")
-            logger.info(f"Survey completed for user {survey.user_id} with results: {survey.results}")
-        except Exception as e:
-            logger.error(f"Error sending survey completion webhook: {e}")
-    
-    survey_manager.remove_survey(survey.channel_id)  # Now removing by channel_id
+        payload = {
+            "command": "survey",
+            "status": "complete",
+            "result": {
+                "final": survey.results,
+                "userId": str(survey.user_id),
+                "channelId": str(survey.channel_id),
+                "sessionId": str(getattr(survey, 'session_id', ''))
+            }
+        }
+        
+        # Send completion webhook directly
+        success, response = await webhook_service.send_webhook_with_retry(
+            channel,
+            payload,
+            {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
+        )
+
+        if not success:
+            raise Exception(f"Completion webhook failed: {response}")
+            
+        logger.info(f"Survey completed for user {survey.user_id} with results: {survey.results}")
+        
+    except Exception as e:
+        logger.error(f"Error completing survey: {str(e)}")
+        try:
+            await channel.send(
+                f"<@{survey.user_id}> Помилка при завершенні: {str(e)}"
+            )
+        except Exception as send_error:
+            logger.error(f"Failed to send completion error: {send_error}")
+    finally:
+        survey_manager.remove_survey(survey.channel_id)

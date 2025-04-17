@@ -17,18 +17,38 @@ class WorkloadButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         """Handle button press with complete validation"""
         # Detailed interaction validation
-        if interaction is None:
+        if not interaction:
             logger.error("Null interaction received in callback")
             return
             
-        missing_attrs = [attr for attr in ['response', 'user', 'channel', 'client']
+        required_attrs = ['response', 'user', 'channel', 'client']
+        missing_attrs = [attr for attr in required_attrs
                         if not hasattr(interaction, attr)]
                         
         if missing_attrs:
-            logger.error(f"Interaction missing attributes: {missing_attrs}")
+            logger.error(f"Invalid interaction - missing: {missing_attrs}")
             return
             
-        logger.debug(f"Processing interaction from {interaction.user.id}")
+        try:
+            # Validate view and survey state
+            if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView):
+                logger.error("Invalid view in button callback")
+                return
+                
+            view = self.view
+            if not hasattr(view, 'user_id') or not view.user_id:
+                logger.error("Invalid view - missing user_id")
+                return
+
+            # Defer response to prevent timeout
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=False)
+
+            logger.info(f"Processing workload selection for user {view.user_id}")
+            
+        except Exception as e:
+            logger.error(f"Error in WorkloadButton callback: {str(e)}")
+            return
             
         try:
             # Ensure we have a valid view
