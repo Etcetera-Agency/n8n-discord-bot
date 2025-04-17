@@ -262,9 +262,10 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
                 }
             )
         else:
-            logger.warning(f"Unknown step type: {step_name} for user {user_id} - skipping automatically")
-            survey.next_step()
-            await continue_survey(channel, survey)
+            logger.warning(f"Invalid step type: {step_name} for user {user_id}")
+            # Don't auto-advance for unknown steps
+            await channel.send(f"<@{user_id}> Invalid survey step configuration")
+            await finish_survey(channel, survey)
     except Exception as e:
         logger.error(f"Error in ask_dynamic_step for step {step_name}: {e}")
         await channel.send(f"<@{user_id}> {Strings.STEP_ERROR}: {str(e)}")
