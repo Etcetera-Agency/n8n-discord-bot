@@ -224,14 +224,26 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             
             logger.info(f"Sent workload question for step {step_name}, initial message ID: {initial_msg.id}, buttons message ID: {buttons_msg.id}")
             
-            # Send webhook without view
-            await webhook_service.send_webhook(
-                channel,
-                command=step_name,
-                status="step",
-                result={},
-                user_id=survey.user_id
-            )
+            # Send webhook with empty result to notify step started
+            # The actual result will be sent when button is pressed in the view
+            try:
+                if isinstance(channel, discord.TextChannel):
+                    # Create a dummy interaction to pass to webhook service
+                    class DummyInteraction:
+                        def __init__(self, channel, user_id):
+                            self.channel = channel
+                            self.user = discord.Object(id=int(user_id))
+                            self.response = type('Response', (), {'is_done': lambda: False})
+                    
+                    dummy_interaction = DummyInteraction(channel, survey.user_id)
+                    await webhook_service.send_webhook(
+                        dummy_interaction,
+                        command=step_name,
+                        status="step",
+                        result={}
+                    )
+            except Exception as e:
+                logger.error(f"Error sending initial step webhook: {e}")
             
             # Delete buttons message after choice
             if survey.buttons_message:
@@ -302,7 +314,10 @@ async def continue_survey(channel: discord.TextChannel, survey: 'survey_manager.
             
     except Exception as e:
         logger.error(f"Error continuing survey: {e}")
-        await channel.send(f"<@{survey.user_id}> Помилка при переході між кроками: {str(e)}")
+        try:
+            await channel.send(f"<@{survey.user_id}> Помилка при переході між кроками: {str(e)}")
+        except Exception as e2:
+            logger.error(f"Error sending error message to channel: {e2}")
 
 
 async def finish_survey(channel: discord.TextChannel, survey: 'survey_manager.SurveyFlow') -> None:
@@ -314,12 +329,23 @@ async def finish_survey(channel: discord.TextChannel, survey: 'survey_manager.Su
         survey: Survey flow instance
     """
     if survey.is_done():
-        await webhook_service.send_webhook(
-            channel,
-            command="survey",
-            status="complete",
-            result={"final": survey.results}
-        )
-        logger.info(f"Survey completed for user {survey.user_id} with results: {survey.results}")
+        try:
+            # Create a dummy interaction to pass to webhook service
+            class DummyInteraction:
+                def __init__(self, channel, user_id):
+                    self.channel = channel
+                    self.user = discord.Object(id=int(user_id))
+                    self.response = type('Response', (), {'is_done': lambda: False})
+            
+            dummy_interaction = DummyInteraction(channel, survey.user_id)
+            await webhook_service.send_webhook(
+                dummy_interaction,
+                command="survey",
+                status="complete",
+                result={"final": survey.results}
+            )
+            logger.info(f"Survey completed for user {survey.user_id} with results: {survey.results}")
+        except Exception as e:
+            logger.error(f"Error sending survey completion webhook: {e}")
     
     survey_manager.remove_survey(survey.channel_id)  # Now removing by channel_id
