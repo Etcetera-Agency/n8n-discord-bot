@@ -171,7 +171,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             elif step_name == "connects_thisweek":
                 text_q = f"<@{user_id}> Скільки CONNECTS Upwork Connects History показує ЦЬОГО тижня?\n\nВведіть кількість коннектів що ви бачите на [Upwork Connects History](https://www.upwork.com/nx/plans/connects/history/)"
                 logger.info(f"Creating text input for connects_thisweek step")
-                await initial_msg.edit(content=text_q)
+                initial_msg = await channel.send(text_q)
 
                 class ConnectsModal(discord.ui.Modal):
                     def __init__(self, survey, step_name):
@@ -310,10 +310,9 @@ async def finish_survey(channel: discord.TextChannel, survey: 'survey_manager.Su
     """
     if survey.is_done():
         await webhook_service.send_webhook(
-            source_context=channel,
+            channel,
             command="survey",
-            user_id=survey.user_id,
-            channel_id=survey.channel_id,
+            status="complete",
             result={"final": survey.results}
         )
         logger.info(f"Survey completed for user {survey.user_id} with results: {survey.results}")
