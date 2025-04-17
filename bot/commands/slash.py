@@ -50,7 +50,7 @@ class SlashCommands:
                 
             if success and data and "output" in data:
                 if message:
-                    await message.add_reaction("✅")
+                    pass
                 return data["output"]
             else:
                 error_msg = f"Помилка: Не вдалося виконати команду."
@@ -206,7 +206,6 @@ class SlashCommands:
                 if success and data and "output" in data:
                     if message:
                         # Add success reaction before deleting
-                        await message.add_reaction("✅")
                         await asyncio.sleep(1)
                         await message.delete()
                     await interaction.followup.send(data["output"])
@@ -339,8 +338,7 @@ class SlashCommands:
                 
                 if success and data and "output" in data:
                     if message:
-                        # Add success reaction
-                        await message.add_reaction("✅")
+                        pass
                     await interaction.followup.send(data["output"])
                 else:
                     error_msg = f"Ваш запит: Connects на цей тиждень = {connects}\nПомилка: Не вдалося виконати команду."

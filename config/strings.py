@@ -34,5 +34,4 @@ class Strings:
 
     # Success/Processing
     PROCESSING = "⏳"
-    SUCCESS = "✅"
     ERROR = "❌"

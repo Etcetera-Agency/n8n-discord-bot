@@ -83,7 +83,6 @@ class WorkloadButton(discord.ui.Button):
                     if view.command_msg:
                         await view.command_msg.remove_reaction("⏳", interaction.client.user)
                         await view.command_msg.edit(content=f"Дякую! Навантаження: {value} годин записано.")
-                        await view.command_msg.add_reaction("✅")
                         logger.info(f"Updated command message with success")
                     
                     # Delete buttons message
@@ -111,7 +110,6 @@ class WorkloadButton(discord.ui.Button):
                         if view.command_msg:
                             await view.command_msg.remove_reaction("⏳", interaction.client.user)
                             await view.command_msg.edit(content=data["output"])
-                            await view.command_msg.add_reaction("✅")
                             logger.info(f"Updated command message with success: {data['output']}")
                         
                         # Delete buttons message

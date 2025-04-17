@@ -303,8 +303,6 @@ class WebhookService:
             # If webhook was successful and we got output, delete the original message
             if success and data and "output" in data:
                 # Add success reaction before deleting
-                await response_message.add_reaction("✅")  # Show success
-                await asyncio.sleep(1)  # Give a moment to see the success reaction
                 await response_message.delete()
                 await interaction.followup.send(data["output"])
             elif not success:
