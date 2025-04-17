@@ -63,7 +63,15 @@ class WorkloadButton(discord.ui.Button):
             
             try:
                 # Set value based on button label and convert to integer
-                value = 0 if self.label == "Нічого немає" else int(self.label)
+                # Handle "Нічого немає" button specifically
+                if self.label == "Нічого немає":
+                    if not interaction or not interaction.channel:
+                        logger.error("Missing interaction data for Нічого немає button")
+                        return
+                    value = 0
+                    logger.info(f"Нічого немає selected in channel {interaction.channel.id}")
+                else:
+                    value = int(self.label)
                 logger.info(f"Parsed value: {value} from label: {self.label}")
                 
                 if view.has_survey:

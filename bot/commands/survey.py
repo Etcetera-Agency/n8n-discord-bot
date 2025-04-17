@@ -240,8 +240,13 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             
             # Send follow-up message with buttons
             buttons_msg = await channel.send("Оберіть кількість годин:", view=view)
-            view.buttons_msg = buttons_msg
-            survey.buttons_message = buttons_msg
+            if buttons_msg:
+                view.buttons_msg = buttons_msg
+                survey.buttons_message = buttons_msg
+                logger.info(f"Created buttons message with ID: {buttons_msg.id}")
+            else:
+                logger.error("Failed to create buttons message")
+                return
             
             logger.info(f"Sent workload question for step {step_name}, initial message ID: {initial_msg.id}, buttons message ID: {buttons_msg.id}")
             
