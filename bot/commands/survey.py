@@ -213,8 +213,11 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             question_msg = await channel.send(text_q)
             await question_msg.add_reaction("📝")  # Add pencil emoji reaction
             
-            # Create view with question message reference
+            # Create and validate view
             view = create_view("workload", step_name, user_id, ViewType.DYNAMIC, has_survey=True)
+            if not view:
+                logger.error("Failed to create workload view")
+                return
             view.command_msg = question_msg
             
             # Send follow-up message with buttons

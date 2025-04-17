@@ -15,12 +15,24 @@ class WorkloadButton(discord.ui.Button):
         self.cmd_or_step = cmd_or_step
         
     async def callback(self, interaction: discord.Interaction):
+        # Comprehensive interaction validation
+        if (not interaction or
+            not isinstance(interaction, discord.Interaction) or
+            not hasattr(interaction, 'response') or
+            not hasattr(interaction, 'user')):
+            logger.error(f"Invalid interaction object: {type(interaction)}")
+            return
+            
         from services import webhook_service
         view = self.view
         if isinstance(view, WorkloadView):
             # First, acknowledge the interaction to prevent timeout
-            if not interaction.response.is_done():
-                await interaction.response.defer(ephemeral=False)
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.defer(ephemeral=False)
+            except Exception as e:
+                logger.error(f"Interaction response error: {e}")
+                return
             
             logger.info(f"Workload button clicked: {self.label} by user {view.user_id} for step {view.cmd_or_step}")
             
