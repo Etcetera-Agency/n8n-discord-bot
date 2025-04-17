@@ -53,7 +53,7 @@ class WebServer:
                     await interaction.response.defer()
                     try:
                         from bot.commands.survey import handle_start_daily_survey
-                        await handle_start_daily_survey(interaction.client, self.user_id, self.channel_id)
+                        await handle_start_daily_survey(interaction.client, self.user_id, self.channel_id, steps=[])
                     except Exception as e:
                         logger.error(f"Survey start error: {str(e)}")
                         await interaction.followup.send(f"<@{self.user_id}> {Strings.SURVEY_START_ERROR}")

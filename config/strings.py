@@ -43,7 +43,7 @@ class Strings:
     CONNECTS_INPUT_PROMPT = "Введіть кількість коннектів що ви бачите на [Upwork Connects History](https://www.upwork.com/nx/plans/connects/history/)"
     DAY_OFF_QUESTION = "Які дні вихідних на наступний тиждень?"
     STEP_ERROR = "Помилка при запуску кроку"
-    START_SURVEY_BUTTON = "Почати опитування"
+    START_SURVEY_BUTTON = "Гайда"
     SURVEY_COMPLETE_MESSAGE = "Схоже всі данні вже занесені"
     SURVEY_START_PROMPT = "Натисніть кнопку, щоб почати опитування:"
     SURVEY_START_ERROR = "Помилка при запуску опитування"
