@@ -166,14 +166,14 @@ class WebhookService:
             Tuple of (success, response_data)
         """
         # Determine if we're dealing with a Context or Interaction
-        is_interaction = isinstance(ctx_or_interaction, discord.Interaction)
+        is_interaction = isinstance(target, discord.Interaction)
         
         if is_interaction:
-            user = ctx_or_interaction.user
-            channel = ctx_or_interaction.channel
+            user = target.user
+            channel = target.channel
         else:
-            user = ctx_or_interaction.author
-            channel = ctx_or_interaction.channel
+            user = target.author
+            channel = target.channel
             
         # Build the payload using the unified builder
         payload = self.build_payload(
@@ -193,7 +193,7 @@ class WebhookService:
             headers.update(extra_headers)
             
         # Send webhook and get response
-        success, data = await self.send_webhook_with_retry(ctx_or_interaction, payload, headers)
+        success, data = await self.send_webhook_with_retry(target, payload, headers)
         
         # Check if n8n wants to continue the survey
         if success and data and "survey" in data and data["survey"] == "continue":
