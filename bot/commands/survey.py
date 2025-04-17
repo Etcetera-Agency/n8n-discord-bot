@@ -121,9 +121,16 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
             await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
             return
 
-        # Create survey and start immediately
-        survey = survey_manager.create_survey(user_id, channel_id, steps)  # Let SurveyManager handle session_id internally
-        logger.info(f"Created survey for channel {channel_id} with steps: {steps}")
+        # Filter out unexpected steps silently
+        expected_steps = ["workload_today", "workload_nextweek", "connects", "dayoff_nextweek"]
+        valid_steps = [step for step in steps if step in expected_steps]
+        
+        if not valid_steps:
+            logger.warning(f"No valid steps for user {user_id}")
+            return
+
+        survey = survey_manager.create_survey(user_id, channel_id, valid_steps)
+        logger.info(f"Created survey with filtered steps: {valid_steps}")
 
         # Start first step or show completion
         step = survey.current_step()
