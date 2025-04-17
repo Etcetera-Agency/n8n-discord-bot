@@ -32,7 +32,7 @@ async def handle_survey_incomplete(user_id: str) -> None:
     survey_manager.remove_survey(user_id)
     logger.info(f"Survey for user {user_id} timed out with incomplete steps: {incomplete}")
 
-async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, channel_id: str, steps: List[str]) -> None:
+async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, channel_id: str, session_id: str, steps: List[str]) -> None:
     """
     Start a daily survey for a user.
 
@@ -119,7 +119,7 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
             return
 
         # Create survey and start immediately
-        survey = survey_manager.create_survey(channel_id, steps, user_id)  # Channel-bound with optional user_id
+        survey = survey_manager.create_survey(channel_id, steps, user_id, session_id)  # Use combined session ID
         logger.info(f"Created survey for channel {channel_id} with steps: {steps}")
 
         # Start first step or show completion
@@ -307,8 +307,10 @@ async def finish_survey(channel: discord.TextChannel, survey: 'survey_manager.Su
     """
     if survey.is_done():
         await webhook_service.send_webhook(
-            channel,
+            source_context=channel,
             command="survey",
+            user_id=survey.user_id,
+            channel_id=survey.channel_id,
             result={"final": survey.results}
         )
         logger.info(f"Survey completed for user {survey.user_id} with results: {survey.results}")

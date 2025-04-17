@@ -41,19 +41,29 @@ class WebServer:
 
             class StartSurveyButton(discord.ui.Button):
                 def __init__(self, user_id: str, channel_id: str):
+                    # Encode both IDs in the custom ID using a separator
                     super().__init__(
                         style=discord.ButtonStyle.success,
                         label=Strings.START_SURVEY_BUTTON,
-                        custom_id=f"survey_start_{user_id}"
+                        custom_id=f"survey_start_{channel_id}_{user_id}"  # Changed format
                     )
                     self.user_id = user_id
                     self.channel_id = channel_id
+                    # Create session ID that combines both values
+                    self.session_id = f"{channel_id}_{user_id}"
                     
                 async def callback(self, interaction: discord.Interaction):
                     await interaction.response.defer()
                     try:
                         from bot.commands.survey import handle_start_daily_survey
-                        await handle_start_daily_survey(interaction.client, self.user_id, self.channel_id, steps=[])
+                        # Pass both IDs explicitly
+                        await handle_start_daily_survey(
+                            interaction.client,
+                            user_id=self.user_id,
+                            channel_id=self.channel_id,
+                            session_id=self.session_id,  # Pass combined session ID
+                            steps=[]
+                        )
                     except Exception as e:
                         logger.error(f"Survey start error: {str(e)}")
                         await interaction.followup.send(f"<@{self.user_id}> {Strings.SURVEY_START_ERROR}")
