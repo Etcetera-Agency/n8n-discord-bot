@@ -203,9 +203,11 @@ class WorkloadButton(discord.ui.Button):
                 logger.error(f"Error in workload button: {e}")
                 if view.command_msg:
                     await view.command_msg.remove_reaction("⏳", interaction.client.user)
-                    error_msg = f"Ваш запит: Навантаження = {self.label}\nПомилка: Сталася неочікувана помилка."
+                    from config import Strings
+                    value = 0 if self.label == "Нічого немає" else self.label
+                    error_msg = f"Ваш запит: Навантаження = {value}\n{Strings.UNEXPECTED_ERROR}"
                     await view.command_msg.edit(content=error_msg)
-                    await view.command_msg.add_reaction("❌")
+                    await view.command_msg.add_reaction(Strings.ERROR)
                 if view.buttons_msg:
                     await view.buttons_msg.delete()
 

@@ -101,40 +101,43 @@ class WebhookService:
         
         Args:
             command: Command name
-            user_id: User ID (optional)
-            channel_id: Channel ID (optional)
-            channel: Discord channel object (optional)
-            user: Discord user object (optional)
+            user_id: User ID (required)
+            channel_id: Channel ID (required)
             status: Status string (default: "ok")
             message: Message string (default: "")
             result: Result dictionary (optional)
             is_system: Whether this is a system call (default: False)
             
         Returns:
-            Dict containing the webhook payload
+            Dict containing the webhook payload with required structure:
+            {
+                "command": "...",
+                "status": "...",
+                "message": "...",
+                "result": { ... },  # Direct result content
+                "userId": "...",    # Required
+                "channelId": "...", # Required
+                "sessionId": "..."  # Required (channelId_userId)
+            }
         """
         if result is None:
             result = {}
             
-        # Validate required IDs
         if not user_id or not channel_id:
             raise ValueError("Both user_id and channel_id are required")
             
         # Generate session ID from channel+user IDs
         session_id = f"{channel_id}_{user_id}"
             
-        # Build the payload (keep same structure for n8n)
+        # Build the payload with required structure
         payload = {
             "command": command,
             "status": status,
             "message": message,
             "result": result,
-            "author": "system" if is_system else (str(user) if user else "unknown"),
-            "userId": user_id if user_id else "system",
-            "sessionId": session_id,
-            "channelId": channel_id if channel_id else "",
-            "channelName": getattr(channel, 'name', 'DM') if channel else "",
-            "timestamp": int(asyncio.get_event_loop().time())
+            "userId": user_id,
+            "channelId": channel_id,
+            "sessionId": session_id
         }
         
         return payload

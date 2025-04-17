@@ -245,6 +245,8 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
                 modal = ConnectsModal(survey, step_name)
                 await channel.send_modal(modal)
                 logger.info(f"Sent modal for step {step_name}")
+                # COMPLETELY STOP HERE - Modal will handle continuation after submission
+                return
             else:
                 text_q = f"<@{user_id}> Будь ласка, оберіть кількість годин:"
                 
@@ -270,13 +272,17 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
                 logger.error("Failed to create buttons message")
                 return
             
-            logger.info(f"Sent workload question for step {step_name}, initial message ID: {initial_msg.id}, buttons message ID: {buttons_msg.id}")
+            # Only log message IDs if messages exist
+            initial_id = initial_msg.id if initial_msg else "None"
+            buttons_id = buttons_msg.id if buttons_msg else "None"
+            logger.info(f"Sent workload question for step {step_name}, initial message ID: {initial_id}, buttons message ID: {buttons_id}")
             
             # Just display buttons and wait for user input
             # Webhook will be sent by WorkloadView after button press
             logger.info(f"Displayed buttons for step {step_name}, waiting for user input")
             
-            # Don't delete buttons message here - let the WorkloadView handle it after button press
+            # COMPLETELY STOP HERE - WorkloadView will handle continuation after button press
+            return
         elif step_name == "day_off_nextweek":
             text_q = f"<@{user_id}> Які дні вихідних на наступний тиждень?"
             
@@ -295,31 +301,27 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
             
             logger.info(f"Sent day_off question for step {step_name}, initial message ID: {initial_msg.id}, buttons message ID: {buttons_msg.id}")
             
-            # Send simplified webhook with all required data
-            await webhook_service.send_webhook(
-                channel,
-                command=step_name,
-                status="step",
-                result={
-                    "userId": str(survey.user_id),
-                    "channelId": str(channel.id),
-                    "stepName": step_name
-                }
-            )
+            # COMPLETELY STOP HERE - DayOffView will handle continuation after button press
+            return
         else:
             logger.warning(f"Invalid step type: {step_name} for user {user_id}")
-            # Don't auto-advance for unknown steps
             await channel.send(f"<@{user_id}> Invalid survey step configuration")
-            await finish_survey(channel, survey)
+            # Don't auto-advance or finish - let user restart survey
+            return
     except Exception as e:
         logger.error(f"Error in ask_dynamic_step for step {step_name}: {str(e)}", exc_info=True)
-        await channel.send(f"<@{user_id}> {Strings.STEP_ERROR}: {str(e)}")
-        # Try to continue with the next step
         try:
-            survey.next_step()
-            await continue_survey(channel, survey)
-        except Exception as e2:
-            logger.error(f"Error continuing survey after step failure: {e2}")
+            await channel.send(f"<@{user_id}> {Strings.STEP_ERROR}: {str(e)}")
+        except Exception as send_error:
+            logger.error(f"Failed to send error message: {send_error}")
+        
+        # Only continue survey if it was a recoverable error
+        if not isinstance(e, (AttributeError, ValueError)):
+            try:
+                survey.next_step()
+                await continue_survey(channel, survey)
+            except Exception as e2:
+                logger.error(f"Error continuing survey after step failure: {e2}")
 
 async def continue_survey(channel: discord.TextChannel, survey: 'survey_manager.SurveyFlow') -> None:
     """
@@ -364,12 +366,10 @@ async def finish_survey(channel: discord.TextChannel, survey: 'survey_manager.Su
         payload = {
             "command": "survey",
             "status": "complete",
-            "result": {
-                "final": survey.results,
-                "userId": str(survey.user_id),
-                "channelId": str(survey.channel_id),
-                "sessionId": str(getattr(survey, 'session_id', ''))
-            }
+            "result": survey.results,
+            "userId": str(survey.user_id),
+            "channelId": str(survey.channel_id),
+            "sessionId": str(getattr(survey, 'session_id', ''))
         }
         
         # Send completion webhook directly
