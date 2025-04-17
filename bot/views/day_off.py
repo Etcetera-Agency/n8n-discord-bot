@@ -47,7 +47,6 @@ class DayOffButton(discord.ui.Button):
             # Show success reaction for survey steps
             if message:
                 await message.remove_reaction("⏳", interaction.client.user)
-                await message.add_reaction("✅")
                 
         except Exception as e:
             logger.error(f"Error in day off button: {e}")
@@ -128,7 +127,6 @@ class ConfirmButton(discord.ui.Button):
                     if view.command_msg:
                         await view.command_msg.remove_reaction("⏳", interaction.client.user)
                         await view.command_msg.edit(content=f"Дякую! Вихідні: {', '.join(dates)} записані.")
-                        await view.command_msg.add_reaction("✅")
                     
                     # Delete buttons message
                     if view.buttons_msg:
@@ -156,7 +154,6 @@ class ConfirmButton(discord.ui.Button):
                         if view.command_msg:
                             await view.command_msg.remove_reaction("⏳", interaction.client.user)
                             await view.command_msg.edit(content=data["output"])
-                            await view.command_msg.add_reaction("✅")
                         
                         # Delete buttons message
                         if view.buttons_msg:
@@ -244,7 +241,6 @@ class DeclineButton(discord.ui.Button):
                     if view.command_msg:
                         await view.command_msg.remove_reaction("⏳", interaction.client.user)
                         await view.command_msg.edit(content="Дякую! Не плануєш вихідні.")
-                        await view.command_msg.add_reaction("✅")
                     
                     # Delete buttons message
                     if view.buttons_msg:
@@ -272,7 +268,6 @@ class DeclineButton(discord.ui.Button):
                         if view.command_msg:
                             await view.command_msg.remove_reaction("⏳", interaction.client.user)
                             await view.command_msg.edit(content=data["output"])
-                            await view.command_msg.add_reaction("✅")
                         
                         # Delete buttons message
                         if view.buttons_msg:
