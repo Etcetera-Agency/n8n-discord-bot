@@ -116,6 +116,7 @@ def create_view(
 ) -> Union[discord.ui.View, discord.ui.Modal]:
     """
     Factory function to create the appropriate view type.
+    """
     
     # Survey view handling (button-based implementation)
     if view_name == "survey":
