@@ -5,6 +5,7 @@ from config import ViewType, logger, Strings, Config, constants # Added constant
 from services import survey_manager, webhook_service
 from services.survey import SurveyFlow # Added import
 # Removed factory import
+from bot.views.workload import create_workload_view # Added import
 
 # ==================================
 # Survey-Specific Modals
@@ -457,25 +458,54 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 await interaction.response.send_message(Strings.SURVEY_NOT_FOR_YOU, ephemeral=True)
                 return
 
-            # Identify the correct modal based on step_name
-            modal_to_send: Optional[discord.ui.Modal] = None
-            if step_name == "workload_today" or step_name == "workload_nextweek":
-                modal_to_send = WorkloadModal(survey=survey, step_name=step_name)
+            # Identify the correct view or modal based on step_name
+            if step_name in ["workload_today", "workload_nextweek"]:
+                logger.info(f"Button callback for workload survey step: {step_name}. Sending button view.")
+                # Create and send the multi-button workload view
+                workload_view = create_workload_view(step_name, str(interaction.user.id), has_survey=True)
+                # Need to store message references on the view for the callback to use
+                workload_view.command_msg = survey.current_question_message_id # Pass the ID of the initial question message
+                workload_view.buttons_msg = None # This view *is* the buttons message, will be set after sending
+
+                # Send the workload button view
+                # Since the initial interaction was deferred in ask_dynamic_step, use followup.send
+                buttons_msg = await interaction.followup.send(
+                    "Оберіть кількість годин:", # Or appropriate string
+                    view=workload_view,
+                    ephemeral=False # Make the button message visible to others
+                )
+                workload_view.buttons_msg = buttons_msg # Store the message object
+
+                # Clean up the original single button message
+                if survey.current_question_message_id:
+                    try:
+                        original_msg = await interaction.channel.fetch_message(survey.current_question_message_id)
+                        await original_msg.delete()
+                        survey.current_question_message_id = None # Clear ID after deletion
+                    except discord.NotFound:
+                        logger.warning(f"Original survey question message {survey.current_question_message_id} not found for deletion after sending workload view.")
+                        survey.current_question_message_id = None
+                    except discord.Forbidden:
+                        logger.error(f"Bot lacks permissions to delete original survey question message {survey.current_question_message_id}")
+                        survey.current_question_message_id = None
+                    except Exception as e_cleanup:
+                        logger.error(f"Error deleting original survey question message: {e_cleanup}")
+                        survey.current_question_message_id = None
+
             elif step_name == "connects":
+                logger.info(f"Button callback for connects survey step: {step_name}. Sending modal.")
                 modal_to_send = ConnectsModal(survey=survey, step_name=step_name)
+                await interaction.response.send_modal(modal_to_send)
+
             elif step_name == "dayoff_nextweek":
+                logger.info(f"Button callback for dayoff_nextweek survey step: {step_name}. Sending modal.")
                 modal_to_send = DayOffModal(survey=survey, step_name=step_name)
+                await interaction.response.send_modal(modal_to_send)
+
             else:
                 logger.error(f"Button callback triggered for unknown survey step: {step_name}")
                 await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=True)
                 return
-
-            # Send the identified modal
-            if modal_to_send:
-                await interaction.response.send_modal(modal_to_send)
-            else: # Should not happen
-                 logger.error(f"Modal object is None for step '{step_name}' in button callback.")
-                 await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=True)
 
         # Assign callback and create view
         button.callback = button_callback

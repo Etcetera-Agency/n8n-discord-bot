@@ -1,7 +1,7 @@
 import discord
 from typing import Optional
-from config import logger, Strings # Added Strings
-from services import webhook_service # Added webhook_service
+from config import logger, Strings, constants # Added Strings, constants
+from services import webhook_service, survey_manager # Added webhook_service, survey_manager
 
 class WorkloadView(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
@@ -22,73 +22,217 @@ class WorkloadButton(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        # Ensure interaction is deferred to prevent timeout
-        if not interaction.response.is_done():
-            await interaction.response.defer(ephemeral=False) # Defer publicly initially
+        """Handle button press with complete validation"""
+        # Detailed interaction validation
+        if not interaction:
+            logger.error("Null interaction received in callback")
+            return
 
-        logger.info(f"Workload button '{self.label}' clicked by {interaction.user} for command '{self.view.cmd_or_step}'")
+        required_attrs = ['response', 'user', 'channel', 'client']
+        missing_attrs = [attr for attr in required_attrs
+                        if not hasattr(interaction, attr)]
 
-        # Get original interaction message if possible (for editing later)
-        original_message = None
-        try:
-            if interaction.message: # Button clicks have the message attached
-                 original_message = interaction.message
-            elif hasattr(self.view, 'buttons_msg'): # Fallback if stored on view
-                 original_message = self.view.buttons_msg
-        except Exception as e:
-            logger.warning(f"Could not get original message for workload button: {e}")
+        if missing_attrs:
+            logger.error(f"Invalid interaction - missing: {missing_attrs}")
+            return
 
         try:
-            # Add processing indicator
-            if original_message:
-                await original_message.edit(view=None, content=f"{original_message.content}\n⏳ Обробка...") # Remove buttons and show processing
+            # Validate view and survey state
+            if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView):
+                logger.error("Invalid view in button callback")
+                return
 
-            # Send data via webhook
-            success, data = await webhook_service.send_webhook(
-                interaction,
-                command=self.view.cmd_or_step, # e.g., "workload_today"
-                status="ok",
-                result={self.view.cmd_or_step: self.label} # Send selected hour
-            )
+            view = self.view
+            if not hasattr(view, 'user_id') or not view.user_id:
+                logger.error("Invalid view - missing user_id")
+                return
 
-            # Process webhook response
-            if success and data and "output" in data:
-                response_content = data["output"]
-                logger.info(f"Workload webhook successful for {interaction.user}. Response: {response_content}")
-                if original_message:
-                    await original_message.edit(content=response_content) # Update original message with final response
-                else: # Fallback if original message couldn't be edited
-                    await interaction.followup.send(response_content, ephemeral=False)
-            else:
-                error_msg = Strings.WEBHOOK_ERROR # Use generic error string
-                logger.error(f"Workload webhook failed for {interaction.user}. Success: {success}, Data: {data}")
-                if original_message:
-                    await original_message.edit(content=f"{original_message.content.replace('⏳ Обробка...', '')}\n❌ {error_msg}")
-                else:
-                    await interaction.followup.send(f"❌ {error_msg}", ephemeral=True) # Send error ephemerally if no message to edit
+            # Defer response to prevent timeout
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=False)
+
+            logger.info(f"Processing workload selection for user {view.user_id}")
 
         except Exception as e:
-            logger.error(f"Error in WorkloadButton callback: {e}", exc_info=True)
-            error_msg = Strings.GENERAL_ERROR
+            logger.error(f"Error in WorkloadButton callback: {str(e)}")
+            return
+
+        try:
+            # Ensure we have a valid view
+            if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView):
+                return
+
+            view = self.view
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=False)
+
+        except Exception as e:
+            logger.error(f"Interaction handling failed: {e}")
+            return
+
+        if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView):
+            logger.error(f"Invalid view in callback: {getattr(self, 'view', None)}")
+            return
+
+        view = self.view
+        logger.info(f"Processing WorkloadView callback - view user: {view.user_id}, interaction user: {interaction.user.id}")
+
+        if isinstance(view, WorkloadView):
+            # First, acknowledge the interaction to prevent timeout
             try:
-                if original_message:
-                     await original_message.edit(content=f"{original_message.content.replace('⏳ Обробка...', '')}\n❌ {error_msg}")
-                elif interaction.followup:
-                    await interaction.followup.send(f"❌ {error_msg}", ephemeral=True)
-            except Exception as e_resp:
-                 logger.error(f"Failed to send error response in workload callback: {e_resp}")
+                if not interaction.response.is_done():
+                    await interaction.response.defer(ephemeral=False)
+            except Exception as e:
+                logger.error(f"Interaction response error: {e}")
+                return
+
+            logger.info(f"Workload button clicked: {self.label} by user {view.user_id} for step {view.cmd_or_step}")
+
+            # Add processing reaction to command message
+            if view.command_msg:
+                await view.command_msg.add_reaction("⏳")
+                logger.info(f"Added processing reaction to command message {view.command_msg.id}")
+
+            try:
+                # Set value based on button label and convert to integer
+                # Handle "Нічого немає" button specifically
+                if self.label == "Нічого немає":
+                    if not interaction or not interaction.channel:
+                        logger.error("Missing interaction data for Нічого немає button")
+                        return
+                    value = 0
+                    logger.info(f"Нічого немає selected in channel {interaction.channel.id}")
+                else:
+                    value = int(self.label)
+                logger.info(f"Parsed value: {value} from label: {self.label}")
+
+                if view.has_survey:
+                    logger.info(f"Processing as survey step for user {view.user_id}")
+                    # Dynamic survey flow
+                    state = survey_manager.get_survey(view.user_id)
+                    if not state:
+                        logger.error(f"Survey not found for user {view.user_id}")
+                        if view.command_msg:
+                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
+                            error_msg = "Ваш запит: Вибір навантаження\nПомилка: Опитування не знайдено."
+                            await view.command_msg.edit(content=error_msg)
+                            await view.command_msg.add_reaction("❌")
+                        if view.buttons_msg:
+                            await view.buttons_msg.delete()
+                        return
+
+                    logger.info(f"Found survey for user {view.user_id}, current step: {state.current_step()}")
+
+                    # Send webhook for survey step
+                    success, data = await webhook_service.send_webhook(
+                        interaction,
+                        command="survey",
+                        status="step",
+                        result={
+                            "stepName": view.cmd_or_step,
+                            "value": value
+                        }
+                    )
+
+                    logger.info(f"Webhook response for survey step: success={success}, data={data}")
+
+                    if not success:
+                        logger.error(f"Failed to send webhook for survey step: {view.cmd_or_step}")
+                        if view.command_msg:
+                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
+                            error_msg = f"Ваш запит: Навантаження = {value}\nПомилка: Не вдалося виконати крок опитування."
+                            await view.command_msg.edit(content=error_msg)
+                            await view.command_msg.add_reaction("❌")
+                        if view.buttons_msg:
+                            await view.buttons_msg.delete()
+                        return
+
+                    # Update survey state
+                    state.results[view.cmd_or_step] = value
+                    logger.info(f"Updated survey results: {state.results}")
+
+                    # Update command message with response
+                    if view.command_msg:
+                        # Clear all reactions except ❌
+                        for reaction in view.command_msg.reactions:
+                            if str(reaction.emoji) != "❌":
+                                await reaction.remove(interaction.client.user)
+                        if "output" in data and data["output"].strip():
+                            await view.command_msg.edit(content=data["output"])
+                        else:
+                            await view.command_msg.edit(content=f"Дякую! Навантаження: {value} годин записано.")
+                        logger.info(f"Updated command message with response")
+
+                    # Delete buttons message
+                    if view.buttons_msg:
+                        await view.buttons_msg.delete()
+                        logger.info(f"Deleted buttons message")
+
+                    # Log survey state before continuation
+                    logger.info(f"Survey state before continuation - current step: {state.current_step()}, results: {state.results}")
+
+                    # Let n8n handle the survey continuation through webhook response
+                    # Don't advance the step here, as it will be handled by the webhook service
+                    # But verify we have a valid state for continuation
+                    if not state or not state.user_id:
+                        logger.error("Invalid survey state for continuation")
+                        return
+
+                else:
+                    logger.info(f"Processing as regular command: {view.cmd_or_step}")
+                    # Regular slash command
+                    success, data = await webhook_service.send_webhook(
+                        interaction,
+                        command=view.cmd_or_step,
+                        status="ok",
+                        result={"workload": value}
+                    )
+
+                    logger.info(f"Webhook response for command: success={success}, data={data}")
+
+                    if success and data and "output" in data:
+                        # Update command message with success
+                        if view.command_msg:
+                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
+                            await view.command_msg.edit(content=data["output"])
+                            logger.info(f"Updated command message with success: {data['output']}")
+
+                        # Delete buttons message
+                        if view.buttons_msg:
+                            await view.buttons_msg.delete()
+                            logger.info(f"Deleted buttons message")
+                    else:
+                        logger.error(f"Failed to send webhook for command: {view.cmd_or_step}")
+                        if view.command_msg:
+                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
+                            error_msg = f"Ваш запит: Навантаження = {value}\nПомилка: Не вдалося виконати команду."
+                            await view.command_msg.edit(content=error_msg)
+                            await view.command_msg.add_reaction("❌")
+                        if view.buttons_msg:
+                            await view.buttons_msg.delete()
+
+            except Exception as e:
+                logger.error(f"Error in workload button: {e}")
+                if view.command_msg:
+                    await view.command_msg.remove_reaction("⏳", interaction.client.user)
+                    from config import Strings
+                    value = 0 if self.label == "Нічого немає" else self.label
+                    error_msg = f"Ваш запит: Навантаження = {value}\n{Strings.UNEXPECTED_ERROR}"
+                    await view.command_msg.edit(content=error_msg)
+                    await view.command_msg.add_reaction(Strings.ERROR)
+                if view.buttons_msg:
+                    await view.buttons_msg.delete()
+                logger.error(f"Failed to send error response in workload callback: {e_resp}")
 
 def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None) -> WorkloadView:
     """Create workload view for regular commands only"""
     view = WorkloadView(cmd, user_id)
     
     from config.constants import WORKLOAD_OPTIONS
-    workload_options = [opt for opt in WORKLOAD_OPTIONS if opt != "Нічого немає"]  # Filter out non-numeric option
-    for hour in workload_options:
-        button = WorkloadButton(
-            hour=hour,
-            custom_id=f"workload_cmd_{hour}_{user_id}" 
-        )
+    # Add all workload options as buttons, including "Нічого немає"
+    for hour in WORKLOAD_OPTIONS:
+        custom_id = f"workload_button_{hour}_{cmd_or_step}_{user_id}"
+        button = WorkloadButton(label=hour, custom_id=custom_id, cmd_or_step=cmd_or_step) # Pass cmd_or_step to button
         view.add_item(button)
     
     return view
