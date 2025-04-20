@@ -27,6 +27,7 @@ class WorkloadButton(discord.ui.Button):
         self.cmd_or_step = cmd_or_step
 
     async def callback(self, interaction: discord.Interaction):
+        from config import Strings # Import Strings locally
         """Handle button press with complete validation"""
         # Detailed interaction validation
         if not interaction:

@@ -16,6 +16,7 @@ class DayOffButton(discord.ui.Button):
         self.is_selected = False
         
     async def callback(self, interaction: discord.Interaction):
+        from config import Strings # Import Strings locally
         # First, acknowledge the interaction to prevent timeout
         logger.debug(f"[{interaction.user.id}] - Attempting to defer interaction response for DayOffButton")
         if not interaction.response.is_done():
@@ -81,6 +82,7 @@ class ConfirmButton(discord.ui.Button):
         )
         
     async def callback(self, interaction: discord.Interaction):
+        from config import Strings # Import Strings locally
         from services import webhook_service
         view = self.view
         if isinstance(view, DayOffView):
@@ -242,6 +244,7 @@ class DeclineButton(discord.ui.Button):
         )
         
     async def callback(self, interaction: discord.Interaction):
+        from config import Strings # Import Strings locally
         from services import webhook_service
         view = self.view
         if isinstance(view, DayOffView):
