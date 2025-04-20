@@ -6,6 +6,7 @@ from services import webhook_service, survey_manager # Added webhook_service, su
 class WorkloadView(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
     def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False):
+        logger.debug(f"[{user_id}] - WorkloadView.__init__ called for cmd_or_step: {cmd_or_step}, has_survey: {has_survey}")
         super().__init__(timeout=300)  # 5 minute timeout
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
@@ -236,6 +237,7 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
     for hour in WORKLOAD_OPTIONS:
         custom_id = f"workload_button_{hour}_{cmd_or_step}_{user_id}"
         button = WorkloadButton(label=hour, custom_id=custom_id, cmd_or_step=cmd_or_step) # Pass cmd_or_step to button
+        logger.debug(f"[{user_id}] - Adding button with label: {hour}, custom_id: {custom_id}")
         view.add_item(button)
     
     return view

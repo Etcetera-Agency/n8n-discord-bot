@@ -284,6 +284,7 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Workload today command from {interaction.user}")
+            logger.debug(f"[{interaction.user}] - slash_workload_today called")
             
             # First send the command usage message and store it
             if not interaction.response.is_done():
@@ -291,12 +292,12 @@ class SlashCommands:
             command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
+            logger.debug(f"[{interaction.user}] - Calling create_view for workload_today")
             view = create_view("workload", "workload_today", str(interaction.user.id))
             view.command_msg = command_msg  # Store reference to command message
             buttons_msg = await interaction.channel.send(
                 "Оберіть кількість годин:",
-                view=view,
-                ephemeral=False # Explicitly set ephemeral to False
+                view=view
             )
             view.buttons_msg = buttons_msg  # Store reference to buttons message
 
@@ -312,6 +313,7 @@ class SlashCommands:
                 interaction: Discord interaction
             """
             logger.info(f"Workload nextweek command from {interaction.user}")
+            logger.debug(f"[{interaction.user}] - slash_workload_nextweek called")
             
             # First send the command usage message and store it
             if not interaction.response.is_done():
@@ -319,12 +321,12 @@ class SlashCommands:
             command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
+            logger.debug(f"[{interaction.user}] - Calling create_view for workload_nextweek")
             view = create_view("workload", "workload_nextweek", str(interaction.user.id))
             view.command_msg = command_msg  # Store reference to command message
             buttons_msg = await interaction.channel.send(
                 "Оберіть кількість годин:",
-                view=view,
-                ephemeral=False # Explicitly set ephemeral to False
+                view=view
             )
             view.buttons_msg = buttons_msg  # Store reference to buttons message
 
