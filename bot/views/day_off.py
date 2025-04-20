@@ -57,8 +57,9 @@ class DayOffButton(discord.ui.Button):
                 
         except Exception as e:
             logger.error(f"Error in day off button callback: {e}")
-            logger.debug(f"Error details - custom_id: {self.custom_id}")
+            logger.debug(f"Error details - custom_id: {self.custom_id}, interaction: {interaction.data if interaction else None}")
             if message:
+                await message.add_reaction("❌")
                 await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
                 error_msg = Strings.DAYOFF_ERROR.format(
                     days=self.label,
@@ -221,15 +222,21 @@ class DeclineButton(discord.ui.Button):
         from services import webhook_service
         view = self.view
         if isinstance(view, DayOffView):
+            logger.debug(f"Decline button clicked by {interaction.user}")
             # First, acknowledge the interaction to prevent timeout
             if not interaction.response.is_done():
-                await interaction.response.defer(ephemeral=False)
+                try:
+                    await interaction.response.defer(ephemeral=False)
+                except Exception as e:
+                    logger.error(f"Failed to defer interaction: {e}")
+                    return
             
             # Add processing reaction to command message
             if view.command_msg:
                 await view.command_msg.add_reaction(Strings.PROCESSING)
             
             try:
+                logger.debug(f"Attempting to send webhook for decline action")
                 if view.has_survey:
                     # Dynamic survey flow
                     state = survey_manager.get_survey(view.user_id)
@@ -294,12 +301,19 @@ class DeclineButton(discord.ui.Button):
                         
                 else:
                     # Regular slash command
-                    success, data = await webhook_service.send_webhook(
-                        interaction,
-                        command=view.cmd_or_step,
-                        status="ok",
-                        result={"value": "Nothing"}  # Keep as "Nothing" for backward compatibility
-                    )
+                    logger.debug(f"Sending webhook for cmd: {view.cmd_or_step}, with Nothing value")
+                    try:
+                        success, data = await webhook_service.send_webhook(
+                            interaction,
+                            command=view.cmd_or_step,
+                            status="ok",
+                            result={"value": "Nothing"}
+                        )
+                        logger.debug(f"Webhook sent. Success: {success}, Data: {data}")
+                    except Exception as e:
+                        logger.error(f"Webhook send failed: {e}")
+                        success = False
+                        data = None
                     
                     if success and data and "output" in data:
                         # Update command message with success
@@ -337,7 +351,7 @@ class DeclineButton(discord.ui.Button):
 
 class DayOffView(discord.ui.View):
     def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False):
-        super().__init__()
+        super().__init__(timeout=600)  # 10 minute timeout
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
         self.has_survey = has_survey
@@ -388,6 +402,8 @@ def create_day_off_view(
     current_date = datetime.datetime.now()
     current_weekday = current_date.weekday()
     
+    logger.debug(f"Creating day off buttons for cmd_or_step: {cmd_or_step}")
+    logger.debug(f"Creating day off buttons for command: {cmd_or_step}")
     # Add day off buttons
     days = [
         "Понеділок",
@@ -401,7 +417,9 @@ def create_day_off_view(
     
     for day in days:
         # For thisweek command, skip days that have already passed
+        logger.debug(f"Processing day: {day}")
         if "day_off_thisweek" in cmd_or_step and view.weekday_map[day] < current_weekday:
+            logger.debug(f"Skipping {day} - already passed this week")
             continue
             
         custom_id = f"day_off_button_{day}_{cmd_or_step}_{user_id}"
