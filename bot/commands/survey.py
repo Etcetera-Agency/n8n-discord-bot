@@ -153,15 +153,24 @@ class ConnectsModal(discord.ui.Modal):
                             "sessionId": str(getattr(self.survey, 'session_id', ''))
                         }
                         logger.info(f"Sending step webhook: {step_payload}")
-                        await webhook_service.send_webhook_with_retry(
+                        success, response = await webhook_service.send_webhook_with_retry(
                             interaction.channel,
                             step_payload,
                             {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
                         )
+                        logger.info(f"Step webhook response: success={success}, response={response}")
+                        # Show n8n output to user if present
+                        if response:
+                            try:
+                                await interaction.followup.send(str(response), ephemeral=False)
+                            except Exception as e:
+                                logger.warning(f"Failed to send n8n step response to user: {e}")
                     except Exception as e:
                         logger.error(f"Error sending step webhook: {e}")
 
+                    logger.info("Calling continue_survey after step webhook")
                     await continue_survey(interaction.channel, self.survey)
+                    logger.info("Returned from continue_survey after step webhook")
             except Exception as e:
                 logger.error(f"Error advancing survey: {e}")
                 await send_error(Strings.GENERAL_ERROR)
@@ -634,7 +643,7 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> Non
         payload = {
             "command": "survey",
             "status": "end",
-            # Only send the last answered step for "end" as well, with correct structure
+            "message": "",
             "result": {
                 "stepName": list(survey.results.keys())[-1] if survey.results else "",
                 "value": list(survey.results.values())[-1] if survey.results else ""
@@ -650,6 +659,13 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> Non
             payload,
             {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
         )
+        logger.info(f"End webhook response: success={success}, response={response}")
+        # Show n8n output to user if present
+        if response:
+            try:
+                await channel.send(str(response))
+            except Exception as e:
+                logger.warning(f"Failed to send n8n end response to user: {e}")
 
         if not success:
             raise Exception(f"Completion webhook failed: {response}")
