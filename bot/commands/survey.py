@@ -15,9 +15,11 @@ class ConnectsModal(discord.ui.Modal):
     """Modal specifically for handling the 'connects' step in the survey."""
     def __init__(self, survey: SurveyFlow, step_name: str):
         """Initializes the ConnectsModal."""
+        logger.info("Entering ConnectsModal __init__.") # Added log
         self.survey = survey
         self.step_name = step_name
         super().__init__(title=Strings.CONNECTS_MODAL, timeout=300)
+        logger.info("ConnectsModal __init__ completed successfully.") # Added log
 
         self.connects_input = discord.ui.TextInput(
             label=Strings.CONNECTS_INPUT_LABEL,
