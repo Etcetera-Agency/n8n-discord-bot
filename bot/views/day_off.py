@@ -225,14 +225,13 @@ class DeclineButton(discord.ui.Button):
             logger.debug(f"Decline button clicked by {interaction.user}")
             logger.debug(f"View has_survey: {view.has_survey}, cmd_or_step: {view.cmd_or_step}")
             
-            # First, acknowledge the interaction to prevent timeout
-            if not interaction.response.is_done():
-                try:
-                    await interaction.response.defer(ephemeral=False)
-                    logger.debug("Interaction deferred successfully")
-                except Exception as e:
-                    logger.error(f"Failed to defer interaction: {e}")
-                    return
+            # Immediately respond to interaction
+            try:
+                await interaction.response.defer(ephemeral=False, thinking=True)
+                logger.debug("Interaction deferred with thinking state")
+            except Exception as e:
+                logger.error(f"Failed to defer interaction: {e}")
+                return
             
             # Add processing reaction to command message
             if view.command_msg:
@@ -309,16 +308,16 @@ class DeclineButton(discord.ui.Button):
                 else:
                     # Regular slash command
                     logger.debug("Entering regular command branch")
-                    logger.debug(f"view.command_msg exists: {bool(view.command_msg)}")
-                    logger.debug(f"webhook_service instance check: {hasattr(webhook_service, 'send_webhook')}")
+                    
+                    if view.command_msg:
+                        logger.debug("Adding processing reaction")
+                        await view.command_msg.add_reaction(Strings.PROCESSING)
                     
                     try:
-                        logger.debug(f"Preparing to send webhook for cmd: {view.cmd_or_step}")
-                        if not interaction.response.is_done():
-                            logger.warning("Interaction response not marked as done before webhook send")
-                            
+                        logger.debug("Sending webhook for declined days")
+                        # Use follow-up for webhook since interaction was deferred
                         success, data = await webhook_service.send_webhook(
-                            interaction,
+                            interaction.followup,
                             command=view.cmd_or_step,
                             status="ok",
                             result={"value": "Nothing"}
