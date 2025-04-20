@@ -18,12 +18,13 @@ class WorkloadView(discord.ui.View):
         logger.warning(f"WorkloadView timed out for user {self.user_id}")
 
 class WorkloadButton(discord.ui.Button):
-    def __init__(self, hour: str, custom_id: str):
+    def __init__(self, *, label: str, custom_id: str, cmd_or_step: str):
         super().__init__(
             style=discord.ButtonStyle.secondary,
-            label=hour,
+            label=label,
             custom_id=custom_id
         )
+        self.cmd_or_step = cmd_or_step
 
     async def callback(self, interaction: discord.Interaction):
         """Handle button press with complete validation"""
