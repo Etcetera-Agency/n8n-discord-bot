@@ -60,8 +60,8 @@ class WebServer:
                             interaction.client,
                             user_id=self.user_id,
                             channel_id=self.channel_id,
-                            session_id=self.session_id,  # Pass combined session ID
-                            steps=[]
+                            session_id=self.session_id  # Pass combined session ID
+                            # Removed unexpected 'steps' argument
                         )
                     except Exception as e:
                         logger.error(f"Survey start error: {str(e)}")

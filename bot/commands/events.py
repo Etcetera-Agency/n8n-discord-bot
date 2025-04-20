@@ -1,5 +1,7 @@
 import discord
 from discord.ext import commands
+import discord
+from discord.ext import commands
 import aiohttp
 from services.survey import survey_manager
 from services.webhook import WebhookService
@@ -58,7 +60,6 @@ class EventHandlers:
                 user_id = parts[1]
                 channel_id = parts[2]
                 steps = parts[3:]
-                logger.debug(f"Calling handle_start_daily_survey with user_id: {user_id}, channel_id: {channel_id}, steps: {steps}")
                 await self.handle_start_daily_survey(user_id, channel_id, steps)
 
         await self.bot.process_commands(message)
