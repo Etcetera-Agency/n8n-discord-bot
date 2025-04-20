@@ -56,19 +56,51 @@ http_session = None
 intents = discord.Intents.default()
 intents.message_content = True
 intents.interactions = True # Explicitly enable interactions intent
-bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Import and setup event handlers
-from bot.commands.events import EventHandlers # Import the class
+# Import EventHandlers class
+from bot.commands.events import EventHandlers
 
-# Initialize WebhookService early and assign to bot
-# This ensures it's available when EventHandlers is initialized if needed
-bot.webhook_service = WebhookService()
+# Define custom Bot class
+class MyBot(commands.Bot):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialize services here, they will be available as bot attributes
+        logger.info("MyBot.__init__: Initializing WebhookService...")
+        self.webhook_service = WebhookService()
+        logger.info("MyBot.__init__: Creating EventHandlers instance...")
+        self.event_handler_instance = EventHandlers(self) # Pass self (the bot instance)
 
-# Create and setup event handlers instance
-event_handler_instance = EventHandlers(bot)
-# We need to run setup as an async task or await it within an async context
-# Since this setup happens before the event loop starts, we'll handle it in main()
+    async def setup_hook(self):
+        """Handles async setup tasks before the bot logs in."""
+        logger.info("MyBot.setup_hook: Starting async setup...")
+
+        # Initialize WebhookService session
+        logger.debug("MyBot.setup_hook: Attempting to initialize WebhookService session...")
+        await self.webhook_service.initialize()
+        logger.info("MyBot.setup_hook: WebhookService initialized.")
+
+        # Setup event handlers
+        logger.debug("MyBot.setup_hook: Attempting to call event_handler_instance.setup()...")
+        await self.event_handler_instance.setup() # Call setup on the instance stored in the bot
+        logger.info("MyBot.setup_hook: Event handlers registered.")
+
+        # Start the web server task (can also be done here)
+        from web import server
+        self.loop.create_task(server.run_server(self)) # Start server in background
+        logger.info("MyBot.setup_hook: Web server task created.")
+
+        # Sync slash commands (optional, often done in on_ready but setup_hook is also suitable)
+        try:
+             logger.info("MyBot.setup_hook: Syncing slash commands...")
+             await self.tree.sync()
+             logger.info("MyBot.setup_hook: Slash commands synced!")
+        except Exception as e:
+             logger.error(f"MyBot.setup_hook: Error syncing slash commands: {e}")
+
+        logger.info("MyBot.setup_hook: Completed.")
+
+# Instantiate the custom bot
+bot = MyBot(command_prefix="!", intents=intents)
 
 ###############################################################################
 # Survey Management
@@ -270,34 +302,9 @@ async def slash_connects_thisweek(interaction: discord.Interaction, connects: in
     )
 
 ###############################################################################
-# Main function to run both the HTTP/HTTPS server and the Discord Bot
+# Main function (REMOVED - Replaced by setup_hook and bot.run)
 ###############################################################################
-async def main():
-    logger.info("Entering main function.") # ADDED LOG
-    async with bot: # Use async context manager for proper setup/teardown
-        logger.info("Entered bot async context manager.") # ADDED LOG
-        # Initialize WebhookService session (moved from on_ready)
-        logger.debug("Attempting to initialize WebhookService...") # ADDED LOG
-        await bot.webhook_service.initialize()
-        logger.info("WebhookService initialized.")
 
-        # Setup event handlers (moved here to ensure bot loop is running)
-        logger.debug("Attempting to call event_handler_instance.setup()...") # ADDED LOG
-        await event_handler_instance.setup()
-        logger.info("Event handlers registered.") # This confirms setup() completed
-
-        # Start HTTP server
-        from web import server
-        server_task = asyncio.create_task(server.run_server(bot))
-        logger.info("Web server task created.")
-
-        # Start Discord bot
-        logger.info("Starting Discord bot...")
-        await bot.start(Config.DISCORD_TOKEN)
-
-        # Wait for server task (bot.start blocks until bot stops)
-        # This might not be reached if bot runs indefinitely
-        await server_task
-        logger.info("Bot stopped, server task awaited.")
 if __name__ == "__main__":
-    asyncio.run(main())
+    logger.info("Starting bot using bot.run()...")
+    bot.run(Config.DISCORD_TOKEN)
