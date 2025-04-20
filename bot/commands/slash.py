@@ -33,35 +33,46 @@ class SlashCommands:
             command: Command name for webhook
             result: Data to send to webhook
         """
+        logger.info(f"⚡ WEBHOOK COMMAND START: {command} from {interaction.user}")
+        logger.debug(f"Command payload: {result}")
+        
         # Get the original message
         message = await interaction.original_response() if interaction.response.is_done() else None
         
         try:
             if message:
+                logger.debug(f"Adding processing reaction to message {message.id}")
                 await message.add_reaction(Strings.PROCESSING)
                 
+            logger.info(f"Sending webhook for {command} command...")
             success, data = await webhook_service.send_webhook(
                 interaction,
                 command=command,
                 result=result
             )
+            logger.info(f"Webhook response for {command}: success={success}, data={bool(data)}")
             
             if message:
+                logger.debug(f"Removing processing reaction from message {message.id}")
                 await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
                 
             if success and data and "output" in data:
+                logger.debug(f"Webhook success output: {data['output']}")
                 if message:
-                    pass
+                    logger.debug(f"Returning success output for message {message.id}")
                 return data["output"]
             else:
                 error_msg = Strings.GENERAL_ERROR
+                logger.warning(f"Webhook failed for {command}: {error_msg}")
                 if message:
+                    logger.debug(f"Adding error reaction to message {message.id}")
                     await message.add_reaction(Strings.ERROR)
                 return error_msg
                 
         except Exception as e:
-            logger.error(f"Error in {command} command: {e}")
+            logger.error(f"⛔ Error in {command} command: {str(e)}", exc_info=True)
             if message:
+                logger.debug(f"Handling error for message {message.id}")
                 await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
                 await message.add_reaction(Strings.ERROR)
             return Strings.UNEXPECTED_ERROR

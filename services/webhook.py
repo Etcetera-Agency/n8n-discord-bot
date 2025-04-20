@@ -70,21 +70,39 @@ class WebhookService:
     """
     def __init__(self):
         """Initialize the webhook service."""
+        logger.info("Initializing WebhookService")
         self.url = Config.N8N_WEBHOOK_URL
         self.auth_token = Config.WEBHOOK_AUTH_TOKEN
+        logger.info(f"Webhook URL configured: {bool(self.url)}")
+        logger.info(f"Auth token configured: {bool(self.auth_token)}")
         self.http_session: Optional[aiohttp.ClientSession] = None
         
     async def initialize(self) -> None:
         """Initialize the HTTP session."""
-        connector = aiohttp.TCPConnector(limit=10, ttl_dns_cache=300)
-        self.http_session = aiohttp.ClientSession(connector=connector)
-        logger.info("Initialized webhook service HTTP session")
+        try:
+            logger.info("Initializing HTTP session...")
+            connector = aiohttp.TCPConnector(limit=10, ttl_dns_cache=300)
+            self.http_session = aiohttp.ClientSession(connector=connector)
+            logger.info("Successfully initialized webhook service HTTP session")
+            # Test connectivity
+            try:
+                async with self.http_session.get("https://httpbin.org/get") as resp:
+                    logger.info(f"HTTP test request status: {resp.status}")
+            except Exception as e:
+                logger.error(f"HTTP connectivity test failed: {e}")
+        except Exception as e:
+            logger.error(f"Failed to initialize HTTP session: {e}")
+            raise
         
     async def close(self) -> None:
         """Close the HTTP session."""
         if self.http_session and not self.http_session.closed:
-            await self.http_session.close()
-            logger.info("Closed webhook service HTTP session")
+            try:
+                logger.info("Closing HTTP session...")
+                await self.http_session.close()
+                logger.info("Successfully closed webhook service HTTP session")
+            except Exception as e:
+                logger.error(f"Error closing HTTP session: {e}")
     
     def build_payload(
         self,
