@@ -22,12 +22,13 @@ class ConnectsModal(discord.ui.Modal):
         logger.info("Super().__init__ called in ConnectsModal.") # Added log
 
         logger.info("Attempting to create TextInput for connects_input.") # Added log
+        logger.info("Calling discord.ui.TextInput constructor.") # Added log
         self.connects_input = discord.ui.TextInput(
             label=Strings.CONNECTS_INPUT, # Corrected attribute name
             placeholder=Strings.CONNECTS_PLACEHOLDER, # Corrected attribute name
-            min_length=1,
-            max_length=3
+            # Removed min_length and max_length for testing
         )
+        logger.info("Finished calling discord.ui.TextInput constructor.") # Added log
         logger.info("TextInput for connects_input created.") # Added log
         logger.info("Attempting to add item to modal.") # Added log
         self.add_item(self.connects_input)
