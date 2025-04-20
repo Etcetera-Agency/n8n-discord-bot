@@ -74,9 +74,12 @@ class EventHandlers:
             # --- Handle Persistent Survey Start Button ---
             if custom_id and custom_id.startswith("survey_start_"):
                 logger.info(f"Handling persistent survey start button click: {custom_id}")
+                logger.debug(f"Attempting to defer interaction {interaction.id} for survey_start...")
                 await interaction.response.defer(ephemeral=True) # Acknowledge interaction privately
+                logger.debug(f"Successfully deferred interaction {interaction.id} for survey_start.")
 
                 try:
+                    logger.debug(f"Entering try block for survey_start interaction {interaction.id}")
                     # Extract IDs from custom_id: survey_start_{channel_id}_{user_id}
                     parts = custom_id.split("_")
                     if len(parts) < 4:
@@ -93,6 +96,7 @@ class EventHandlers:
                     if existing_survey:
                         # Survey exists, try to repeat the current step
                         logger.info(f"Existing survey found for user {user_id} via persistent button. Repeating current step.")
+                        logger.debug(f"Attempting to find channel {channel_id} for resuming survey (interaction {interaction.id}).")
                         # Use interaction.channel if available and matches, otherwise fetch
                         channel = None
                         if interaction.channel and str(interaction.channel.id) == channel_id:
@@ -116,9 +120,11 @@ class EventHandlers:
                         current_step = existing_survey.current_step()
                         if channel and current_step:
                             # Re-ask the step in the correct channel
+                            logger.debug(f"Attempting to re-ask step '{current_step}' for existing survey (interaction {interaction.id}).")
                             await ask_dynamic_step(channel, existing_survey, current_step)
                             # Send an ephemeral message confirming action if needed
                             await interaction.followup.send("Repeating the current survey step.", ephemeral=True)
+                            logger.debug(f"Successfully re-asked step '{current_step}' (interaction {interaction.id}).")
                         elif channel:
                             logger.warning(f"Existing survey for user {user_id} (persistent button) has no current step.")
                             await interaction.followup.send(f"<@{user_id}> Не вдалося знайти поточний крок опитування.", ephemeral=True)
@@ -127,6 +133,7 @@ class EventHandlers:
                     else:
                         # No survey exists, start a new one
                         logger.info(f"No existing survey found for user {user_id} via persistent button. Starting new survey.")
+                        logger.debug(f"Attempting to call handle_start_daily_survey for new survey (interaction {interaction.id}).")
                         await handle_start_daily_survey(
                             interaction.client,
                             user_id=user_id,
@@ -134,10 +141,11 @@ class EventHandlers:
                             session_id=session_id,
                             steps=[] # Fetched within handle_start_daily_survey
                         )
+                        logger.debug(f"handle_start_daily_survey call completed for interaction {interaction.id}.")
                         await interaction.followup.send("Starting a new survey...", ephemeral=True)
 
                 except Exception as e:
-                    logger.error(f"Error in persistent survey button interaction ({custom_id}): {str(e)}", exc_info=True)
+                    logger.error(f"Caught exception in persistent survey button interaction ({custom_id}): {str(e)}", exc_info=True) # Added 'Caught' for clarity
                     try:
                         # Ensure followup is used for deferred responses
                         await interaction.followup.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}", ephemeral=True)
