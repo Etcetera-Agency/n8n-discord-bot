@@ -55,11 +55,20 @@ http_session = None
 ###############################################################################
 intents = discord.Intents.default()
 intents.message_content = True
+intents.interactions = True # Explicitly enable interactions intent
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Import and setup event handlers
-from bot.commands import events
-events.setup(bot)
+from bot.commands.events import EventHandlers # Import the class
+
+# Initialize WebhookService early and assign to bot
+# This ensures it's available when EventHandlers is initialized if needed
+bot.webhook_service = WebhookService()
+
+# Create and setup event handlers instance
+event_handler_instance = EventHandlers(bot)
+# We need to run setup as an async task or await it within an async context
+# Since this setup happens before the event loop starts, we'll handle it in main()
 
 ###############################################################################
 # Survey Management
@@ -151,40 +160,11 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow):
 ###############################################################################
 
 ###############################################################################
-# Discord on_message Event
+# Discord on_message Event (REMOVED - Handled by EventHandlers class)
 ###############################################################################
-@bot.event
-async def on_message(message: discord.Message):
-    if message.author == bot.user:
-        return
-
-    if bot.user in message.mentions:
-        # Add processing reaction
-        await message.add_reaction("⏳")
-        
-        # Process the message
-        success, _ = await bot.webhook_service.send_webhook(
-            message,
-            command="mention",
-            message=message.content,
-            result={}
-        )
-        
-        # Remove processing reaction
-        await message.remove_reaction("⏳", bot.user)
-        
-        # Add success or error reaction
-        await message.add_reaction("✅" if success else "❌")
-
-    if message.content.startswith("start_daily_survey"):
-        parts = message.content.split()
-        if len(parts) >= 4:
-            user_id = parts[1]
-            channel_id = parts[2]
-            steps = parts[3:]
-            await handle_start_daily_survey(bot, user_id, channel_id, steps)
-
-    await bot.process_commands(message)
+# The @bot.event for on_message is removed from here because
+# it's now handled within the EventHandlers class in bot/commands/events.py,
+# which is registered via event_handler_instance.setup() in main().
 
 ###############################################################################
 # PREFIX COMMANDS
@@ -293,14 +273,27 @@ async def slash_connects_thisweek(interaction: discord.Interaction, connects: in
 # Main function to run both the HTTP/HTTPS server and the Discord Bot
 ###############################################################################
 async def main():
-    # Start HTTP server
-    from web import server
-    server_task = asyncio.create_task(server.run_server(bot))
-    
-    # Start Discord bot
-    await bot.start(Config.DISCORD_TOKEN)
-    
-    # Wait for both tasks
-    await server_task
+    async with bot: # Use async context manager for proper setup/teardown
+        # Initialize WebhookService session (moved from on_ready)
+        await bot.webhook_service.initialize()
+        logger.info("WebhookService initialized.")
+
+        # Setup event handlers (moved here to ensure bot loop is running)
+        await event_handler_instance.setup()
+        logger.info("Event handlers registered.")
+
+        # Start HTTP server
+        from web import server
+        server_task = asyncio.create_task(server.run_server(bot))
+        logger.info("Web server task created.")
+
+        # Start Discord bot
+        logger.info("Starting Discord bot...")
+        await bot.start(Config.DISCORD_TOKEN)
+
+        # Wait for server task (bot.start blocks until bot stops)
+        # This might not be reached if bot runs indefinitely
+        await server_task
+        logger.info("Bot stopped, server task awaited.")
 if __name__ == "__main__":
     asyncio.run(main())
