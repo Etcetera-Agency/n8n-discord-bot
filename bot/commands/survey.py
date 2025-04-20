@@ -54,6 +54,7 @@ class ConnectsModal(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         """Handles the modal submission for the connects step."""
+        logger.info("DEBUG: Entered ConnectsModal.on_submit")
         logger.info("Starting ConnectsModal submission handling")
         
         async def send_error(message: str):
@@ -219,12 +220,13 @@ async def handle_modal_error(interaction: discord.Interaction):
     """Standard error handler for modal on_submit exceptions.
     Attempts to send an ephemeral error message to the user.
     """
+    logger.info("DEBUG: Entered handle_modal_error for modal submission")
     try:
         if interaction.response.is_done():
-             await interaction.followup.send(Strings.MODAL_SUBMIT_ERROR, ephemeral=True)
+            await interaction.followup.send(Strings.MODAL_SUBMIT_ERROR, ephemeral=True)
         else:
-             # If defer() failed or wasn't called, try initial response
-             await interaction.response.send_message(Strings.MODAL_SUBMIT_ERROR, ephemeral=True)
+            # If defer() failed or wasn't called, try initial response
+            await interaction.response.send_message(Strings.MODAL_SUBMIT_ERROR, ephemeral=True)
     except Exception as e_resp:
          logger.error(f"Failed to send error response in modal: {e_resp}")
 
@@ -632,7 +634,7 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> Non
         payload = {
             "command": "survey",
             "status": "end",
-            "message": "",
+            # Only send the last answered step for "end" as well, with correct structure
             "result": {
                 "stepName": list(survey.results.keys())[-1] if survey.results else "",
                 "value": list(survey.results.values())[-1] if survey.results else ""
