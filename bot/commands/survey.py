@@ -19,15 +19,19 @@ class ConnectsModal(discord.ui.Modal):
         self.survey = survey
         self.step_name = step_name
         super().__init__(title=Strings.CONNECTS_MODAL, timeout=300)
-        logger.info("ConnectsModal __init__ completed successfully.") # Added log
+        logger.info("Super().__init__ called in ConnectsModal.") # Added log
 
+        logger.info("Attempting to create TextInput for connects_input.") # Added log
         self.connects_input = discord.ui.TextInput(
             label=Strings.CONNECTS_INPUT_LABEL,
             placeholder=Strings.CONNECTS_INPUT_PLACEHOLDER,
             min_length=1,
             max_length=3
         )
+        logger.info("TextInput for connects_input created.") # Added log
+        logger.info("Attempting to add item to modal.") # Added log
         self.add_item(self.connects_input)
+        logger.info("Item added to modal.") # Added log
 
     async def on_submit(self, interaction: discord.Interaction):
         """Handles the modal submission for the connects step."""
