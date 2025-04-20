@@ -239,7 +239,9 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
         logger.error(f"[{user_id}] - Error instantiating WorkloadView: {e}")
         raise # Re-raise the exception after logging
     
+    logger.debug(f"[{user_id}] - Before importing WORKLOAD_OPTIONS")
     from config.constants import WORKLOAD_OPTIONS
+    logger.debug(f"[{user_id}] - After importing WORKLOAD_OPTIONS. WORKLOAD_OPTIONS: {WORKLOAD_OPTIONS}")
     # Add all workload options as buttons, including "Нічого немає"
     for hour in WORKLOAD_OPTIONS:
         custom_id = f"workload_button_{hour}_{cmd}_{user_id}"
