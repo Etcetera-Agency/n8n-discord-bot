@@ -142,8 +142,11 @@ class ConnectsModal(discord.ui.Modal):
                         step_payload = {
                             "command": "survey",
                             "status": "step",
-                            "step": self.step_name,
-                            "value": str(connects),
+                            "message": "",
+                            "result": {
+                                "stepName": self.step_name,
+                                "value": str(connects)
+                            },
                             "userId": str(self.survey.user_id),
                             "channelId": str(self.survey.channel_id),
                             "sessionId": str(getattr(self.survey, 'session_id', ''))
@@ -629,8 +632,11 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> Non
         payload = {
             "command": "survey",
             "status": "end",
-            # Only send the last answered step for "end" as well
-            "result": {list(survey.results.keys())[-1]: list(survey.results.values())[-1]} if survey.results else {},
+            # Only send the last answered step for "end" as well, with correct structure
+            "result": {
+                "stepName": list(survey.results.keys())[-1] if survey.results else "",
+                "value": list(survey.results.values())[-1] if survey.results else ""
+            },
             "userId": str(survey.user_id),
             "channelId": str(survey.channel_id),
             "sessionId": str(getattr(survey, 'session_id', ''))

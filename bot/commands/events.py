@@ -48,8 +48,15 @@ class EventHandlers:
             success, _ = await self.bot.webhook_service.send_webhook(
                 message,
                 command="mention",
+                status="ok",
                 message=message.content,
-                result={}
+                result={},
+                author=f"{message.author.name}#{message.author.discriminator}",
+                userId=str(message.author.id),
+                sessionId=str(message.author.id),
+                channelId=str(message.channel.id),
+                channelName=getattr(message.channel, "name", ""),
+                timestamp=int(message.created_at.timestamp())
             )
             await message.remove_reaction("⏳", self.bot.user)
             await message.add_reaction("✅" if success else "❌")
