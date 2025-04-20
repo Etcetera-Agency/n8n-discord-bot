@@ -26,9 +26,12 @@ class DayOffButton(discord.ui.Button):
         message = interaction.message
         if message:
             # Add processing reaction
-            logger.debug(f"[{interaction.user.id}] - Attempting to add processing reaction to message {message.id}")
-            await message.add_reaction(Strings.PROCESSING)
-            logger.debug(f"[{interaction.user.id}] - Added processing reaction to message {message.id}")
+            try:
+                logger.debug(f"[{interaction.user.id}] - Attempting to add processing reaction to message {message.id}")
+                await message.add_reaction(Strings.PROCESSING)
+                logger.debug(f"[{interaction.user.id}] - Added processing reaction to message {message.id}")
+            except Exception as e:
+                logger.error(f"[{interaction.user.id}] - Error adding processing reaction to message {message.id}: {e}")
             
         try:
             # Toggle selection
@@ -89,9 +92,12 @@ class ConfirmButton(discord.ui.Button):
             
             # Add processing reaction to command message
             if view.command_msg:
-                logger.debug(f"[{interaction.user.id}] - Attempting to add processing reaction to command message {view.command_msg.id}")
-                await view.command_msg.add_reaction(Strings.PROCESSING)
-                logger.debug(f"[{interaction.user.id}] - Added processing reaction to command message {view.command_msg.id}")
+                try:
+                    logger.debug(f"[{interaction.user.id}] - Attempting to add processing reaction to command message {view.command_msg.id}")
+                    await view.command_msg.add_reaction(Strings.PROCESSING)
+                    logger.debug(f"[{interaction.user.id}] - Added processing reaction to command message {view.command_msg.id}")
+                except Exception as e:
+                    logger.error(f"[{interaction.user.id}] - Error adding processing reaction to command message {view.command_msg.id}: {e}")
             
             try:
                 # Convert selected days to dates
@@ -254,9 +260,12 @@ class DeclineButton(discord.ui.Button):
             
             # Add processing reaction to command message
             if view.command_msg:
-                logger.debug(f"[{interaction.user.id}] - Attempting to add processing reaction to command message {view.command_msg.id}")
-                await view.command_msg.add_reaction(Strings.PROCESSING)
-                logger.debug(f"[{interaction.user.id}] - Added processing reaction to command message {view.command_msg.id}")
+                try:
+                    logger.debug(f"[{interaction.user.id}] - Attempting to add processing reaction to command message {view.command_msg.id}")
+                    await view.command_msg.add_reaction(Strings.PROCESSING)
+                    logger.debug(f"[{interaction.user.id}] - Added processing reaction to command message {view.command_msg.id}")
+                except Exception as e:
+                    logger.error(f"[{interaction.user.id}] - Error adding processing reaction to command message {view.command_msg.id}: {e}")
             else:
                 logger.debug(f"[{interaction.user.id}] - No command_msg available")
             
