@@ -5,10 +5,13 @@ from services import webhook_service, survey_manager # Added webhook_service, su
 
 class WorkloadView(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
-    def __init__(self, cmd_or_step: str, user_id: str):
-        super().__init__(timeout=300)
+    def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False):
+        super().__init__(timeout=300)  # 5 minute timeout
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
+        self.has_survey = has_survey
+        self.command_msg = None  # Reference to the command message
+        self.buttons_msg = None  # Reference to the buttons message
         
     async def on_timeout(self):
         logger.warning(f"WorkloadView timed out for user {self.user_id}")

@@ -295,7 +295,8 @@ class SlashCommands:
             view.command_msg = command_msg  # Store reference to command message
             buttons_msg = await interaction.channel.send(
                 "Оберіть кількість годин:",
-                view=view
+                view=view,
+                ephemeral=False # Explicitly set ephemeral to False
             )
             view.buttons_msg = buttons_msg  # Store reference to buttons message
 
@@ -322,7 +323,8 @@ class SlashCommands:
             view.command_msg = command_msg  # Store reference to command message
             buttons_msg = await interaction.channel.send(
                 "Оберіть кількість годин:",
-                view=view
+                view=view,
+                ephemeral=False # Explicitly set ephemeral to False
             )
             view.buttons_msg = buttons_msg  # Store reference to buttons message
 
