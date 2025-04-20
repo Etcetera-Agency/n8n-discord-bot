@@ -222,6 +222,7 @@ class DeclineButton(discord.ui.Button):
         from services import webhook_service
         view = self.view
         if isinstance(view, DayOffView):
+            logger.info(f"DECLINE BUTTON STARTED - User: {interaction.user}, Command: {view.cmd_or_step}")
             logger.debug(f"Decline button clicked by {interaction.user}")
             logger.debug(f"View has_survey: {view.has_survey}, cmd_or_step: {view.cmd_or_step}")
             
@@ -312,10 +313,11 @@ class DeclineButton(discord.ui.Button):
                         
                 else:
                     # Regular slash command
+                    logger.info("Processing regular command (non-survey) decline")
                     logger.debug("Entering regular command branch")
                     
                     if view.command_msg:
-                        logger.debug("Adding processing reaction")
+                        logger.info("Adding processing reaction to command message")
                         await view.command_msg.add_reaction(Strings.PROCESSING)
                     
                     try:
