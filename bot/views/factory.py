@@ -178,7 +178,14 @@ def create_view(
         logger.debug(f"[{user_id}] - Calling create_workload_view for cmd_or_step: {cmd_or_step}")
         return create_workload_view(cmd_or_step, user_id)
     elif view_name == "day_off": # Keep existing day_off check
-        return create_day_off_view(cmd_or_step, user_id, timeout, has_survey)
-    
+        logger.debug(f"Creating day_off view for {cmd_or_step}, user {user_id}")
+        try:
+            view = create_day_off_view(cmd_or_step, user_id, timeout, has_survey)
+            logger.debug(f"Successfully created day_off view")
+            return view
+        except Exception as e:
+            logger.error(f"Error creating day_off view: {e}")
+            raise
+
     # Default empty view
     return discord.ui.View(timeout=timeout)

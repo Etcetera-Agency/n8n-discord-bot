@@ -33,10 +33,21 @@ def setup_logging(level: int = logging.INFO, name: str = 'discord_bot') -> loggi
 logger = setup_logging(level=logging.DEBUG)
 
 # Add file handler
-file_handler = logging.FileHandler('server.log')
-file_handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
+# Ensure logs directory exists
+from pathlib import Path
+logs_dir = Path(__file__).parent.parent / 'logs'
+logs_dir.mkdir(exist_ok=True)
+
+log_file = str(logs_dir / 'server.log')
+
+try:
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    logger.debug(f"Logging to file: {log_file}")
+except Exception as e:
+    logger.error(f"Failed to create log file {log_file}: {e}")
 
 logger.info("Logger initialized in debug mode with file output")

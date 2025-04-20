@@ -56,7 +56,8 @@ class DayOffButton(discord.ui.Button):
                 await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
                 
         except Exception as e:
-            logger.error(f"Error in day off button: {e}")
+            logger.error(f"Error in day off button callback: {e}")
+            logger.debug(f"Error details - custom_id: {self.custom_id}")
             if message:
                 await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
                 error_msg = Strings.DAYOFF_ERROR.format(
@@ -380,6 +381,7 @@ def create_day_off_view(
     has_survey: bool = False
 ) -> DayOffView:
     """Create a day off view with buttons."""
+    logger.debug(f"Creating DayOffView for {cmd_or_step}, user {user_id}")
     view = DayOffView(cmd_or_step, user_id, has_survey=has_survey)
     
     # Get current weekday (0 = Monday, 6 = Sunday)

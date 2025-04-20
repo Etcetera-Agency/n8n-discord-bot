@@ -131,21 +131,30 @@ class SlashCommands:
             Args:
                 interaction: Discord interaction
             """
-            logger.info(f"Day off nextweek command from {interaction.user}")
+            logger.debug(f"Day off nextweek command received from {interaction.user}")
             
-            # First send the command usage message and store it
-            if not interaction.response.is_done():
-                await interaction.response.send_message(f"{interaction.user} {Strings.SELECT_DAYS_NEXTWEEK}")
-            command_msg = await interaction.original_response()
-            
-            # Then send the buttons in a separate message
-            view = create_view("day_off", "day_off_nextweek", str(interaction.user.id))
-            view.command_msg = command_msg  # Store reference to command message
-            buttons_msg = await interaction.channel.send(
-                Strings.CONFIRM_BUTTON,
-                view=view
-            )
-            view.buttons_msg = buttons_msg  # Store reference to buttons message
+            try:
+                # First send the command usage message and store it
+                logger.debug("Sending command usage message")
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(f"{interaction.user} {Strings.SELECT_DAYS_NEXTWEEK}")
+                command_msg = await interaction.original_response()
+                
+                # Then send the buttons in a separate message
+                logger.debug("Creating day off view")
+                view = create_view("day_off", "day_off_nextweek", str(interaction.user.id))
+                view.command_msg = command_msg  # Store reference to command message
+                
+                logger.debug("Sending buttons message")
+                buttons_msg = await interaction.channel.send(
+                    Strings.CONFIRM_BUTTON,
+                    view=view
+                )
+                view.buttons_msg = buttons_msg  # Store reference to buttons message
+                logger.debug("Day off nextweek command completed successfully")
+            except Exception as e:
+                logger.error(f"Error in day_off_nextweek: {e}")
+                raise
 
         self.bot.tree.add_command(day_off_group)
 
