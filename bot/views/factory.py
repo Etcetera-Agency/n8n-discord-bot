@@ -135,9 +135,10 @@ def create_view(
             return DayOffNextWeekModal(cmd_or_step, user_id)
     
     # Fall back to button views
-    if view_name == "workload":
+    # Fall back to button views based on specific command/step name
+    if cmd_or_step in ["workload_today", "workload_nextweek"]:
         return create_workload_view(cmd_or_step, user_id, **kwargs)
-    elif view_name == "day_off":
+    elif view_name == "day_off": # Keep existing day_off check
         return create_day_off_view(cmd_or_step, user_id, timeout, has_survey)
     
     # Default empty view
