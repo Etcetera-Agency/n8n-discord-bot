@@ -3,6 +3,7 @@ import discord
 from typing import Optional, List, Any # Added Any
 from config import ViewType, logger, Strings, Config, constants # Added constants
 from services import survey_manager, webhook_service
+from services.survey import SurveyFlow # Added import
 # Removed factory import
 
 # ==================================
@@ -11,7 +12,7 @@ from services import survey_manager, webhook_service
 
 class WorkloadModal(discord.ui.Modal):
     """Modal specifically for handling 'workload_today' and 'workload_nextweek' steps in the survey."""
-    def __init__(self, survey: survey_manager.SurveyFlow, step_name: str):
+    def __init__(self, survey: SurveyFlow, step_name: str):
         """Initializes the WorkloadModal."""
         from config.constants import WORKLOAD_OPTIONS
         self.survey = survey
@@ -67,7 +68,7 @@ class WorkloadModal(discord.ui.Modal):
 
 class ConnectsModal(discord.ui.Modal):
     """Modal specifically for handling the 'connects' step in the survey."""
-    def __init__(self, survey: survey_manager.SurveyFlow, step_name: str):
+    def __init__(self, survey: SurveyFlow, step_name: str):
         """Initializes the ConnectsModal."""
         self.survey = survey
         self.step_name = step_name
@@ -116,7 +117,7 @@ class ConnectsModal(discord.ui.Modal):
 
 class DayOffModal(discord.ui.Modal):
     """Modal specifically for handling the 'dayoff_nextweek' step in the survey."""
-    def __init__(self, survey: survey_manager.SurveyFlow, step_name: str):
+    def __init__(self, survey: SurveyFlow, step_name: str):
         """Initializes the DayOffModal."""
         self.survey = survey
         self.step_name = step_name # Should be "dayoff_nextweek"
@@ -165,7 +166,7 @@ class DayOffModal(discord.ui.Modal):
 # Helper Functions
 # ==================================
 
-async def cleanup_survey_message(interaction: discord.Interaction, survey: survey_manager.SurveyFlow):
+async def cleanup_survey_message(interaction: discord.Interaction, survey: SurveyFlow):
     """Helper function to clean up the survey question message after modal submission.
     Attempts to disable the button on the original message and then delete it.
     Handles potential errors like message not found or missing permissions gracefully.
@@ -406,7 +407,7 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
         except:
             logger.error(f"Could not send error message to channel {channel_id}")
 
-async def ask_dynamic_step(channel: discord.TextChannel, survey: survey_manager.SurveyFlow, step_name: str) -> None: # Type hint updated
+async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, step_name: str) -> None: # Type hint updated
     """Asks a single step of the survey.
     Sends a message with the step question and a 'Ввести' button.
     The button's callback triggers the appropriate survey-specific modal.
@@ -500,7 +501,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: survey_manager.
             except Exception as e2:
                 logger.error(f"Error continuing survey after step failure: {e2}")
 
-async def continue_survey(channel: discord.TextChannel, survey: survey_manager.SurveyFlow) -> None: # Type hint updated
+async def continue_survey(channel: discord.TextChannel, survey: SurveyFlow) -> None: # Type hint updated
     """Advances the survey to the next step or finishes it if all steps are done.
     Called after a modal for a step is successfully submitted.
     """
@@ -520,7 +521,7 @@ async def continue_survey(channel: discord.TextChannel, survey: survey_manager.S
             logger.error(f"Error sending error message to channel: {e2}")
 
 
-async def finish_survey(channel: discord.TextChannel, survey: survey_manager.SurveyFlow) -> None: # Type hint updated
+async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> None: # Type hint updated
     """Finalizes a completed survey.
     Sends the collected results in a 'complete' status webhook to n8n
     and cleans up the survey session.
