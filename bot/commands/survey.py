@@ -196,9 +196,10 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
                 text_q = f"<@{user_id}> Скільки годин на ЦЬОГО тижня?"
             elif step_name == "workload_today":
                 text_q = f"<@{user_id}> Скільки годин на СЬОГОДНІ?"
-            elif step_name == "connects_thisweek":
+            elif step_name.startswith("connects"): # Correctly identifies the step
+                # Always use the specific question text for any step starting with "connects"
                 text_q = f"<@{user_id}> Скільки CONNECTS Upwork Connects History показує ЦЬОГО тижня?\n\nВведіть кількість коннектів що ви бачите на [Upwork Connects History](https://www.upwork.com/nx/plans/connects/history/)"
-                logger.info(f"Creating text input for connects_thisweek step")
+                logger.info(f"Creating text input for connects step: {step_name}")
                 initial_msg = await channel.send(text_q)
 
                 class ConnectsModal(discord.ui.Modal):

@@ -118,7 +118,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, state: SurveyFlow, step
             text_q = f"<@{user_id}> Скільки годин на НАСТУПНИЙ тиждень?"
         elif step_name == "workload_thisweek":
             text_q = f"<@{user_id}> Скільки годин на ЦЬОГО тижня?"
-        elif step_name == "connects_thisweek":
+        elif step_name == "connects":
             text_q = f"<@{user_id}> Скільки CONNECTS на ЦЬОГО тижня?"
         else:
             text_q = f"<@{user_id}> Будь ласка, оберіть кількість годин:"
@@ -274,20 +274,23 @@ async def slash_workload_nextweek(interaction: discord.Interaction):
     view = create_view("workload", "workload_nextweek", str(interaction.user.id))
     await interaction.response.send_message("Скільки годин підтверджено на НАСТУПНИЙ тиждень?\nЯкщо нічого, оберіть «Нічого немає».", view=view, ephemeral=False)
 
-@bot.tree.command(name="connects_thisweek", description="Скільки CONNECTS Upwork Connects History показує ЦЬОГО тижня?")
+@bot.tree.command(name="connects", description="Скільки CONNECTS Upwork Connects History показує ЦЬОГО тижня?")
 @app_commands.describe(
     connects="Кількість Upwork Connects, що залишилось на цьому тижні"
 )
-async def slash_connects_thisweek(interaction: discord.Interaction, connects: int):
+async def slash_connects(interaction: discord.Interaction, connects: int):
     # First defer the response to ensure Discord shows the command usage
     await interaction.response.defer(thinking=True, ephemeral=False)
 
+    logger.info(f"[DEBUG] Connects command from {interaction.user}: {connects}")
+
     # Then handle the response through the standard handler
-    await bot.webhook_service.send_webhook(
+    result = await bot.webhook_service.send_webhook(
         interaction,
-        command="connects_thisweek",
+        command="connects",
         result={"connects": connects}
     )
+    logger.debug(f"[DEBUG] Webhook response for connects: {result}")
 
 ###############################################################################
 # Main function to run both the HTTP/HTTPS server and the Discord Bot

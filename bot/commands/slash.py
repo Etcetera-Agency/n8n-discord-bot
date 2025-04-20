@@ -322,10 +322,10 @@ class SlashCommands:
             view.buttons_msg = buttons_msg  # Store reference to buttons message
 
         @self.bot.tree.command(
-            name="connects_thisweek",
+            name="connects",
             description="Скільки CONNECTS Upwork Connects History показує ЦЬОГО тижня?"
         )
-        async def slash_connects_thisweek(interaction: discord.Interaction, connects: int):
+        async def slash_connects(interaction: discord.Interaction, connects: int):
             """
             Set Upwork connects for this week.
             
@@ -333,7 +333,7 @@ class SlashCommands:
                 interaction: Discord interaction
                 connects: Number of connects
             """
-            logger.info(f"Connects thisweek command from {interaction.user}: {connects}")
+            logger.info(f"[DEBUG] Connects command from {interaction.user}: {connects}")
             
             # First, acknowledge the interaction to prevent timeout
             if not interaction.response.is_done():
@@ -349,10 +349,12 @@ class SlashCommands:
                 # Send webhook
                 success, data = await webhook_service.send_webhook(
                     interaction,
-                    command="connects_thisweek",
+                    command="connects",
                     status="ok",
                     result={"connects": connects}
                 )
+                
+                logger.debug(f"[DEBUG] Webhook response for connects: success={success}, data={data}")
                 
                 if message:
                     # Remove processing reaction
@@ -376,4 +378,4 @@ class SlashCommands:
                     await message.remove_reaction("⏳", interaction.client.user)
                     error_msg = f"Ваш запит: Connects на цей тиждень = {connects}\nПомилка: Сталася неочікувана помилка."
                     await message.edit(content=error_msg)
-                    await message.add_reaction("❌") 
+                    await message.add_reaction("❌")
