@@ -4,13 +4,6 @@ import datetime
 from config import ViewType, logger, constants
 from services import survey_manager
 import asyncio
-import warnings
-
-warnings.warn(
-    "DayOffView is deprecated - use modals in survey commands instead",
-    DeprecationWarning,
-    stacklevel=2
-)
 
 class DayOffButton(discord.ui.Button):
     def __init__(self, *, label: str, custom_id: str, cmd_or_step: str):
@@ -59,7 +52,7 @@ class DayOffButton(discord.ui.Button):
             logger.error(f"Error in day off button callback: {e}")
             logger.debug(f"Error details - custom_id: {self.custom_id}, interaction: {interaction.data if interaction else None}")
             if message:
-                await message.add_reaction("❌")
+                await message.add_reaction("Strings.ERROR")
                 await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
                 error_msg = Strings.DAYOFF_ERROR.format(
                     days=self.label,
@@ -399,7 +392,7 @@ class DeclineButton(discord.ui.Button):
 
 class DayOffView(discord.ui.View):
     def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False):
-        super().__init__(timeout=600)  # 10 minute timeout
+        super().__init__()  # No timeout
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
         self.has_survey = has_survey

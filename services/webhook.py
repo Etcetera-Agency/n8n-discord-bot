@@ -333,22 +333,32 @@ class WebhookService:
         Returns:
             Tuple of (success, response_data)
         """
+        # Get the appropriate channel for error messages regardless of target type
+        error_channel = None
+        if hasattr(target_channel, 'channel'):
+            error_channel = target_channel.channel
+        elif isinstance(target_channel, discord.TextChannel):
+            error_channel = target_channel
+        elif hasattr(target_channel, 'followup'):
+            error_channel = target_channel.channel
+
         if not self.http_session:
             # Try to initialize if session is missing
             try:
                 await self.initialize()
             except Exception as e:
                 logger.error(f"Failed to initialize HTTP session: {e}")
+                if error_channel:
+                    await error_channel.send("Failed to initialize webhook session")
                 raise WebhookError("Failed to initialize HTTP session")
             
-        request_id = str(uuid.uuid4())[:8]
-        logger.info(f"[{request_id}] Sending webhook to URL: {self.url}")
-        logger.info(f"[{request_id}] Payload: {payload}")
-        logger.info(f"[{request_id}] Headers: {headers}")
+        logger.info(f"Sending webhook to URL: {self.url}")
+        logger.debug(f"Payload: {payload}")
+        logger.debug(f"Headers: {headers}")
         
         for attempt in range(max_retries):
             try:
-                logger.info(f"[{request_id}] Sending to n8n (attempt {attempt+1}/{max_retries})")
+                logger.info(f"Sending to n8n (attempt {attempt+1}/{max_retries})")
                 async with self.http_session.post(
                     self.url,
                     json=payload,
@@ -356,16 +366,18 @@ class WebhookService:
                     timeout=15
                 ) as response:
                     response_text = await response.text()
-                    logger.info(f"[{request_id}] Response status: {response.status}")
-                    logger.info(f"[{request_id}] Response text: {response_text}")
+                    logger.info(f"Response status: {response.status}")
+                    logger.debug(f"Response text: {response_text}")
                     
                     if response.status == 200:
                         try:
                             data = await response.json()
-                            logger.info(f"[{request_id}] Parsed JSON response: {data}")
+                            logger.debug(f"Parsed JSON response: {data}")
                             return True, data
                         except Exception as e:
-                            logger.error(f"[{request_id}] JSON parse error: {e}")
+                            logger.error(f"JSON parse error: {e}")
+                            if error_channel:
+                                await error_channel.send("Received invalid response from n8n")
                             fallback = response_text.strip()
                             return True, {"output": fallback or "No valid JSON from n8n."}
                     else:
