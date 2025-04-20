@@ -31,7 +31,7 @@ class DayOffButton(discord.ui.Button):
         message = interaction.message
         if message:
             # Add processing reaction
-            await message.add_reaction("⏳")
+            await message.add_reaction(Strings.PROCESSING)
             
         try:
             # Toggle selection
@@ -53,15 +53,18 @@ class DayOffButton(discord.ui.Button):
             
             # Show success reaction for survey steps
             if message:
-                await message.remove_reaction("⏳", interaction.client.user)
+                await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
                 
         except Exception as e:
             logger.error(f"Error in day off button: {e}")
             if message:
-                await message.remove_reaction("⏳", interaction.client.user)
-                error_msg = f"Ваш запит: Вибір дня {self.label}\nПомилка: Сталася неочікувана помилка."
+                await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                error_msg = Strings.DAYOFF_ERROR.format(
+                    days=self.label,
+                    error=Strings.UNEXPECTED_ERROR
+                )
                 await message.edit(content=error_msg)
-                await message.add_reaction("❌")
+                await message.add_reaction(Strings.ERROR)
 
 class ConfirmButton(discord.ui.Button):
     def __init__(self):
@@ -81,7 +84,7 @@ class ConfirmButton(discord.ui.Button):
             
             # Add processing reaction to command message
             if view.command_msg:
-                await view.command_msg.add_reaction("⏳")
+                await view.command_msg.add_reaction(Strings.PROCESSING)
             
             try:
                 # Convert selected days to dates
@@ -96,10 +99,13 @@ class ConfirmButton(discord.ui.Button):
                     state = survey_manager.get_survey(view.user_id)
                     if not state:
                         if view.command_msg:
-                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
-                            error_msg = "Ваш запит: Підтвердження вихідних\nПомилка: Опитування не знайдено."
+                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                            error_msg = Strings.DAYOFF_ERROR.format(
+                                days="Підтвердження вихідних",
+                                error=Strings.NOT_YOUR_SURVEY
+                            )
                             await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction("❌")
+                            await view.command_msg.add_reaction(Strings.ERROR)
                         if view.buttons_msg:
                             await view.buttons_msg.delete()
                         return
@@ -117,10 +123,13 @@ class ConfirmButton(discord.ui.Button):
                     
                     if not success:
                         if view.command_msg:
-                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
-                            error_msg = f"Ваш запит: Вихідні дні = {', '.join(dates)}\nПомилка: Не вдалося виконати крок опитування."
+                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                            error_msg = Strings.DAYOFF_ERROR.format(
+                                days=', '.join(dates),
+                                error=Strings.GENERAL_ERROR
+                            )
                             await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction("❌")
+                            await view.command_msg.add_reaction(Strings.ERROR)
                         if view.buttons_msg:
                             await view.buttons_msg.delete()
                         return
@@ -132,7 +141,7 @@ class ConfirmButton(discord.ui.Button):
                     
                     # Update command message with success
                     if view.command_msg:
-                        await view.command_msg.remove_reaction("⏳", interaction.client.user)
+                        await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                         await view.command_msg.edit(content=f"Дякую! Вихідні: {', '.join(dates)} записані.")
                     
                     # Delete buttons message
@@ -166,7 +175,7 @@ class ConfirmButton(discord.ui.Button):
                     if success and data and "output" in data:
                         # Update command message with success
                         if view.command_msg:
-                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
+                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                             await view.command_msg.edit(content=data["output"])
                         
                         # Delete buttons message
@@ -174,11 +183,14 @@ class ConfirmButton(discord.ui.Button):
                             await view.buttons_msg.delete()
                     else:
                         if view.command_msg:
-                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
-                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
-                            error_msg = f"Ваш запит: Вихідні дні = {', '.join(dates)}\nПомилка: Не вдалося виконати команду."
+                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                            error_msg = Strings.DAYOFF_ERROR.format(
+                                days=', '.join(dates),
+                                error=Strings.GENERAL_ERROR
+                            )
                             await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction("❌")
+                            await view.command_msg.add_reaction(Strings.ERROR)
                         if view.buttons_msg:
                             await view.buttons_msg.delete()
                         
@@ -186,10 +198,13 @@ class ConfirmButton(discord.ui.Button):
                 logger.error(f"Error in confirm button: {e}")
                 if view.command_msg:
                     if view.command_msg:
-                        await view.command_msg.remove_reaction("⏳", interaction.client.user)
-                    error_msg = f"Ваш запит: Вихідні дні = {', '.join(view.selected_days)}\nПомилка: Сталася неочікувана помилка."
+                        await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                    error_msg = Strings.DAYOFF_ERROR.format(
+                        days=', '.join(view.selected_days),
+                        error=Strings.UNEXPECTED_ERROR
+                    )
                     await view.command_msg.edit(content=error_msg)
-                    await view.command_msg.add_reaction("❌")
+                    await view.command_msg.add_reaction(Strings.ERROR)
                 if view.buttons_msg:
                     await view.buttons_msg.delete()
 
@@ -211,7 +226,7 @@ class DeclineButton(discord.ui.Button):
             
             # Add processing reaction to command message
             if view.command_msg:
-                await view.command_msg.add_reaction("⏳")
+                await view.command_msg.add_reaction(Strings.PROCESSING)
             
             try:
                 if view.has_survey:
@@ -219,10 +234,13 @@ class DeclineButton(discord.ui.Button):
                     state = survey_manager.get_survey(view.user_id)
                     if not state:
                         if view.command_msg:
-                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
-                            error_msg = "Ваш запит: Відмова від вихідних\nПомилка: Опитування не знайдено."
+                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                            error_msg = Strings.DAYOFF_ERROR.format(
+                                days="Відмова від вихідних",
+                                error=Strings.NOT_YOUR_SURVEY
+                            )
                             await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction("❌")
+                            await view.command_msg.add_reaction(Strings.ERROR)
                         if view.buttons_msg:
                             await view.buttons_msg.delete()
                         return
@@ -240,10 +258,13 @@ class DeclineButton(discord.ui.Button):
                     
                     if not success:
                         if view.command_msg:
-                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
-                            error_msg = "Ваш запит: Відмова від вихідних\nПомилка: Не вдалося виконати крок опитування."
+                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                            error_msg = Strings.DAYOFF_ERROR.format(
+                                days="Відмова від вихідних",
+                                error=Strings.GENERAL_ERROR
+                            )
                             await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction("❌")
+                            await view.command_msg.add_reaction(Strings.ERROR)
                         if view.buttons_msg:
                             await view.buttons_msg.delete()
                         return
@@ -255,7 +276,7 @@ class DeclineButton(discord.ui.Button):
                     
                     # Update command message with success
                     if view.command_msg:
-                        await view.command_msg.remove_reaction("⏳", interaction.client.user)
+                        await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                         await view.command_msg.edit(content="Дякую! Не плануєш вихідні.")
                     
                     # Delete buttons message
@@ -282,7 +303,7 @@ class DeclineButton(discord.ui.Button):
                     if success and data and "output" in data:
                         # Update command message with success
                         if view.command_msg:
-                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
+                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                             await view.command_msg.edit(content=data["output"])
                         
                         # Delete buttons message
@@ -290,20 +311,26 @@ class DeclineButton(discord.ui.Button):
                             await view.buttons_msg.delete()
                     else:
                         if view.command_msg:
-                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
-                            error_msg = "Ваш запит: Відмова від вихідних\nПомилка: Не вдалося виконати команду."
+                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                            error_msg = Strings.DAYOFF_ERROR.format(
+                                days="Відмова від вихідних",
+                                error=Strings.GENERAL_ERROR
+                            )
                             await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction("❌")
+                            await view.command_msg.add_reaction(Strings.ERROR)
                         if view.buttons_msg:
                             await view.buttons_msg.delete()
                         
             except Exception as e:
                 logger.error(f"Error in decline button: {e}")
                 if view.command_msg:
-                    await view.command_msg.remove_reaction("⏳", interaction.client.user)
-                    error_msg = "Ваш запит: Відмова від вихідних\nПомилка: Сталася неочікувана помилка."
+                    await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                    error_msg = Strings.DAYOFF_ERROR.format(
+                        days="Відмова від вихідних",
+                        error=Strings.UNEXPECTED_ERROR
+                    )
                     await view.command_msg.edit(content=error_msg)
-                    await view.command_msg.add_reaction("❌")
+                    await view.command_msg.add_reaction(Strings.ERROR)
                 if view.buttons_msg:
                     await view.buttons_msg.delete()
 

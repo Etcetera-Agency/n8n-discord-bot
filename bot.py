@@ -164,7 +164,7 @@ async def on_message(message: discord.Message):
 
     if bot.user in message.mentions:
         # Add processing reaction
-        await message.add_reaction("⏳")
+        await message.add_reaction(Config.Strings.PROCESSING)
 
         # Process the message
         success, _ = await bot.webhook_service.send_webhook(
@@ -178,7 +178,7 @@ async def on_message(message: discord.Message):
         await message.remove_reaction("⏳", bot.user)
 
         # Add success or error reaction
-        await message.add_reaction("✅" if success else "❌")
+        await message.add_reaction("✅" if success else Config.Strings.ERROR)
 
     if message.content.startswith("start_daily_survey"):
         parts = message.content.split()
@@ -212,15 +212,15 @@ async def unregister_cmd(ctx: commands.Context):
 ###############################################################################
 # SLASH COMMANDS
 ###############################################################################
-day_off_group = app_commands.Group(name="day_off", description="Команди для вихідних")
+day_off_group = app_commands.Group(name="day_off", description=Config.Strings.DAY_OFF_GROUP)
 
-@day_off_group.command(name="thisweek", description="Оберіть вихідні на ЦЕЙ тиждень.")
+@day_off_group.command(name="thisweek", description=Config.Strings.DAY_OFF_THISWEEK)
 async def day_off_thisweek(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True, ephemeral=False)
     view = create_view("day_off", "day_off_thisweek", str(interaction.user.id))
     await interaction.followup.send("Оберіть свої вихідні (цей тиждень), потім натисніть «Відправити»:", view=view, ephemeral=False)
 
-@day_off_group.command(name="nextweek", description="Оберіть вихідні на НАСТУПНИЙ тиждень.")
+@day_off_group.command(name="nextweek", description=Config.Strings.DAY_OFF_NEXTWEEK)
 async def day_off_nextweek(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True, ephemeral=False)
     view = create_view("day_off", "day_off_nextweek", str(interaction.user.id))
@@ -228,12 +228,12 @@ async def day_off_nextweek(interaction: discord.Interaction):
 
 bot.tree.add_command(day_off_group)
 
-@bot.tree.command(name="vacation", description="Вкажіть день/місяць початку та кінця відпустки.")
+@bot.tree.command(name="vacation", description=Config.Strings.VACATION)
 @app_commands.describe(
-    start_day="День початку відпустки (1-31)",
-    start_month="Місяць початку відпустки",
-    end_day="День закінчення відпустки (1-31)",
-    end_month="Місяць закінчення відпустки"
+    start_day=Config.Strings.START_DAY,
+    start_month=Config.Strings.START_MONTH,
+    end_day=Config.Strings.END_DAY,
+    end_month=Config.Strings.END_MONTH
 )
 async def vacation_slash(
     interaction: discord.Interaction,
@@ -244,7 +244,7 @@ async def vacation_slash(
 ):
     # Validate inputs
     if not (1 <= start_day <= 31) or not (1 <= end_day <= 31):
-        await interaction.response.send_message("День повинен бути між 1 та 31.", ephemeral=False)
+        await interaction.response.send_message(Config.Strings.INVALID_DAY, ephemeral=False)
         return
 
     # Process vacation request
@@ -268,19 +268,19 @@ async def month_autocomplete(interaction: discord.Interaction, current: str) -> 
         if current in month.lower()
     ][:25]  # Limit to 25 choices as per Discord limits
 
-@bot.tree.command(name="workload_today", description="Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?")
+@bot.tree.command(name="workload_today", description=Config.Strings.WORKLOAD_TODAY)
 async def slash_workload_today(interaction: discord.Interaction):
     view = create_view("workload", "workload_today", str(interaction.user.id))
-    await interaction.response.send_message("Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?\nЯкщо нічого, оберіть «Нічого немає».", view=view, ephemeral=False)
+    await interaction.response.send_message(f"{Config.Strings.WORKLOAD_TODAY}\nЯкщо нічого, оберіть «Нічого немає».", view=view, ephemeral=False)
 
-@bot.tree.command(name="workload_nextweek", description="Скільки годин підтверджено на НАСТУПНИЙ тиждень?")
+@bot.tree.command(name="workload_nextweek", description=Config.Strings.WORKLOAD_NEXTWEEK)
 async def slash_workload_nextweek(interaction: discord.Interaction):
     view = create_view("workload", "workload_nextweek", str(interaction.user.id))
-    await interaction.response.send_message("Скільки годин підтверджено на НАСТУПНИЙ тиждень?\nЯкщо нічого, оберіть «Нічого немає».", view=view, ephemeral=False)
+    await interaction.response.send_message(f"{Config.Strings.WORKLOAD_NEXTWEEK}\nЯкщо нічого, оберіть «Нічого немає».", view=view, ephemeral=False)
 
-@bot.tree.command(name="connects", description="Скільки CONNECTS Upwork Connects History показує ЦЬОГО тижня?")
+@bot.tree.command(name="connects", description=Config.Strings.CONNECTS)
 @app_commands.describe(
-    connects="Кількість Upwork Connects, що залишилось на цьому тижні"
+    connects=Config.Strings.CONNECTS_PARAM
 )
 async def slash_connects(interaction: discord.Interaction, connects: int):
     # First defer the response to ensure Discord shows the command usage
@@ -288,13 +288,46 @@ async def slash_connects(interaction: discord.Interaction, connects: int):
 
     logger.info(f"[DEBUG] Connects command from {interaction.user}: {connects}")
 
-    # Then handle the response through the standard handler
-    result = await bot.webhook_service.send_webhook(
-        interaction,
-        command="connects",
-        result={"connects": connects}
-    )
-    logger.debug(f"[DEBUG] Webhook response for connects: {result}")
+    # Get the original message
+    message = await interaction.original_response()
+    if message:
+        await message.add_reaction(Config.Strings.PROCESSING)
+
+    try:
+        # Send webhook
+        success, data = await bot.webhook_service.send_webhook(
+            interaction,
+            command="connects",
+            result={"connects": connects}
+        )
+        logger.debug(f"[DEBUG] Webhook response for connects: success={success}, data={data}")
+
+        if message:
+            await message.remove_reaction(Config.Strings.PROCESSING, interaction.client.user)
+
+        if success and data and "output" in data:
+            await interaction.followup.send(data["output"])
+        else:
+            error_msg = Config.Strings.CONNECTS_ERROR.format(
+                connects=connects,
+                error=Config.Strings.GENERAL_ERROR
+            )
+            if message:
+                await message.edit(content=error_msg)
+                await message.add_reaction(Config.Strings.ERROR)
+            else:
+                await interaction.followup.send(error_msg)
+
+    except Exception as e:
+        logger.error(f"Error in connects command: {e}")
+        if message:
+            await message.remove_reaction(Config.Strings.PROCESSING, interaction.client.user)
+            error_msg = Config.Strings.CONNECTS_ERROR.format(
+                connects=connects,
+                error=Config.Strings.UNEXPECTED_ERROR
+            )
+            await message.edit(content=error_msg)
+            await message.add_reaction(Config.Strings.ERROR)
 
 ###############################################################################
 # Main function to run both the HTTP/HTTPS server and the Discord Bot

@@ -95,7 +95,7 @@ class WorkloadButton(discord.ui.Button):
 
             # Add processing reaction to command message
             if view.command_msg:
-                await view.command_msg.add_reaction("⏳")
+                await view.command_msg.add_reaction(Strings.PROCESSING)
                 logger.info(f"Added processing reaction to command message {view.command_msg.id}")
 
             try:
@@ -118,10 +118,13 @@ class WorkloadButton(discord.ui.Button):
                     if not state:
                         logger.error(f"Survey not found for user {view.user_id}")
                         if view.command_msg:
-                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
-                            error_msg = "Ваш запит: Вибір навантаження\nПомилка: Опитування не знайдено."
+                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                            error_msg = Strings.WORKLOAD_ERROR.format(
+                                hours="Вибір навантаження",
+                                error=Strings.NOT_YOUR_SURVEY
+                            )
                             await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction("❌")
+                            await view.command_msg.add_reaction(Strings.ERROR)
                         if view.buttons_msg:
                             await view.buttons_msg.delete()
                         return
@@ -144,10 +147,13 @@ class WorkloadButton(discord.ui.Button):
                     if not success:
                         logger.error(f"Failed to send webhook for survey step: {view.cmd_or_step}")
                         if view.command_msg:
-                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
-                            error_msg = f"Ваш запит: Навантаження = {value}\nПомилка: Не вдалося виконати крок опитування."
+                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                            error_msg = Strings.WORKLOAD_ERROR.format(
+                                hours=value,
+                                error=Strings.GENERAL_ERROR
+                            )
                             await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction("❌")
+                            await view.command_msg.add_reaction(Strings.ERROR)
                         if view.buttons_msg:
                             await view.buttons_msg.delete()
                         return
@@ -198,7 +204,7 @@ class WorkloadButton(discord.ui.Button):
                     if success and data and "output" in data:
                         # Update command message with success
                         if view.command_msg:
-                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
+                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                             await view.command_msg.edit(content=data["output"])
                             logger.info(f"Updated command message with success: {data['output']}")
 
@@ -209,20 +215,26 @@ class WorkloadButton(discord.ui.Button):
                     else:
                         logger.error(f"Failed to send webhook for command: {view.cmd_or_step}")
                         if view.command_msg:
-                            await view.command_msg.remove_reaction("⏳", interaction.client.user)
-                            error_msg = f"Ваш запит: Навантаження = {value}\nПомилка: Не вдалося виконати команду."
+                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                            error_msg = Strings.WORKLOAD_ERROR.format(
+                                hours=value,
+                                error=Strings.GENERAL_ERROR
+                            )
                             await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction("❌")
+                            await view.command_msg.add_reaction(Strings.ERROR)
                         if view.buttons_msg:
                             await view.buttons_msg.delete()
 
             except Exception as e:
                 logger.error(f"Error in workload button: {e}")
                 if view.command_msg:
-                    await view.command_msg.remove_reaction("⏳", interaction.client.user)
+                    await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                     from config import Strings
                     value = 0 if self.label == "Нічого немає" else self.label
-                    error_msg = f"Ваш запит: Навантаження = {value}\n{Strings.UNEXPECTED_ERROR}"
+                    error_msg = Strings.WORKLOAD_ERROR.format(
+                        hours=value,
+                        error=Strings.UNEXPECTED_ERROR
+                    )
                     await view.command_msg.edit(content=error_msg)
                     await view.command_msg.add_reaction(Strings.ERROR)
                 if view.buttons_msg:

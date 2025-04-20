@@ -38,7 +38,7 @@ class SlashCommands:
         
         try:
             if message:
-                await message.add_reaction("⏳")
+                await message.add_reaction(Strings.PROCESSING)
                 
             success, data = await webhook_service.send_webhook(
                 interaction,
@@ -47,24 +47,24 @@ class SlashCommands:
             )
             
             if message:
-                await message.remove_reaction("⏳", interaction.client.user)
+                await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
                 
             if success and data and "output" in data:
                 if message:
                     pass
                 return data["output"]
             else:
-                error_msg = f"Помилка: Не вдалося виконати команду."
+                error_msg = Strings.GENERAL_ERROR
                 if message:
-                    await message.add_reaction("❌")
+                    await message.add_reaction(Strings.ERROR)
                 return error_msg
                 
         except Exception as e:
             logger.error(f"Error in {command} command: {e}")
             if message:
-                await message.remove_reaction("⏳", interaction.client.user)
-                await message.add_reaction("❌")
-            return f"Помилка: Сталася неочікувана помилка."
+                await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                await message.add_reaction(Strings.ERROR)
+            return Strings.UNEXPECTED_ERROR
     
     async def create_interactive_command(self, interaction: discord.Interaction, view_type: str, command_name: str):
         """
@@ -88,7 +88,7 @@ class SlashCommands:
         view.command_msg = command_msg
         
         buttons_msg = await interaction.channel.send(
-            "Оберіть варіант:",
+            Strings.SELECT_OPTION,
             view=view
         )
         view.buttons_msg = buttons_msg
@@ -111,19 +111,19 @@ class SlashCommands:
             
             # First send the command usage message and store it
             if not interaction.response.is_done():
-                await interaction.response.send_message(f"{interaction.user} Оберіть свої вихідні (цей тиждень):")
+                await interaction.response.send_message(f"{interaction.user} {Strings.SELECT_DAYS_THISWEEK}")
             command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
             view = create_view("day_off", "day_off_thisweek", str(interaction.user.id))
             view.command_msg = command_msg  # Store reference to command message
             buttons_msg = await interaction.channel.send(
-                "В кінці натисніть кнопку Підтверджую",
+                Strings.CONFIRM_BUTTON,
                 view=view
             )
             view.buttons_msg = buttons_msg  # Store reference to buttons message
 
-        @day_off_group.command(name="nextweek", description="Оберіть вихідні на НАСТУПНИЙ тиждень.")
+        @day_off_group.command(name="nextweek", description=Strings.DAY_OFF_NEXTWEEK)
         async def day_off_nextweek(interaction: discord.Interaction):
             """
             Select days off for the next week.
@@ -135,26 +135,26 @@ class SlashCommands:
             
             # First send the command usage message and store it
             if not interaction.response.is_done():
-                await interaction.response.send_message(f"{interaction.user} Оберіть свої вихідні на наступний тиждень:")
+                await interaction.response.send_message(f"{interaction.user} {Strings.SELECT_DAYS_NEXTWEEK}")
             command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
             view = create_view("day_off", "day_off_nextweek", str(interaction.user.id))
             view.command_msg = command_msg  # Store reference to command message
             buttons_msg = await interaction.channel.send(
-                "В кінці натисніть кнопку Підтверждую",
+                Strings.CONFIRM_BUTTON,
                 view=view
             )
             view.buttons_msg = buttons_msg  # Store reference to buttons message
 
         self.bot.tree.add_command(day_off_group)
 
-        @self.bot.tree.command(name="vacation", description="Вкажіть день/місяць початку та кінця відпустки.")
+        @self.bot.tree.command(name="vacation", description=Strings.VACATION)
         @app_commands.describe(
-            start_day="День початку відпустки (1-31)",
-            start_month="Місяць початку відпустки",
-            end_day="День закінчення відпустки (1-31)",
-            end_month="Місяць закінчення відпустки"
+            start_day=Strings.START_DAY,
+            start_month=Strings.START_MONTH,
+            end_day=Strings.END_DAY,
+            end_month=Strings.END_MONTH
         )
         async def vacation_slash(
             interaction: discord.Interaction, 
@@ -189,7 +189,7 @@ class SlashCommands:
             message = await interaction.original_response()
             if message:
                 # Add processing reaction
-                await message.add_reaction("⏳")
+                await message.add_reaction(Strings.PROCESSING)
             
             try:
                 # Get month numbers from constants
@@ -229,7 +229,7 @@ class SlashCommands:
                 
                 if message:
                     # Remove processing reaction
-                    await message.remove_reaction("⏳", interaction.client.user)
+                    await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
                 
                 if success and data and "output" in data:
                     if message:
@@ -237,20 +237,32 @@ class SlashCommands:
                     else:
                         await interaction.followup.send(data["output"])
                 else:
-                    error_msg = f"Ваш запит: Відпустка {start_day}/{start_month} - {end_day}/{end_month}\nПомилка: Не вдалося виконати команду."
+                    error_msg = Strings.VACATION_ERROR.format(
+                        start_day=start_day,
+                        start_month=start_month,
+                        end_day=end_day,
+                        end_month=end_month,
+                        error=Strings.GENERAL_ERROR
+                    )
                     if message:
                         await message.edit(content=error_msg)
-                        await message.add_reaction("❌")
+                        await message.add_reaction(Strings.ERROR)
                     else:
                         await interaction.followup.send(error_msg)
                     
             except Exception as e:
                 logger.error(f"Error in vacation command: {e}")
                 if message:
-                    await message.remove_reaction("⏳", interaction.client.user)
-                    error_msg = f"Ваш запит: Відпустка {start_day}/{start_month} - {end_day}/{end_month}\nПомилка: Сталася неочікувана помилка."
+                    await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                    error_msg = Strings.VACATION_ERROR.format(
+                        start_day=start_day,
+                        start_month=start_month,
+                        end_day=end_day,
+                        end_month=end_month,
+                        error=Strings.UNEXPECTED_ERROR
+                    )
                     await message.edit(content=error_msg)
-                    await message.add_reaction("❌")
+                    await message.add_reaction(Strings.ERROR)
             
         @vacation_slash.autocomplete("start_month")
         @vacation_slash.autocomplete("end_month")
@@ -274,7 +286,7 @@ class SlashCommands:
             
         @self.bot.tree.command(
             name="workload_today",
-            description="Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?"
+            description=Strings.WORKLOAD_TODAY
         )
         async def slash_workload_today(interaction: discord.Interaction):
             """
@@ -296,14 +308,14 @@ class SlashCommands:
             view = create_view("workload", "workload_today", str(interaction.user.id))
             view.command_msg = command_msg  # Store reference to command message
             buttons_msg = await interaction.channel.send(
-                "Оберіть кількість годин:",
+                Strings.SELECT_HOURS,
                 view=view
             )
             view.buttons_msg = buttons_msg  # Store reference to buttons message
 
         @self.bot.tree.command(
             name="workload_nextweek",
-            description="Скільки годин підтверджено на НАСТУПНИЙ тиждень?"
+            description=Strings.WORKLOAD_NEXTWEEK
         )
         async def slash_workload_nextweek(interaction: discord.Interaction):
             """
@@ -325,14 +337,14 @@ class SlashCommands:
             view = create_view("workload", "workload_nextweek", str(interaction.user.id))
             view.command_msg = command_msg  # Store reference to command message
             buttons_msg = await interaction.channel.send(
-                "Оберіть кількість годин:",
+                Strings.SELECT_HOURS,
                 view=view
             )
             view.buttons_msg = buttons_msg  # Store reference to buttons message
 
         @self.bot.tree.command(
             name="connects",
-            description="Скільки CONNECTS Upwork Connects History показує ЦЬОГО тижня?"
+            description=Strings.CONNECTS
         )
         async def slash_connects(interaction: discord.Interaction, connects: int):
             """
@@ -352,7 +364,7 @@ class SlashCommands:
             message = await interaction.original_response()
             if message:
                 # Add processing reaction
-                await message.add_reaction("⏳")
+                await message.add_reaction(Strings.PROCESSING)
             
             try:
                 # Send webhook
@@ -367,24 +379,30 @@ class SlashCommands:
                 
                 if message:
                     # Remove processing reaction
-                    await message.remove_reaction("⏳", interaction.client.user)
+                    await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
                 
                 if success and data and "output" in data:
                     if message:
                         pass
                     await interaction.followup.send(data["output"])
                 else:
-                    error_msg = f"Ваш запит: Connects на цей тиждень = {connects}\nПомилка: Не вдалося виконати команду."
+                    error_msg = Strings.CONNECTS_ERROR.format(
+                        connects=connects,
+                        error=Strings.GENERAL_ERROR
+                    )
                     if message:
                         await message.edit(content=error_msg)
-                        await message.add_reaction("❌")
+                        await message.add_reaction(Strings.ERROR)
                     else:
                         await interaction.followup.send(error_msg)
                     
             except Exception as e:
                 logger.error(f"Error in connects command: {e}")
                 if message:
-                    await message.remove_reaction("⏳", interaction.client.user)
-                    error_msg = f"Ваш запит: Connects на цей тиждень = {connects}\nПомилка: Сталася неочікувана помилка."
+                    await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                    error_msg = Strings.CONNECTS_ERROR.format(
+                        connects=connects,
+                        error=Strings.UNEXPECTED_ERROR
+                    )
                     await message.edit(content=error_msg)
-                    await message.add_reaction("❌")
+                    await message.add_reaction(Strings.ERROR)

@@ -44,7 +44,7 @@ class EventHandlers:
             return
 
         if self.bot.user in message.mentions:
-            await message.add_reaction("⏳")
+            await message.add_reaction(Strings.PROCESSING)
             success, _ = await self.bot.webhook_service.send_webhook(
                 message,
                 command="mention",
@@ -59,7 +59,7 @@ class EventHandlers:
                 timestamp=int(message.created_at.timestamp())
             )
             await message.remove_reaction("⏳", self.bot.user)
-            await message.add_reaction("✅" if success else "❌")
+            await message.add_reaction("✅" if success else Strings.ERROR)
 
         if message.content.startswith("start_daily_survey"):
             parts = message.content.split()

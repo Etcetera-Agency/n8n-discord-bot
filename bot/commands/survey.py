@@ -23,7 +23,7 @@ class ConnectsModal(discord.ui.Modal):
                 raise ValueError("Survey missing required properties")
             
             # Initialize modal with title
-            title = getattr(Strings, 'CONNECTS_MODAL', 'Введіть кількість коннектів')
+            title = Strings.CONNECTS_MODAL
             super().__init__(title=title, timeout=300)
             logger.info("Modal base initialized")
             
@@ -34,8 +34,8 @@ class ConnectsModal(discord.ui.Modal):
             # Create and configure text input
             logger.info("Creating TextInput field")
             self.connects_input = discord.ui.TextInput(
-                label=getattr(Strings, 'CONNECTS_INPUT', 'Кількість коннектів'),
-                placeholder=getattr(Strings, 'CONNECTS_PLACEHOLDER', 'Введіть число (наприклад: 80)'),
+                label=Strings.CONNECTS_INPUT,
+                placeholder=Strings.CONNECTS_PLACEHOLDER,
                 min_length=1,
                 max_length=3,
                 required=True,
@@ -80,7 +80,7 @@ class ConnectsModal(discord.ui.Modal):
             connects = int(user_input)
             if connects < 0 or connects > 999:
                 logger.warning(f"Invalid connects range: {connects}")
-                await send_error("Кількість коннектів має бути від 0 до 999")
+                await send_error(f"{Strings.NUMBER_REQUIRED}. Кількість коннектів має бути від 0 до 999")
                 return
 
             # Handle interaction response
@@ -489,7 +489,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 # Send the workload button view
                 # Since the initial interaction was deferred in ask_dynamic_step, use followup.send
                 buttons_msg = await interaction.followup.send(
-                    "Оберіть кількість годин:", # Or appropriate string
+                    Strings.SELECT_HOURS, # Or appropriate string
                     view=workload_view,
                     ephemeral=False # Make the button message visible to others
                 )
@@ -553,7 +553,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 # Send the day off button view
                 # Since the initial interaction was deferred in ask_dynamic_step, use followup.send
                 buttons_msg = await interaction.followup.send(
-                    "Оберіть свої вихідні на наступний тиждень:", # Or appropriate string
+                    Strings.DAY_OFF_NEXTWEEK,
                     view=day_off_view,
                     ephemeral=False # Make the button message visible to others
                 )
