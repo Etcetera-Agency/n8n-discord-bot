@@ -102,6 +102,7 @@ class ConnectsModal(discord.ui.Modal):
             # Store the validated result
             try:
                 self.survey.add_result(self.step_name, str(connects))
+                logger.info(f"After add_result, survey.results: {self.survey.results}")
             except Exception as e:
                 logger.error(f"Error storing connects result: {e}")
                 await send_error(Strings.GENERAL_ERROR)
@@ -118,7 +119,7 @@ class ConnectsModal(discord.ui.Modal):
             logger.info("Sending confirmation message")
             # Confirm submission
             try:
-                await interaction.followup.send(Strings.INPUT_SAVED, ephemeral=True)
+                await interaction.followup.send(Strings.INPUT_SAVED, ephemeral=False)
             except Exception as e:
                 logger.warning(f"Error sending confirmation message: {e}")
                 # Continue flow even if confirmation fails
@@ -127,6 +128,10 @@ class ConnectsModal(discord.ui.Modal):
             # Advance survey
             try:
                 self.survey.next_step()
+                logger.info(f"Survey results after connects: {self.survey.results}")
+                logger.info(f"Survey steps: {getattr(self.survey, 'steps', None)}")
+                logger.info(f"Survey current_step: {self.survey.current_step() if hasattr(self.survey, 'current_step') else None}")
+                logger.info(f"Survey is_done: {self.survey.is_done()}")
                 if self.survey.is_done():
                     logger.info("Survey is complete, finishing")
                     await finish_survey(interaction.channel, self.survey)
@@ -145,8 +150,6 @@ class ConnectsModal(discord.ui.Modal):
                 await cleanup_survey_message(interaction, self.survey)
             except Exception as cleanup_error:
                 logger.error(f"Error during error cleanup: {cleanup_error}")
-
-
 # ==================================
 # Helper Functions
 # ==================================
@@ -605,15 +608,8 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> Non
             
         payload = {
             "command": "survey",
-            "status": "complete",
-            # Ensure result structure matches requirements exactly
-            "result": {
-                "workload_today": survey.results.get("workload_today", ""),
-                "workload_nextweek": survey.results.get("workload_nextweek", ""),
-                "connects": survey.results.get("connects", ""),
-                # Ensure dayoff is handled correctly (list or "Nothing")
-                "dayoff_nextweek": survey.results.get("dayoff_nextweek", "")
-            },
+            "status": "end",
+            "result": dict(survey.results),  # send all collected step:value pairs
             "userId": str(survey.user_id),
             "channelId": str(survey.channel_id),
             "sessionId": str(getattr(survey, 'session_id', ''))
