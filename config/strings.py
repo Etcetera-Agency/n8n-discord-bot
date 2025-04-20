@@ -42,9 +42,7 @@ class Strings:
     DAY_OFF_MODAL = "Вихідні дні"
     
     # Modal Input Labels
-    HOURS_INPUT = "Кількість годин"
-    CONNECTS_INPUT = "Кількість коннектів"
-    DAYS_INPUT = "Дні вихідних (через кому)"
+    CONNECTS_INPUT = "Кількість коннектів"    
     
     # Modal Placeholders
     HOURS_PLACEHOLDER = "Введіть число (наприклад: 8)"
@@ -65,3 +63,4 @@ class Strings:
     NOT_YOUR_SURVEY = "Це опитування не для вас."
     WRONG_CHANNEL = "Це опитування не для цього каналу."
     START_SURVEY_BUTTON = "Гайда"
+    SURVEY_INPUT_BUTTON_LABEL = "Ввести"
