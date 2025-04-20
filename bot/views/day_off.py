@@ -13,7 +13,7 @@ warnings.warn(
 )
 
 class DayOffButton(discord.ui.Button):
-    def __init__(self, label: str, custom_id: str, cmd_or_step: str):
+    def __init__(self, *, label: str, custom_id: str, cmd_or_step: str):
         super().__init__(
             style=discord.ButtonStyle.secondary,  # Start with gray color
             label=label,

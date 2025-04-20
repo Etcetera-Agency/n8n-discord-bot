@@ -11,62 +11,6 @@ from bot.views.workload import create_workload_view # Added import
 # Survey-Specific Modals
 # ==================================
 
-class WorkloadModal(discord.ui.Modal):
-    """Modal specifically for handling 'workload_today' and 'workload_nextweek' steps in the survey."""
-    def __init__(self, survey: SurveyFlow, step_name: str):
-        """Initializes the WorkloadModal."""
-        from config.constants import WORKLOAD_OPTIONS
-        self.survey = survey
-        self.step_name = step_name
-        self.valid_hours = [opt for opt in WORKLOAD_OPTIONS if opt != "Нічого немає"]
-        title = Strings.WORKLOAD_TODAY_MODAL if step_name == "workload_today" else Strings.WORKLOAD_NEXTWEEK_MODAL
-        super().__init__(title=title, timeout=300) # Increased timeout slightly
-
-        self.hours_input = discord.ui.TextInput(
-            label=Strings.WORKLOAD_INPUT_LABEL,
-            placeholder=f"{Strings.WORKLOAD_INPUT_PLACEHOLDER} {', '.join(self.valid_hours)}",
-            min_length=1,
-            max_length=3
-        )
-        self.add_item(self.hours_input)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        """Handles the modal submission for workload steps."""
-        user_input = self.hours_input.value
-        error_msg = f"{Strings.WORKLOAD_INPUT_ERROR} {', '.join(self.valid_hours)}"
-        is_valid = user_input.isdigit() and user_input in self.valid_hours
-
-        try:
-            if not is_valid:
-                await interaction.response.send_message(error_msg, ephemeral=True)
-                return
-
-            await interaction.response.defer(ephemeral=True, thinking=False)
-
-            # Verify user/channel (redundant check, but safe)
-            if str(interaction.user.id) != str(self.survey.user_id) or \
-               str(interaction.channel.id) != str(self.survey.channel_id):
-                await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=True)
-                return
-
-            self.survey.add_result(self.step_name, user_input)
-
-            # Cleanup previous message
-            await cleanup_survey_message(interaction, self.survey)
-
-            await interaction.followup.send(Strings.INPUT_SAVED, ephemeral=True)
-            self.survey.next_step()
-
-            if self.survey.is_done():
-                await finish_survey(interaction.channel, self.survey)
-            else:
-                await continue_survey(interaction.channel, self.survey)
-
-        except Exception as e:
-            logger.error(f"Error in WorkloadModal on_submit: {e}", exc_info=True)
-            await handle_modal_error(interaction)
-
-
 class ConnectsModal(discord.ui.Modal):
     """Modal specifically for handling the 'connects' step in the survey."""
     def __init__(self, survey: SurveyFlow, step_name: str):
