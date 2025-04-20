@@ -53,8 +53,10 @@ class WorkloadButton(discord.ui.Button):
                 return
 
             # Defer response to prevent timeout
+            logger.debug(f"[{view.user_id}] - Attempting to defer interaction response")
             if not interaction.response.is_done():
                 await interaction.response.defer(ephemeral=False)
+            logger.debug(f"[{view.user_id}] - Interaction response deferred")
 
             logger.info(f"Processing workload selection for user {view.user_id}")
 
@@ -85,18 +87,21 @@ class WorkloadButton(discord.ui.Button):
         if isinstance(view, WorkloadView):
             # First, acknowledge the interaction to prevent timeout
             try:
+                logger.debug(f"[{view.user_id}] - Attempting to defer interaction response (second check)")
                 if not interaction.response.is_done():
                     await interaction.response.defer(ephemeral=False)
+                logger.debug(f"[{view.user_id}] - Interaction response deferred (second check)")
             except Exception as e:
-                logger.error(f"Interaction response error: {e}")
+                logger.error(f"[{view.user_id}] - Interaction response error: {e}")
                 return
 
             logger.info(f"Workload button clicked: {self.label} by user {view.user_id} for step {view.cmd_or_step}")
 
             # Add processing reaction to command message
             if view.command_msg:
+                logger.debug(f"[{view.user_id}] - Attempting to add processing reaction to command message {view.command_msg.id}")
                 await view.command_msg.add_reaction(Strings.PROCESSING)
-                logger.info(f"Added processing reaction to command message {view.command_msg.id}")
+                logger.info(f"[{view.user_id}] - Added processing reaction to command message {view.command_msg.id}")
 
             try:
                 # Set value based on button label and convert to integer
@@ -132,6 +137,7 @@ class WorkloadButton(discord.ui.Button):
                     logger.info(f"Found survey for user {view.user_id}, current step: {state.current_step()}")
 
                     # Send webhook for survey step
+                    logger.debug(f"[{view.user_id}] - Attempting to send webhook for survey step: {view.cmd_or_step}")
                     success, data = await webhook_service.send_webhook(
                         interaction,
                         command="survey",
@@ -141,6 +147,7 @@ class WorkloadButton(discord.ui.Button):
                             "value": value
                         }
                     )
+                    logger.info(f"[{view.user_id}] - Webhook response for survey step: success={success}, data={data}")
 
                     logger.info(f"Webhook response for survey step: success={success}, data={data}")
 
@@ -169,15 +176,18 @@ class WorkloadButton(discord.ui.Button):
                             if str(reaction.emoji) != "❌":
                                 await reaction.remove(interaction.client.user)
                         if "output" in data and data["output"].strip():
+                            logger.debug(f"[{view.user_id}] - Attempting to edit command message with output: {data['output']}")
                             await view.command_msg.edit(content=data["output"])
                         else:
+                            logger.debug(f"[{view.user_id}] - Attempting to edit command message with default success message")
                             await view.command_msg.edit(content=f"Дякую! Навантаження: {value} годин записано.")
-                        logger.info(f"Updated command message with response")
+                        logger.info(f"[{view.user_id}] - Updated command message with response")
 
                     # Delete buttons message
                     if view.buttons_msg:
+                        logger.debug(f"[{view.user_id}] - Attempting to delete buttons message")
                         await view.buttons_msg.delete()
-                        logger.info(f"Deleted buttons message")
+                        logger.info(f"[{view.user_id}] - Deleted buttons message")
 
                     # Log survey state before continuation
                     logger.info(f"Survey state before continuation - current step: {state.current_step()}, results: {state.results}")
@@ -192,26 +202,31 @@ class WorkloadButton(discord.ui.Button):
                 else:
                     logger.info(f"Processing as regular command: {view.cmd_or_step}")
                     # Regular slash command
+                    logger.debug(f"[{view.user_id}] - Attempting to send webhook for command: {view.cmd_or_step}")
                     success, data = await webhook_service.send_webhook(
                         interaction,
                         command=view.cmd_or_step,
                         status="ok",
                         result={"workload": value}
                     )
+                    logger.info(f"[{view.user_id}] - Webhook response for command: success={success}, data={data}")
 
                     logger.info(f"Webhook response for command: success={success}, data={data}")
 
                     if success and data and "output" in data:
                         # Update command message with success
                         if view.command_msg:
+                            logger.debug(f"[{view.user_id}] - Attempting to remove processing reaction from command message")
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                            logger.debug(f"[{view.user_id}] - Attempting to edit command message with success output: {data['output']}")
                             await view.command_msg.edit(content=data["output"])
-                            logger.info(f"Updated command message with success: {data['output']}")
+                            logger.info(f"[{view.user_id}] - Updated command message with success: {data['output']}")
 
                         # Delete buttons message
                         if view.buttons_msg:
+                            logger.debug(f"[{view.user_id}] - Attempting to delete buttons message")
                             await view.buttons_msg.delete()
-                            logger.info(f"Deleted buttons message")
+                            logger.info(f"[{view.user_id}] - Deleted buttons message")
                     else:
                         logger.error(f"Failed to send webhook for command: {view.cmd_or_step}")
                         if view.command_msg:
