@@ -241,7 +241,12 @@ class DeclineButton(discord.ui.Button):
                 logger.debug("No command_msg available")
             
             try:
+                # Verify webhook service configuration
                 logger.debug(f"Preparing to send webhook for decline action")
+                logger.debug(f"Webhook service initialized: {'yes' if webhook_service.url else 'no'}")
+                logger.debug(f"Webhook URL: {webhook_service.url if webhook_service.url else 'NOT CONFIGURED'}")
+                logger.debug(f"Auth token: {'set' if webhook_service.auth_token else 'not set'}")
+                
                 if view.has_survey:
                     logger.debug("Handling decline action as survey step")
                     state = survey_manager.get_survey(view.user_id)
@@ -316,13 +321,23 @@ class DeclineButton(discord.ui.Button):
                     try:
                         logger.debug("Sending webhook for declined days")
                         # Use follow-up for webhook since interaction was deferred
-                        success, data = await webhook_service.send_webhook(
-                            interaction.followup,
-                            command=view.cmd_or_step,
-                            status="ok",
-                            result={"value": "Nothing"}
-                        )
-                        logger.debug(f"Webhook sent. Success: {success}, Data: {data if data else 'None'}")
+                        logger.debug(f"Sending webhook to command: {view.cmd_or_step}")
+                        logger.debug(f"Payload: { {'command': view.cmd_or_step, 'status': 'ok', 'result': {'value': 'Nothing'}} }")
+                        
+                        try:
+                            success, data = await webhook_service.send_webhook(
+                                interaction.followup,
+                                command=view.cmd_or_step,
+                                status="ok",
+                                result={"value": "Nothing"}
+                            )
+                            logger.debug(f"Webhook completed. Success: {success}, Data: {data if data else 'None'}")
+                            if not success:
+                                logger.error(f"Webhook failed for command: {view.cmd_or_step}")
+                        except Exception as webhook_error:
+                            logger.error(f"Webhook exception: {str(webhook_error)}", exc_info=True)
+                            success = False
+                            data = None
                         
                         if success and data and "output" in data:
                             logger.debug("Webhook response contains output")
