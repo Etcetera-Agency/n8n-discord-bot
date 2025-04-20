@@ -60,53 +60,6 @@ class ConnectsModal(discord.ui.Modal):
             await handle_modal_error(interaction)
 
 
-class DayOffModal(discord.ui.Modal):
-    """Modal specifically for handling the 'dayoff_nextweek' step in the survey."""
-    def __init__(self, survey: SurveyFlow, step_name: str):
-        """Initializes the DayOffModal."""
-        self.survey = survey
-        self.step_name = step_name # Should be "dayoff_nextweek"
-        super().__init__(title=Strings.DAY_OFF_NEXTWEEK_MODAL, timeout=300)
-
-        self.days_input = discord.ui.TextInput(
-            label=Strings.DAY_OFF_INPUT_LABEL,
-            placeholder=Strings.DAY_OFF_INPUT_PLACEHOLDER,
-            style=discord.TextStyle.short, # Use short for single line
-            required=False # Allow empty input for "no days off"
-        )
-        self.add_item(self.days_input)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        """Handles the modal submission for the dayoff_nextweek step."""
-        # Input can be empty or comma-separated days
-        user_input = self.days_input.value.strip()
-        # Basic validation: just store the string for now. n8n can parse.
-        # If required=False, empty string is valid.
-
-        try:
-            await interaction.response.defer(ephemeral=True, thinking=False)
-
-            if str(interaction.user.id) != str(self.survey.user_id) or \
-               str(interaction.channel.id) != str(self.survey.channel_id):
-                await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=True)
-                return
-
-            # Store raw input string (could be empty)
-            self.survey.add_result(self.step_name, user_input if user_input else "Nothing") # Send "Nothing" if empty
-
-            await cleanup_survey_message(interaction, self.survey)
-            await interaction.followup.send(Strings.INPUT_SAVED, ephemeral=True)
-            self.survey.next_step()
-
-            if self.survey.is_done():
-                await finish_survey(interaction.channel, self.survey)
-            else:
-                await continue_survey(interaction.channel, self.survey)
-
-        except Exception as e:
-            logger.error(f"Error in DayOffModal on_submit: {e}", exc_info=True)
-            await handle_modal_error(interaction)
-
 # ==================================
 # Helper Functions
 # ==================================
@@ -442,9 +395,38 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 await interaction.response.send_modal(modal_to_send)
 
             elif step_name == "dayoff_nextweek":
-                logger.info(f"Button callback for dayoff_nextweek survey step: {step_name}. Sending modal.")
-                modal_to_send = DayOffModal(survey=survey, step_name=step_name)
-                await interaction.response.send_modal(modal_to_send)
+                logger.info(f"Button callback for dayoff_nextweek survey step: {step_name}. Sending button view.")
+                # Create and send the day off view
+                from bot.views.day_off import create_day_off_view # Import here to avoid circular dependency
+                day_off_view = create_day_off_view(step_name, str(interaction.user.id), has_survey=True)
+                # Need to store message references on the view for the callback to use
+                day_off_view.command_msg = survey.current_question_message_id # Pass the ID of the initial question message
+                day_off_view.buttons_msg = None # This view *is* the buttons message, will be set after sending
+
+                # Send the day off button view
+                # Since the initial interaction was deferred in ask_dynamic_step, use followup.send
+                buttons_msg = await interaction.followup.send(
+                    "Оберіть свої вихідні на наступний тиждень:", # Or appropriate string
+                    view=day_off_view,
+                    ephemeral=False # Make the button message visible to others
+                )
+                day_off_view.buttons_msg = buttons_msg # Store the message object
+
+                # Clean up the original single button message
+                if survey.current_question_message_id:
+                    try:
+                        original_msg = await interaction.channel.fetch_message(survey.current_question_message_id)
+                        await original_msg.delete()
+                        survey.current_question_message_id = None # Clear ID after deletion
+                    except discord.NotFound:
+                        logger.warning(f"Original survey question message {survey.current_question_message_id} not found for deletion after sending day off view.")
+                        survey.current_question_message_id = None
+                    except discord.Forbidden:
+                        logger.error(f"Bot lacks permissions to delete original survey question message {survey.current_question_message_id}")
+                        survey.current_question_message_id = None
+                    except Exception as e_cleanup:
+                        logger.error(f"Error deleting original survey question message: {e_cleanup}")
+                        survey.current_question_message_id = None
 
             else:
                 logger.error(f"Button callback triggered for unknown survey step: {step_name}")
