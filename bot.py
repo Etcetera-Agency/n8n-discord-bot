@@ -55,52 +55,11 @@ http_session = None
 ###############################################################################
 intents = discord.Intents.default()
 intents.message_content = True
-intents.interactions = True # Explicitly enable interactions intent
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Import EventHandlers class
-from bot.commands.events import EventHandlers
-
-# Define custom Bot class
-class MyBot(commands.Bot):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Initialize services here, they will be available as bot attributes
-        logger.info("MyBot.__init__: Initializing WebhookService...")
-        self.webhook_service = WebhookService()
-        logger.info("MyBot.__init__: Creating EventHandlers instance...")
-        self.event_handler_instance = EventHandlers(self) # Pass self (the bot instance)
-
-    async def setup_hook(self):
-        """Handles async setup tasks before the bot logs in."""
-        logger.info("MyBot.setup_hook: Starting async setup...")
-
-        # Initialize WebhookService session
-        logger.debug("MyBot.setup_hook: Attempting to initialize WebhookService session...")
-        await self.webhook_service.initialize()
-        logger.info("MyBot.setup_hook: WebhookService initialized.")
-
-        # Setup event handlers
-        logger.debug("MyBot.setup_hook: Attempting to call event_handler_instance.setup()...")
-        await self.event_handler_instance.setup() # Call setup on the instance stored in the bot
-        logger.info("MyBot.setup_hook: Event handlers registered.")
-
-        # Start the web server task (can also be done here)
-        from web import server
-        self.loop.create_task(server.run_server(self)) # Start server in background
-        logger.info("MyBot.setup_hook: Web server task created.")
-
-        # Sync slash commands (optional, often done in on_ready but setup_hook is also suitable)
-        try:
-             logger.info("MyBot.setup_hook: Syncing slash commands...")
-             await self.tree.sync()
-             logger.info("MyBot.setup_hook: Slash commands synced!")
-        except Exception as e:
-             logger.error(f"MyBot.setup_hook: Error syncing slash commands: {e}")
-
-        logger.info("MyBot.setup_hook: Completed.")
-
-# Instantiate the custom bot
-bot = MyBot(command_prefix="!", intents=intents)
+# Import and setup event handlers
+from bot.commands import events
+events.setup(bot)
 
 ###############################################################################
 # Survey Management
@@ -115,7 +74,7 @@ async def survey_incomplete_timeout(user_id: str):
         if not channel:
             logger.warning(f"Channel {survey.channel_id} not found for user {user_id}")
             return
-        
+
         incomplete = survey.incomplete_steps()
         await bot.webhook_service.send_webhook(
             channel,
@@ -123,7 +82,7 @@ async def survey_incomplete_timeout(user_id: str):
             status="incomplete",
             result={"incompleteSteps": incomplete}
         )
-        
+
         survey_manager.remove_survey(user_id)
     except discord.NotFound:
         logger.error(f"Channel {state.channel_id} not found")
@@ -192,11 +151,40 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow):
 ###############################################################################
 
 ###############################################################################
-# Discord on_message Event (REMOVED - Handled by EventHandlers class)
+# Discord on_message Event
 ###############################################################################
-# The @bot.event for on_message is removed from here because
-# it's now handled within the EventHandlers class in bot/commands/events.py,
-# which is registered via event_handler_instance.setup() in main().
+@bot.event
+async def on_message(message: discord.Message):
+    if message.author == bot.user:
+        return
+
+    if bot.user in message.mentions:
+        # Add processing reaction
+        await message.add_reaction("⏳")
+
+        # Process the message
+        success, _ = await bot.webhook_service.send_webhook(
+            message,
+            command="mention",
+            message=message.content,
+            result={}
+        )
+
+        # Remove processing reaction
+        await message.remove_reaction("⏳", bot.user)
+
+        # Add success or error reaction
+        await message.add_reaction("✅" if success else "❌")
+
+    if message.content.startswith("start_daily_survey"):
+        parts = message.content.split()
+        if len(parts) >= 4:
+            user_id = parts[1]
+            channel_id = parts[2]
+            steps = parts[3:]
+            await handle_start_daily_survey(bot, user_id, channel_id, steps)
+
+    await bot.process_commands(message)
 
 ###############################################################################
 # PREFIX COMMANDS
@@ -244,7 +232,7 @@ bot.tree.add_command(day_off_group)
     end_month="Місяць закінчення відпустки"
 )
 async def vacation_slash(
-    interaction: discord.Interaction, 
+    interaction: discord.Interaction,
     start_day: int,
     start_month: str,
     end_day: int,
@@ -254,7 +242,7 @@ async def vacation_slash(
     if not (1 <= start_day <= 31) or not (1 <= end_day <= 31):
         await interaction.response.send_message("День повинен бути між 1 та 31.", ephemeral=False)
         return
-    
+
     # Process vacation request
     await bot.webhook_service.send_webhook(
         interaction,
@@ -275,7 +263,7 @@ async def month_autocomplete(interaction: discord.Interaction, current: str) -> 
         for month in MONTHS
         if current in month.lower()
     ][:25]  # Limit to 25 choices as per Discord limits
-    
+
 @bot.tree.command(name="workload_today", description="Скільки годин підтверджено з СЬОГОДНІ до кінця тижня?")
 async def slash_workload_today(interaction: discord.Interaction):
     view = create_view("workload", "workload_today", str(interaction.user.id))
@@ -293,7 +281,7 @@ async def slash_workload_nextweek(interaction: discord.Interaction):
 async def slash_connects_thisweek(interaction: discord.Interaction, connects: int):
     # First defer the response to ensure Discord shows the command usage
     await interaction.response.defer(thinking=True, ephemeral=False)
-    
+
     # Then handle the response through the standard handler
     await bot.webhook_service.send_webhook(
         interaction,
@@ -302,9 +290,17 @@ async def slash_connects_thisweek(interaction: discord.Interaction, connects: in
     )
 
 ###############################################################################
-# Main function (REMOVED - Replaced by setup_hook and bot.run)
+# Main function to run both the HTTP/HTTPS server and the Discord Bot
 ###############################################################################
+async def main():
+    # Start HTTP server
+    from web import server
+    server_task = asyncio.create_task(server.run_server(bot))
 
+    # Start Discord bot
+    await bot.start(Config.DISCORD_TOKEN)
+
+    # Wait for both tasks
+    await server_task
 if __name__ == "__main__":
-    logger.info("Starting bot using bot.run()...")
-    bot.run(Config.DISCORD_TOKEN)
+    asyncio.run(main())
