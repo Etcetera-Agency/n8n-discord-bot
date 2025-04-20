@@ -200,18 +200,23 @@ class WorkloadButton(discord.ui.Button):
                         return
 
                 else:
-                    logger.info(f"Processing as regular command: {view.cmd_or_step}")
+                    logger.info(f"[{view.user_id}] - Processing as regular command: {view.cmd_or_step}")
                     # Regular slash command
+                    webhook_payload = {
+                        "command": view.cmd_or_step,
+                        "status": "ok",
+                        "result": {"workload": value}
+                    }
+                    logger.debug(f"[{view.user_id}] - Preparing to send webhook for regular command. Payload: {webhook_payload}")
                     logger.debug(f"[{view.user_id}] - Attempting to send webhook for command: {view.cmd_or_step}")
                     success, data = await webhook_service.send_webhook(
                         interaction,
-                        command=view.cmd_or_step,
-                        status="ok",
-                        result={"workload": value}
+                        command=webhook_payload["command"],
+                        status=webhook_payload["status"],
+                        result=webhook_payload["result"]
                     )
                     logger.info(f"[{view.user_id}] - Webhook response for command: success={success}, data={data}")
-
-                    logger.info(f"Webhook response for command: success={success}, data={data}")
+                    logger.info(f"[{view.user_id}] - Webhook response for command: success={success}, data={data}")
 
                     if success and data and "output" in data:
                         # Update command message with success
