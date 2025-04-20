@@ -244,6 +244,7 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
     logger.debug(f"[{user_id}] - After importing WORKLOAD_OPTIONS. WORKLOAD_OPTIONS: {WORKLOAD_OPTIONS}")
     # Add all workload options as buttons, including "Нічого немає"
     for hour in WORKLOAD_OPTIONS:
+        print(f"[{user_id}] - Inside workload options loop for hour: {hour}")
         custom_id = f"workload_button_{hour}_{cmd}_{user_id}"
         button = WorkloadButton(label=hour, custom_id=custom_id, cmd_or_step=cmd) # Pass cmd to button
         logger.debug(f"[{user_id}] - Adding button with label: {hour}, custom_id: {custom_id}")
