@@ -23,8 +23,8 @@ class ConnectsModal(discord.ui.Modal):
 
         logger.info("Attempting to create TextInput for connects_input.") # Added log
         self.connects_input = discord.ui.TextInput(
-            label=Strings.CONNECTS_INPUT_LABEL,
-            placeholder=Strings.CONNECTS_INPUT_PLACEHOLDER,
+            label=Strings.CONNECTS_INPUT, # Corrected attribute name
+            placeholder=Strings.CONNECTS_PLACEHOLDER, # Corrected attribute name
             min_length=1,
             max_length=3
         )

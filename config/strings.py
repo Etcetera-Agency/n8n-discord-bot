@@ -45,9 +45,7 @@ class Strings:
     CONNECTS_INPUT = "Кількість коннектів"    
     
     # Modal Placeholders
-    HOURS_PLACEHOLDER = "Введіть число (наприклад: 8)"
     CONNECTS_PLACEHOLDER = "Введіть число (наприклад: 80)"
-    DAYS_PLACEHOLDER = "наприклад: пн, вт"
     
     # Modal Validation Errors
     NUMBER_REQUIRED = "Будь ласка, введіть числове значення."
