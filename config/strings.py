@@ -47,3 +47,4 @@ class Strings:
     # Survey-specific messages
     START_SURVEY_BUTTON = "Гайда"
     SURVEY_INPUT_BUTTON_LABEL = "Ввести"
+    SURVEY_COMPLETE_MESSAGE = "Всі данні внесені. Дякую!"
