@@ -197,24 +197,44 @@ class WebhookService:
         
         # Check if n8n wants to continue the survey
         if success and data and "survey" in data and data["survey"] == "continue":
-            logger.info(f"n8n requested survey continuation for user {payload['userId']}")
+            user_id = payload['userId']
+            logger.info(f"[SurveyContinuation] n8n requested survey continuation for user {user_id}")
             try:
                 # Add a small delay to ensure the current interaction is complete
                 await asyncio.sleep(1)
                 
-                if payload['userId'] in SURVEYS:
-                    state = SURVEYS[payload['userId']]
+                logger.info(f"[SurveyContinuation] Checking for survey state for user {user_id}")
+                if user_id in SURVEYS:
+                    state = SURVEYS[user_id]
+                    logger.info(f"[SurveyContinuation] Found survey state for user {user_id}. Current step before next_step(): {state.current_step()}, Results: {state.results}")
+                    
+                    logger.info(f"[SurveyContinuation] Calling state.next_step() for user {user_id}")
                     state.next_step()
                     next_step = state.current_step()
+                    logger.info(f"[SurveyContinuation] Next step determined for user {user_id}: {next_step}")
+                    
                     if next_step:
+                        logger.info(f"[SurveyContinuation] Calling ask_dynamic_step for user {user_id}, step: {next_step}")
                         await ask_dynamic_step(channel, state, next_step)
+                        logger.info(f"[SurveyContinuation] ask_dynamic_step completed for user {user_id}, step: {next_step}")
                     else:
+                        logger.info(f"[SurveyContinuation] No next step found. Calling finish_survey for user {user_id}")
                         await finish_survey(channel, state)
-                logger.info(f"Survey continuation initiated for user {payload['userId']}")
+                        logger.info(f"[SurveyContinuation] finish_survey completed for user {user_id}")
+                else:
+                    logger.warning(f"[SurveyContinuation] Survey state not found for user {user_id} when trying to continue.")
+                    # Optionally inform the user
+                    # await channel.send(f"<@{user_id}> Не вдалося знайти ваше активне опитування для продовження.")
+
+                logger.info(f"[SurveyContinuation] Survey continuation processing completed for user {user_id}")
             except Exception as e:
-                logger.error(f"Error handling survey continuation for user {payload['userId']}: {e}")
-                await channel.send(f"<@{payload['userId']}> Помилка при продовженні опитування: {str(e)}")
-        
+                logger.error(f"[SurveyContinuation] Error handling survey continuation for user {user_id}: {e}", exc_info=True) # Added exc_info=True
+                # Ensure channel is valid before sending
+                if channel and hasattr(channel, 'send'):
+                     await channel.send(f"<@{user_id}> Помилка при продовженні опитування: код 500") # Keep generic error for user
+                else:
+                     logger.error(f"[SurveyContinuation] Invalid channel object for user {user_id}, cannot send error message.")
+
         return success, data
 
     async def send_interaction_response(
