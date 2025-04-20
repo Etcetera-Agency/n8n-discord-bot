@@ -264,8 +264,8 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
             if channel: await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
             return
 
-        # Filter and order steps based on REQUIRED_SURVEY_STEPS constant
-        final_steps = [step for step in constants.REQUIRED_SURVEY_STEPS if step in n8n_steps]
+        # Filter and order steps based on SURVEY_FLOW constant
+        final_steps = [step for step in constants.SURVEY_FLOW if step in n8n_steps]
 
         if not final_steps:
             logger.info(f"No *required* survey steps found for channel {channel_id} after filtering {n8n_steps}.")
