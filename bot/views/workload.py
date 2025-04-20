@@ -230,6 +230,7 @@ class WorkloadButton(discord.ui.Button):
 
 def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None) -> WorkloadView:
     """Create workload view for regular commands only"""
+    print(f"[{user_id}] - create_workload_view function entered")
     logger.debug(f"[{user_id}] - create_workload_view called with cmd: {cmd}, user_id: {user_id}")
     try:
         view = WorkloadView(cmd, user_id)
