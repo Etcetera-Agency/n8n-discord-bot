@@ -137,6 +137,26 @@ class ConnectsModal(discord.ui.Modal):
                     await finish_survey(interaction.channel, self.survey)
                 else:
                     logger.info("Survey continuing to next step")
+                    # Send step webhook for just this step
+                    try:
+                        step_payload = {
+                            "command": "survey",
+                            "status": "step",
+                            "step": self.step_name,
+                            "value": str(connects),
+                            "userId": str(self.survey.user_id),
+                            "channelId": str(self.survey.channel_id),
+                            "sessionId": str(getattr(self.survey, 'session_id', ''))
+                        }
+                        logger.info(f"Sending step webhook: {step_payload}")
+                        await webhook_service.send_webhook_with_retry(
+                            interaction.channel,
+                            step_payload,
+                            {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
+                        )
+                    except Exception as e:
+                        logger.error(f"Error sending step webhook: {e}")
+
                     await continue_survey(interaction.channel, self.survey)
             except Exception as e:
                 logger.error(f"Error advancing survey: {e}")
@@ -609,7 +629,8 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> Non
         payload = {
             "command": "survey",
             "status": "end",
-            "result": dict(survey.results),  # send all collected step:value pairs
+            # Only send the last answered step for "end" as well
+            "result": {list(survey.results.keys())[-1]: list(survey.results.values())[-1]} if survey.results else {},
             "userId": str(survey.user_id),
             "channelId": str(survey.channel_id),
             "sessionId": str(getattr(survey, 'session_id', ''))
