@@ -9,15 +9,23 @@ from bot.commands.survey import ask_dynamic_step, handle_start_daily_survey # Im
 class EventHandlers:
     def __init__(self, bot):
         """Initialize event handlers with the bot instance"""
+        logger.debug("EventHandlers.__init__ called.") # ADDED LOG
         self.bot = bot
         self.http_session = None
+        logger.debug("EventHandlers instance created.") # ADDED LOG
 
     async def setup(self):
         """Register all event handlers with the bot"""
+        logger.debug("EventHandlers.setup called.") # ADDED LOG
         self.bot.add_listener(self.on_ready)
+        logger.debug("Registered on_ready listener.") # ADDED LOG
         self.bot.add_listener(self.on_close)
+        logger.debug("Registered on_close listener.") # ADDED LOG
         self.bot.add_listener(self.on_message)
+        logger.debug("Registered on_message listener.") # ADDED LOG
         self.bot.add_listener(self.on_interaction) # Register the new listener
+        logger.debug("Registered on_interaction listener.") # ADDED LOG
+        logger.debug("EventHandlers.setup completed.") # ADDED LOG
 
     async def on_ready(self):
         logger.info(f"Bot connected as {self.bot.user}")
