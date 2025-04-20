@@ -35,7 +35,7 @@ class WorkloadNextWeekModal(discord.ui.Modal):
         try:
             # Validate input
             if not self.input.value.isdigit():
-                await interaction.followup.send(Strings.INVALID_INPUT, ephemeral=True)
+                await interaction.followup.send(Strings.INVALID_INPUT, ephemeral=False)
                 return
 
             # Store result
@@ -49,9 +49,28 @@ class WorkloadNextWeekModal(discord.ui.Modal):
                 except:
                     logger.warning("Could not delete survey question message")
 
-            # Confirm submission
-            await interaction.followup.send(Strings.INPUT_SAVED, ephemeral=True)
-            
+            # Send webhook to n8n and show response
+            from services import webhook_service
+            step_payload = {
+                "command": "survey",
+                "status": "step",
+                "message": "",
+                "result": {
+                    "stepName": self.step_name,
+                    "value": str(self.input.value)
+                },
+                "userId": str(self.survey.user_id),
+                "channelId": str(self.survey.channel_id),
+                "sessionId": str(getattr(self.survey, 'session_id', ''))
+            }
+            success, response = await webhook_service.send_webhook_with_retry(
+                interaction.channel,
+                step_payload,
+                {}
+            )
+            if response:
+                await interaction.followup.send(str(response), ephemeral=False)
+
             # Advance survey
             await self.survey.next_step()
             if not self.survey.is_done():
@@ -60,7 +79,7 @@ class WorkloadNextWeekModal(discord.ui.Modal):
                 
         except Exception as e:
             logger.error(f"Error handling workload modal submit: {e}")
-            await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=True)
+            await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
 
 class DayOffNextWeekModal(discord.ui.Modal):
     def __init__(self, survey, step_name):
@@ -80,7 +99,7 @@ class DayOffNextWeekModal(discord.ui.Modal):
         try:
             # Validate input
             if not self.input.value.strip():
-                await interaction.followup.send(Strings.INVALID_INPUT, ephemeral=True)
+                await interaction.followup.send(Strings.INVALID_INPUT, ephemeral=False)
                 return
 
             # Store result
@@ -94,9 +113,28 @@ class DayOffNextWeekModal(discord.ui.Modal):
                 except:
                     logger.warning("Could not delete survey question message")
 
-            # Confirm submission
-            await interaction.followup.send(Strings.INPUT_SAVED, ephemeral=True)
-            
+            # Send webhook to n8n and show response
+            from services import webhook_service
+            step_payload = {
+                "command": "survey",
+                "status": "step",
+                "message": "",
+                "result": {
+                    "stepName": self.step_name,
+                    "value": str(self.input.value)
+                },
+                "userId": str(self.survey.user_id),
+                "channelId": str(self.survey.channel_id),
+                "sessionId": str(getattr(self.survey, 'session_id', ''))
+            }
+            success, response = await webhook_service.send_webhook_with_retry(
+                interaction.channel,
+                step_payload,
+                {}
+            )
+            if response:
+                await interaction.followup.send(str(response), ephemeral=False)
+
             # Advance survey
             await self.survey.next_step()
             if not self.survey.is_done():
@@ -105,7 +143,7 @@ class DayOffNextWeekModal(discord.ui.Modal):
                 
         except Exception as e:
             logger.error(f"Error handling day off modal submit: {e}")
-            await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=True)
+            await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
 
 def create_view(
     view_name: str, 

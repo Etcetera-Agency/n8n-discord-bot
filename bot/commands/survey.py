@@ -119,11 +119,8 @@ class ConnectsModal(discord.ui.Modal):
             
             logger.info("Sending confirmation message")
             # Confirm submission
-            try:
-                await interaction.followup.send(Strings.INPUT_SAVED, ephemeral=False)
-            except Exception as e:
-                logger.warning(f"Error sending confirmation message: {e}")
-                # Continue flow even if confirmation fails
+            # Only defer the reply to show "Bot thinking" (loading state), do not send a message
+            # Already handled above if not interaction.response.is_done()
             
             logger.info("Advancing survey")
             # Advance survey
