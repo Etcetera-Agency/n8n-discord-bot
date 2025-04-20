@@ -273,14 +273,18 @@ async def slash_connects_thisweek(interaction: discord.Interaction, connects: in
 # Main function to run both the HTTP/HTTPS server and the Discord Bot
 ###############################################################################
 async def main():
+    logger.info("Entering main function.") # ADDED LOG
     async with bot: # Use async context manager for proper setup/teardown
+        logger.info("Entered bot async context manager.") # ADDED LOG
         # Initialize WebhookService session (moved from on_ready)
+        logger.debug("Attempting to initialize WebhookService...") # ADDED LOG
         await bot.webhook_service.initialize()
         logger.info("WebhookService initialized.")
 
         # Setup event handlers (moved here to ensure bot loop is running)
+        logger.debug("Attempting to call event_handler_instance.setup()...") # ADDED LOG
         await event_handler_instance.setup()
-        logger.info("Event handlers registered.")
+        logger.info("Event handlers registered.") # This confirms setup() completed
 
         # Start HTTP server
         from web import server
