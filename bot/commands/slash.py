@@ -79,7 +79,12 @@ class SlashCommands:
             await interaction.response.defer(ephemeral=False)
             
         command_msg = await interaction.original_response()
-        view = create_view(view_type, command_name, str(interaction.user.id))
+        view = create_view(
+            "survey",  # Force survey view type
+            command_name,
+            str(interaction.user.id),
+            view_type=ViewType.DYNAMIC
+        )
         view.command_msg = command_msg
         
         buttons_msg = await interaction.channel.send(

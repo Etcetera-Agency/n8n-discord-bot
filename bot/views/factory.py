@@ -14,12 +14,10 @@ def create_view(
 ) -> Union[discord.ui.View, None]:
     """Create appropriate view based on parameters"""
     
-    if has_survey:
-        logger.warning(
-            f"Survey view requested for {view_name} - "
-            "Survey steps should use modals now"
-        )
-        return None
+    # Survey view handling (button-based implementation)
+    if view_name == "survey":
+        from bot.views.generic import create_survey_view
+        return create_survey_view(cmd_or_step, user_id, **kwargs)
     
     logger.info(f"Creating {view_name} view for command: {cmd_or_step}")
     
