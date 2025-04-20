@@ -350,6 +350,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
 
         async def button_callback(interaction: discord.Interaction):
             """Callback for the 'Ввести' button."""
+            logger.info(f"Button callback triggered for step: {step_name}") # Added log
             # Verify user matches survey user
             if str(interaction.user.id) != str(survey.user_id):
                 await interaction.response.send_message(Strings.SURVEY_NOT_FOR_YOU, ephemeral=True)
@@ -391,8 +392,15 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
 
             elif step_name == "connects":
                 logger.info(f"Button callback for connects survey step: {step_name}. Sending modal.")
+                logger.info("Attempting to create ConnectsModal instance.") # Added log
                 modal_to_send = ConnectsModal(survey=survey, step_name=step_name)
-                await interaction.response.send_modal(modal_to_send)
+                logger.info("ConnectsModal instance created. Attempting to send modal.") # Added log
+                try: # Added try block
+                    await interaction.response.send_modal(modal_to_send)
+                    logger.info("ConnectsModal sent successfully.") # Added log
+                except Exception as e: # Added except block
+                    logger.error(f"Error sending ConnectsModal: {e}", exc_info=True) # Added log
+                    await interaction.followup.send(Strings.MODAL_SUBMIT_ERROR, ephemeral=True) # Added error message
 
             elif step_name == "dayoff_nextweek":
                 logger.info(f"Button callback for dayoff_nextweek survey step: {step_name}. Sending button view.")
