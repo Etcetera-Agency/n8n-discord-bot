@@ -15,76 +15,99 @@ class ConnectsModal(discord.ui.Modal):
     """Modal specifically for handling the 'connects' step in the survey."""
     def __init__(self, survey: SurveyFlow, step_name: str):
         """Initializes the ConnectsModal."""
-        logger.info("Entering ConnectsModal __init__.")
-        super().__init__(title=Strings.CONNECTS_MODAL, timeout=300)
-        logger.info("Super().__init__ called in ConnectsModal.")
-        
-        self.survey = survey
-        self.step_name = step_name
-
-        logger.info("Attempting to create TextInput for connects_input.")
-        logger.info("Calling discord.ui.TextInput constructor.")
-        self.connects_input = discord.ui.TextInput(
-            label=Strings.CONNECTS_INPUT,
-            placeholder=Strings.CONNECTS_PLACEHOLDER,
-            min_length=1,
-            max_length=3,
-            required=True
-        )
-        logger.info("Finished calling discord.ui.TextInput constructor.")
-        logger.info("TextInput for connects_input created.")
-        logger.info("Attempting to add item to modal.")
-        self.add_item(self.connects_input)
-        logger.info("Item added to modal.")
+        try:
+            logger.info(f"Initializing ConnectsModal for user {survey.user_id} step {step_name}")
+            
+            # Verify required survey properties
+            if not survey.user_id or not survey.channel_id:
+                raise ValueError("Survey missing required properties")
+            
+            # Initialize modal with title
+            title = getattr(Strings, 'CONNECTS_MODAL', 'Введіть кількість коннектів')
+            super().__init__(title=title, timeout=300)
+            logger.info("Modal base initialized")
+            
+            # Store survey data
+            self.survey = survey
+            self.step_name = step_name
+            
+            # Create and configure text input
+            logger.info("Creating TextInput field")
+            self.connects_input = discord.ui.TextInput(
+                label=getattr(Strings, 'CONNECTS_INPUT', 'Кількість коннектів'),
+                placeholder=getattr(Strings, 'CONNECTS_PLACEHOLDER', 'Введіть число (наприклад: 80)'),
+                min_length=1,
+                max_length=3,
+                required=True,
+                style=discord.TextStyle.short
+            )
+            
+            # Add input to modal
+            logger.info("Adding TextInput to modal")
+            self.add_item(self.connects_input)
+            
+            logger.info("ConnectsModal initialization complete")
+            
+        except Exception as e:
+            logger.error(f"Error initializing ConnectsModal: {e}", exc_info=True)
+            raise
 
     async def on_submit(self, interaction: discord.Interaction):
         """Handles the modal submission for the connects step."""
+        logger.info("Starting ConnectsModal submission handling")
+        
+        async def send_error(message: str):
+            """Helper to send error response"""
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(message, ephemeral=True)
+                else:
+                    await interaction.followup.send(message, ephemeral=True)
+            except Exception as e:
+                logger.error(f"Failed to send error message: {e}")
+
         try:
             user_input = self.connects_input.value.strip()
+            logger.info(f"Received connects input: {user_input}")
             
             # Validate input is a number and in reasonable range
             if not user_input.isdigit():
                 logger.warning(f"Invalid connects input (non-digit): {user_input}")
-                await interaction.response.send_message(Strings.NUMBER_REQUIRED, ephemeral=True)
+                await send_error(Strings.NUMBER_REQUIRED)
                 return
                 
             connects = int(user_input)
             if connects < 0 or connects > 999:
                 logger.warning(f"Invalid connects range: {connects}")
-                await interaction.response.send_message("Кількість коннектів має бути від 0 до 999", ephemeral=True)
+                await send_error("Кількість коннектів має бути від 0 до 999")
                 return
 
-            # Defer before validation to prevent interaction timeout
-            try:
+            # Handle interaction response
+            if not interaction.response.is_done():
                 await interaction.response.defer(ephemeral=True)
-            except Exception as e:
-                logger.error(f"Error deferring connects modal response: {e}")
-                # Try to send error message if defer failed
-                try:
-                    await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=True)
-                except:
-                    pass
-                return
+                logger.info("Deferred modal response")
 
             # Verify user and channel
             if str(interaction.user.id) != str(self.survey.user_id):
                 logger.warning(f"Wrong user for connects modal: {interaction.user.id} vs {self.survey.user_id}")
-                await interaction.followup.send(Strings.NOT_YOUR_SURVEY, ephemeral=True)
+                await send_error(Strings.NOT_YOUR_SURVEY)
                 return
                 
             if str(interaction.channel.id) != str(self.survey.channel_id):
                 logger.warning(f"Wrong channel for connects modal: {interaction.channel.id} vs {self.survey.channel_id}")
-                await interaction.followup.send(Strings.WRONG_CHANNEL, ephemeral=True)
+                await send_error(Strings.WRONG_CHANNEL)
                 return
 
+            logger.info(f"Storing connects result: {connects}")
             # Store the validated result
             try:
                 self.survey.add_result(self.step_name, str(connects))
             except Exception as e:
                 logger.error(f"Error storing connects result: {e}")
-                await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=True)
+                await send_error(Strings.GENERAL_ERROR)
                 return
             
+            logger.info("Cleaning up previous message")
             # Clean up previous message
             try:
                 await cleanup_survey_message(interaction, self.survey)
@@ -92,6 +115,7 @@ class ConnectsModal(discord.ui.Modal):
                 logger.warning(f"Error cleaning up survey message: {e}")
                 # Continue flow even if cleanup fails
             
+            logger.info("Sending confirmation message")
             # Confirm submission
             try:
                 await interaction.followup.send(Strings.INPUT_SAVED, ephemeral=True)
@@ -99,39 +123,28 @@ class ConnectsModal(discord.ui.Modal):
                 logger.warning(f"Error sending confirmation message: {e}")
                 # Continue flow even if confirmation fails
             
+            logger.info("Advancing survey")
             # Advance survey
             try:
                 self.survey.next_step()
                 if self.survey.is_done():
+                    logger.info("Survey is complete, finishing")
                     await finish_survey(interaction.channel, self.survey)
                 else:
+                    logger.info("Survey continuing to next step")
                     await continue_survey(interaction.channel, self.survey)
             except Exception as e:
                 logger.error(f"Error advancing survey: {e}")
-                await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=True)
+                await send_error(Strings.GENERAL_ERROR)
 
         except Exception as e:
             logger.error(f"Unexpected error in connects modal submission: {e}", exc_info=True)
-            # Try to send error message if we haven't responded yet
             try:
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=True)
-                else:
-                    await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=True)
-            except:
-                pass
-            await cleanup_survey_message(interaction, self.survey)
-            await interaction.followup.send(Strings.INPUT_SAVED, ephemeral=True)
-            self.survey.next_step()
-
-            if self.survey.is_done():
-                await finish_survey(interaction.channel, self.survey)
-            else:
-                await continue_survey(interaction.channel, self.survey)
-
-        except Exception as e:
-            logger.error(f"Error in ConnectsModal on_submit: {e}", exc_info=True)
-            await handle_modal_error(interaction)
+                await send_error(Strings.GENERAL_ERROR)
+                # Clean up previous message even on error to prevent stuck buttons
+                await cleanup_survey_message(interaction, self.survey)
+            except Exception as cleanup_error:
+                logger.error(f"Error during error cleanup: {cleanup_error}")
 
 
 # ==================================
@@ -465,16 +478,34 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                         survey.current_question_message_id = None
 
             elif step_name == "connects":
-                logger.info(f"Button callback for connects survey step: {step_name}. Sending modal.")
-                logger.info("Attempting to create ConnectsModal instance.") # Added log
-                modal_to_send = ConnectsModal(survey=survey, step_name=step_name)
-                logger.info("ConnectsModal instance created. Attempting to send modal.") # Added log
-                try: # Added try block
+                try:
+                    logger.info(f"Button callback for connects survey step: {step_name}")
+                    
+                    # Verify interaction hasn't been responded to
+                    if interaction.response.is_done():
+                        logger.error("Interaction already responded to")
+                        return
+                    
+                    # Create and send modal
+                    logger.info("Creating ConnectsModal instance")
+                    modal_to_send = ConnectsModal(survey=survey, step_name=step_name)
+                    logger.info("Sending ConnectsModal")
                     await interaction.response.send_modal(modal_to_send)
-                    logger.info("ConnectsModal sent successfully.") # Added log
-                except Exception as e: # Added except block
-                    logger.error(f"Error sending ConnectsModal: {e}", exc_info=True) # Added log
-                    await interaction.followup.send(Strings.MODAL_SUBMIT_ERROR, ephemeral=True) # Added error message
+                    logger.info("ConnectsModal sent successfully")
+                    
+                except discord.errors.InteractionResponded:
+                    logger.error("Interaction already responded to when trying to send modal")
+                    return
+                except Exception as e:
+                    logger.error(f"Error in connects button callback: {e}", exc_info=True)
+                    try:
+                        if not interaction.response.is_done():
+                            await interaction.response.send_message(
+                                Strings.GENERAL_ERROR,
+                                ephemeral=True
+                            )
+                    except:
+                        pass
 
             elif step_name == "dayoff_nextweek":
                 logger.info(f"Button callback for dayoff_nextweek survey step: {step_name}. Sending button view.")
