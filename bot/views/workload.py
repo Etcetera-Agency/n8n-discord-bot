@@ -235,8 +235,8 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
     from config.constants import WORKLOAD_OPTIONS
     # Add all workload options as buttons, including "Нічого немає"
     for hour in WORKLOAD_OPTIONS:
-        custom_id = f"workload_button_{hour}_{cmd_or_step}_{user_id}"
-        button = WorkloadButton(label=hour, custom_id=custom_id, cmd_or_step=cmd_or_step) # Pass cmd_or_step to button
+        custom_id = f"workload_button_{hour}_{cmd}_{user_id}"
+        button = WorkloadButton(label=hour, custom_id=custom_id, cmd_or_step=cmd) # Pass cmd to button
         logger.debug(f"[{user_id}] - Adding button with label: {hour}, custom_id: {custom_id}")
         view.add_item(button)
     
