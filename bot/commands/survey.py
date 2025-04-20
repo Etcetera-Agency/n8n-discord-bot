@@ -3,7 +3,61 @@ import discord
 from typing import Optional, List
 from config import ViewType, logger, Strings, Config
 from services import survey_manager, webhook_service
-from bot.views.factory import create_view
+from bot.views.factory import create_view, WorkloadTodayModal, WorkloadNextWeekModal, DayOffNextWeekModal
+
+class SurveyButtonView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)  # Persistent view
+    
+    @discord.ui.button(custom_id="survey_step_*")
+    async def handle_survey_step(self, interaction: discord.Interaction, button: discord.ui.Button):
+        logger.info(f"Survey step button clicked: {interaction.data}")
+        try:
+            # Parse survey ID and step name from custom_id
+            _, survey_id, step_name = interaction.data["custom_id"].split("_")
+            
+            # Get survey from manager
+            survey = survey_manager.get_survey(survey_id)
+            if not survey:
+                await interaction.response.send_message(
+                    Strings.SURVEY_START_ERROR,
+                    ephemeral=True
+                )
+                return
+            
+            # Verify channel match
+            if str(interaction.channel.id) != str(survey.channel_id):
+                await interaction.response.send_message(
+                    "Це опитування не для цього каналу.",
+                    ephemeral=True
+                )
+                return
+            
+            # Create appropriate modal
+            modals = {
+                "workloadtoday": WorkloadTodayModal,
+                "workloadnextweek": WorkloadNextWeekModal,
+                "dayoffnextweek": DayOffNextWeekModal,
+                "connects": None  # Handled separately
+            }
+            
+            ModalClass = modals.get(step_name.lower())
+            if ModalClass:
+                await interaction.response.send_modal(
+                    ModalClass(survey, step_name)
+                )
+            else:
+                await interaction.response.send_message(
+                    Strings.INVALID_STEP_MESSAGE,
+                    ephemeral=True
+                )
+                
+        except Exception as e:
+            logger.error(f"Error handling survey button: {e}")
+            await interaction.response.send_message(
+                Strings.GENERAL_ERROR,
+                ephemeral=True
+            )
 
 async def handle_survey_incomplete(user_id: str) -> None:
     """
@@ -61,12 +115,22 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
         logger.warning(f"Channel {channel_id} not registered for surveys")
         return
     
-    # Check if steps are provided and non-empty
-    steps = data.get("steps", ["workload_today", "workload_nextweek", "connects", "dayoff_nextweek"])
-    if len(steps) == 0:
-        channel = await bot_instance.fetch_channel(channel_id)
-        if channel:
-            await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
+    # Check channel response data
+    steps = data.get("steps", [])
+    channel = await bot_instance.fetch_channel(channel_id)
+    
+    if not channel:
+        logger.warning(f"Channel {channel_id} not found")
+        return
+        
+    # Handle cases based on received data
+    if steps:
+        # Steps provided - proceed with survey
+        pass
+    else:
+        # No steps provided - send completion message
+        await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
+        logger.info(f"No survey steps provided for channel {channel_id}, survey complete")
         return
     
     logger.info(f"Starting survey with steps: {steps}")
@@ -184,124 +248,100 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: 'survey_manager
         return
     
     try:
-        # Create new message for each step
-        # Initialize step
-        initial_msg = None
-        survey.current_message = None
+        # Standardized step question format using Strings
+        step_questions = {
+            "workload_today": Strings.WORKLOAD_TODAY_QUESTION,
+            "workload_nextweek": Strings.WORKLOAD_NEXTWEEK_QUESTION,
+            "connects": Strings.CONNECTS_QUESTION,
+            "day_off_nextweek": Strings.DAY_OFF_NEXTWEEK
+        }
+        
+        question_text = f"<@{user_id}> {step_questions.get(step_name, step_name)}"
 
-        if step_name.startswith("workload") or step_name.startswith("connects"):
-            if step_name == "workload_nextweek":
-                text_q = f"<@{user_id}> Скільки годин підтверджено на НАСТУПНИЙ тиждень?"
-            elif step_name == "workload_thisweek":
-                text_q = f"<@{user_id}> Скільки годин на ЦЬОГО тижня?"
-            elif step_name == "workload_today":
-                text_q = f"<@{user_id}> Скільки годин на СЬОГОДНІ?"
-            elif step_name == "connects_thisweek":
-                text_q = f"<@{user_id}> Скільки CONNECTS Upwork Connects History показує ЦЬОГО тижня?\n\nВведіть кількість коннектів що ви бачите на [Upwork Connects History](https://www.upwork.com/nx/plans/connects/history/)"
-                logger.info(f"Creating text input for connects_thisweek step")
-                initial_msg = await channel.send(text_q)
+        # Check if this is the special connects_thisweek case
+        if step_name == "connects_thisweek":
+            logger.info(f"Creating text input for connects_thisweek step")
+            initial_msg = await channel.send(question_text)
+            
+            class ConnectsModal(discord.ui.Modal):
+                def __init__(self, survey, step_name):
+                    super().__init__(title="Введіть кількість коннектів", timeout=120)
+                    self.survey = survey
+                    self.step_name = step_name
+                    self.connects_input = discord.ui.TextInput(
+                        label="Кількість коннектів",
+                        placeholder="Введіть число",
+                        min_length=1,
+                        max_length=3
+                    )
+                    self.add_item(self.connects_input)
 
-                class ConnectsModal(discord.ui.Modal):
-                    def __init__(self, survey, step_name):
-                        super().__init__(title="Введіть кількість коннектів", timeout=120)
-                        self.survey = survey
-                        self.step_name = step_name
-                        self.connects_input = discord.ui.TextInput(
-                            label="Кількість коннектів",
-                            placeholder="Введіть число",
-                            min_length=1,
-                            max_length=3
-                        )
-                        self.add_item(self.connects_input)
+                async def on_submit(self, interaction: discord.Interaction):
+                    logger.info(f"ConnectsModal submit - interaction: {type(interaction)}, channel: {getattr(interaction, 'channel', None)}")
+                    if not interaction or not hasattr(interaction, 'channel') or str(interaction.channel.id) != str(self.survey.channel_id):
+                        logger.error(f"Invalid interaction in ConnectsModal - interaction: {interaction}, channel match: {str(interaction.channel.id) if interaction and hasattr(interaction, 'channel') else 'N/A'} vs {self.survey.channel_id}")
+                        if interaction and hasattr(interaction, 'response'):
+                            await interaction.response.send_message("Це опитування не для цього каналу.", ephemeral=True)
+                        return
+                    # Ensure consistent types (string vs int)
+                    channel_id = str(interaction.channel.id)
+                        
+                    if not self.connects_input.value.isdigit():
+                        await interaction.response.send_message("Будь ласка, введіть числове значення.", ephemeral=True)
+                        return
+                        
+                    self.survey.results[self.step_name] = int(self.connects_input.value)
+                    await interaction.response.send_message(f"Збережено: {self.connects_input.value} коннектів", ephemeral=True)
+                    self.survey.next_step()
+                    await continue_survey(channel, self.survey)
 
-                    async def on_submit(self, interaction: discord.Interaction):
-                        logger.info(f"ConnectsModal submit - interaction: {type(interaction)}, channel: {getattr(interaction, 'channel', None)}")
-                        if not interaction or not hasattr(interaction, 'channel') or str(interaction.channel.id) != str(self.survey.channel_id):
-                            logger.error(f"Invalid interaction in ConnectsModal - interaction: {interaction}, channel match: {str(interaction.channel.id) if interaction and hasattr(interaction, 'channel') else 'N/A'} vs {self.survey.channel_id}")
-                            if interaction and hasattr(interaction, 'response'):
-                                await interaction.response.send_message("Це опитування не для цього каналу.", ephemeral=True)
-                            return
-                        # Ensure consistent types (string vs int)
-                        channel_id = str(interaction.channel.id)
-                            
-                        if not self.connects_input.value.isdigit():
-                            await interaction.response.send_message("Будь ласка, введіть числове значення.", ephemeral=True)
-                            return
-                            
-                        self.survey.results[self.step_name] = int(self.connects_input.value)
-                        await interaction.response.send_message(f"Збережено: {self.connects_input.value} коннектів", ephemeral=True)
-                        self.survey.next_step()
-                        await continue_survey(channel, self.survey)
-
-                if not channel:
-                    logger.error("Cannot send modal - channel is None")
-                    return
-
-                if not survey or not hasattr(survey, 'user_id'):
-                    logger.error("Invalid survey state when creating ConnectsModal")
-                    return
-
-                logger.info(f"Creating ConnectsModal for step {step_name}, user {survey.user_id}")
-                modal = ConnectsModal(survey, step_name)
-                await channel.send_modal(modal)
-                logger.info(f"Sent modal for step {step_name}")
-                # COMPLETELY STOP HERE - Modal will handle continuation after submission
+            if not channel:
+                logger.error("Cannot send modal - channel is None")
                 return
-            else:
-                text_q = f"<@{user_id}> Будь ласка, оберіть кількість годин:"
-                
-            logger.info(f"Creating workload view for step {step_name}")
-            # Send question message
-            question_msg = await channel.send(text_q)
-            await question_msg.add_reaction("📝")  # Add pencil emoji reaction
-            
-            # Create and validate view
-            view = create_view("workload", step_name, user_id, ViewType.DYNAMIC, has_survey=True)
-            if not view:
-                logger.error("Failed to create workload view")
+            if not survey or not hasattr(survey, 'user_id'):
+                logger.error("Invalid survey state when creating ConnectsModal")
                 return
-            view.command_msg = question_msg
-            
-            # Send follow-up message with buttons
-            buttons_msg = await channel.send("Оберіть кількість годин:", view=view)
-            if buttons_msg:
-                view.buttons_msg = buttons_msg
-                survey.buttons_message = buttons_msg
-                logger.info(f"Created buttons message with ID: {buttons_msg.id}")
-            else:
-                logger.error("Failed to create buttons message")
-                return
-            
-            # Only log message IDs if messages exist
-            initial_id = initial_msg.id if initial_msg else "None"
-            buttons_id = buttons_msg.id if buttons_msg else "None"
-            logger.info(f"Sent workload question for step {step_name}, initial message ID: {initial_id}, buttons message ID: {buttons_id}")
-            
-            # Just display buttons and wait for user input
-            # Webhook will be sent by WorkloadView after button press
-            logger.info(f"Displayed buttons for step {step_name}, waiting for user input")
-            
-            # COMPLETELY STOP HERE - WorkloadView will handle continuation after button press
+
+            logger.info(f"Creating ConnectsModal for step {step_name}, user {survey.user_id}")
+            modal = ConnectsModal(survey, step_name)
+            await channel.send_modal(modal)
+            logger.info(f"Sent modal for step {step_name}")
+            # COMPLETELY STOP HERE - Modal will handle continuation after submission
             return
-        elif step_name == "day_off_nextweek":
-            text_q = f"<@{user_id}> Які дні вихідних на наступний тиждень?"
-            
-            logger.info(f"Creating day_off view for step {step_name}")
-            # Create and send the view with has_survey=True
-            # Send initial message
-            initial_msg = await channel.send(text_q)
-            
-            # Create view with initial message reference
-            view = create_view("day_off", step_name, user_id, ViewType.DYNAMIC, has_survey=True)
-            view.command_msg = initial_msg
-            
-            # Send follow-up message with buttons
-            buttons_msg = await channel.send("Оберіть дні вихідних:", view=view)
-            view.buttons_msg = buttons_msg
-            
-            logger.info(f"Sent day_off question for step {step_name}, initial message ID: {initial_msg.id}, buttons message ID: {buttons_msg.id}")
-            
-            # COMPLETELY STOP HERE - DayOffView will handle continuation after button press
+
+        # Standard step handling - question + button
+        class SurveyInputButton(discord.ui.View):
+            def __init__(self, survey_id: str, step: str):
+                super().__init__(timeout=None)  # Persistent view
+                self.custom_id = f"survey_step_{survey_id}_{step}"
+                self.add_item(discord.ui.Button(
+                    label="Ввести",
+                    custom_id=self.custom_id,
+                    style=discord.ButtonStyle.primary
+                ))
+        
+        # Send question with input button
+        view = SurveyInputButton(survey.session_id, step_name)
+        question_msg = await channel.send(question_text, view=view)
+        
+        # Store message reference in survey
+        survey.current_step_message = question_msg
+        survey.current_step = step_name
+        
+        logger.info(f"Sent standardized survey step: {step_name}, message ID: {question_msg.id}")
+
+        # Handle day off steps using standardized question + button
+        if step_name == "day_off_nextweek":
+            view = SurveyInputButton(survey.session_id, step_name)
+            question_msg = await channel.send(question_text, view=view)
+            survey.current_step_message = question_msg
+            logger.info(f"Sent day off question for step {step_name}, message ID: {question_msg.id}")
+            return
+
+        # Handle non-supported step types
+        if step_name not in step_questions:
+            logger.warning(f"Invalid step type: {step_name} for user {user_id}")
+            await channel.send(f"<@{user_id}> {Strings.INVALID_STEP_MESSAGE}")
             return
         else:
             logger.warning(f"Invalid step type: {step_name} for user {user_id}")

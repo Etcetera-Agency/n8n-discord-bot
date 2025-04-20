@@ -61,6 +61,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 from bot.commands import events
 events.setup(bot)
 
+# Import and register survey button handler
+from bot.commands.survey import SurveyButtonView
+bot.add_view(SurveyButtonView())
+
 ###############################################################################
 # Survey Management
 ###############################################################################
