@@ -132,13 +132,14 @@ class SurveyManager:
         """Initialize the survey manager."""
         self.surveys: Dict[str, SurveyFlow] = {}
         
-    def create_survey(self, user_id: str, channel_id: str, steps: List[str]) -> SurveyFlow:
+    def create_survey(self, user_id: str, channel_id: str, steps: List[str], session_id: str) -> SurveyFlow:
         """Create and track a new survey instance.
         
         Args:
-            user_id: Discord user ID
-            channel_id: Discord channel ID
-            steps: List of survey step names
+        user_id: Discord user ID
+        channel_id: Discord channel ID
+        steps: List of survey step names
+        session_id: Combined channel.user ID from initial request
             
         Returns:
             The created SurveyFlow instance
@@ -150,7 +151,6 @@ class SurveyManager:
             raise ValueError("Invalid survey parameters")
             
         try:
-            session_id = f"{channel_id}_{user_id}"
             survey = SurveyFlow(channel_id, steps, user_id, session_id)
             self.surveys[str(user_id)] = survey
             return survey
