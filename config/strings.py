@@ -21,9 +21,7 @@ class Strings:
     SELECT_DAYS_NEXTWEEK = "Оберіть свої вихідні на наступний тиждень:"
     CONFIRM_BUTTON = "В кінці натисніть кнопку Підтверджую"
     SELECT_OPTION = "Оберіть варіант:"
-    WORKLOAD_TODAY_QUESTION = "На скільки годин у тебе підтверджена зайнятість з СЬОГОДНІ до кінця тижня?"
-    WORKLOAD_NEXTWEEK_QUESTION = "Скажи, а чи є підтверджені завдання на наступний тиждень?"
-    SELECT_HOURS = "Оберіть кількість годин:"
+    SELECT_HOURS = "Оберіть кількість годин:"  # Used for button views only
 
     # Errors
     GENERAL_ERROR = "Помилка: Не вдалося виконати команду."
@@ -36,14 +34,34 @@ class Strings:
     PROCESSING = "⏳"
     ERROR = "❌"
     SURVEY_GREETING = "Готовий почати робочий день?"
-    SURVEY_COMPLETE_MESSAGE = "Схоже всі данні вже занесені"
-    SURVEY_START_PROMPT = "Натисніть кнопку, щоб почати опитування:"
-    SURVEY_START_ERROR = "Помилка при запуску опитування"
-    CONNECTS_QUESTION = "Скільки CONNECTS Upwork Connects History показує ЦЬОГО тижня?"
-    CONNECTS_INPUT_PROMPT = "Введіть кількість коннектів що ви бачите на [Upwork Connects History](https://www.upwork.com/nx/plans/connects/history/)"
-    DAY_OFF_QUESTION = "Які дні вихідних на наступний тиждень?"
+    
+    # Modal Titles
+    WORKLOAD_TODAY_MODAL = "Години сьогодні"
+    WORKLOAD_NEXTWEEK_MODAL = "Години наступного тижня"
+    CONNECTS_MODAL = "Введіть кількість коннектів"
+    DAY_OFF_MODAL = "Вихідні дні"
+    
+    # Modal Input Labels
+    HOURS_INPUT = "Кількість годин"
+    CONNECTS_INPUT = "Кількість коннектів"
+    DAYS_INPUT = "Дні вихідних (через кому)"
+    
+    # Modal Placeholders
+    HOURS_PLACEHOLDER = "Введіть число (наприклад: 8)"
+    CONNECTS_PLACEHOLDER = "Введіть число (наприклад: 80)"
+    DAYS_PLACEHOLDER = "наприклад: пн, вт"
+    
+    # Modal Validation Errors
+    NUMBER_REQUIRED = "Будь ласка, введіть числове значення."
+    DAYS_REQUIRED = "Будь ласка, вкажіть дні вихідних."
+    INPUT_SAVED = "Дякую! Ваші дані збережено."
+    # UI prompts and errors
+    CONNECTS_INPUT_PROMPT = f"{CONNECTS}\nВведіть кількість коннектів:"
+    # Survey-specific errors
     STEP_ERROR = "Помилка при запуску кроку"
+    NOT_YOUR_SURVEY_ERROR = "Це опитування не для вас."
+    WRONG_CHANNEL_ERROR = "Це опитування не для цього каналу."
+    # Survey-specific messages
+    NOT_YOUR_SURVEY = "Це опитування не для вас."
+    WRONG_CHANNEL = "Це опитування не для цього каналу."
     START_SURVEY_BUTTON = "Гайда"
-    SURVEY_COMPLETE_MESSAGE = "Схоже всі данні вже занесені"
-    SURVEY_START_PROMPT = "Натисніть кнопку, щоб почати опитування:"
-    SURVEY_START_ERROR = "Помилка при запуску опитування"

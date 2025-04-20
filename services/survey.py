@@ -28,19 +28,55 @@ class SurveyFlow:
         self.current_message: Optional[discord.Message] = None
         self.buttons_message: Optional[discord.Message] = None
         self.start_message: Optional[discord.Message] = None
+        self.current_question_message_id: Optional[int] = None
         logger.info(f"Created survey flow for user {user_id} with steps: {steps}")
         
     async def cleanup(self) -> None:
         """
-        Clean up survey messages.
+        Clean up survey messages with robust error handling.
         """
+        msgs_to_clean = [
+            (self.buttons_message, "buttons_message"),
+            (self.start_message, "start_message"),
+            (None, "question")  # Will try to cleanup by ID if exists
+        ]
+        
+        for msg, msg_type in msgs_to_clean:
+            try:
+                if msg_type == "question":
+                    if not self.current_question_message_id:
+                        continue
+                    channel = self._get_channel()
+                    if channel:
+                        msg = await channel.fetch_message(self.current_question_message_id)
+                
+                if msg:
+                    await msg.delete()
+                    
+                # Reset ID references
+                if msg_type == "buttons_message":
+                    self.buttons_message = None
+                elif msg_type == "start_message":
+                    self.start_message = None
+                elif msg_type == "question":
+                    self.current_question_message_id = None
+                    
+            except discord.NotFound:
+                logger.debug(f"Message {msg_type} was already deleted")
+            except discord.Forbidden:
+                logger.warning(f"No permissions to delete message {msg_type}")
+            except discord.HTTPException as e:
+                logger.error(f"HTTP error deleting {msg_type}: {e}")
+            except Exception as e:
+                logger.error(f"Unexpected error cleaning up {msg_type}: {e}")
+
+    def _get_channel(self) -> Optional[discord.TextChannel]:
+        """Get the Discord channel if possible"""
         try:
-            if self.buttons_message:
-                await self.buttons_message.delete()
-            if self.start_message:
-                await self.start_message.delete()
-        except Exception as e:
-            logger.error(f"Error cleaning up survey messages: {e}")
+            client = discord.utils.get(discord.utils.get_all_channels(), id=int(self.channel_id))
+            return client if client and isinstance(client, discord.TextChannel) else None
+        except Exception:
+            return None
 
     def current_step(self) -> Optional[str]:
         """

@@ -4,6 +4,13 @@ import datetime
 from config import ViewType, logger, constants
 from services import survey_manager
 import asyncio
+import warnings
+
+warnings.warn(
+    "DayOffView is deprecated - use modals in survey commands instead",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 class DayOffButton(discord.ui.Button):
     def __init__(self, label: str, custom_id: str, cmd_or_step: str):
