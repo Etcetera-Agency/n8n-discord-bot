@@ -308,19 +308,44 @@ class DeclineButton(discord.ui.Button):
                         
                 else:
                     # Regular slash command
-                    logger.debug(f"Sending webhook for cmd: {view.cmd_or_step}, with Nothing value")
+                    logger.debug("Entering regular command branch")
+                    logger.debug(f"view.command_msg exists: {bool(view.command_msg)}")
+                    logger.debug(f"webhook_service instance check: {hasattr(webhook_service, 'send_webhook')}")
+                    
                     try:
+                        logger.debug(f"Preparing to send webhook for cmd: {view.cmd_or_step}")
+                        if not interaction.response.is_done():
+                            logger.warning("Interaction response not marked as done before webhook send")
+                            
                         success, data = await webhook_service.send_webhook(
                             interaction,
                             command=view.cmd_or_step,
                             status="ok",
                             result={"value": "Nothing"}
                         )
-                        logger.debug(f"Webhook sent. Success: {success}, Data: {data}")
+                        logger.debug(f"Webhook sent. Success: {success}, Data: {data if data else 'None'}")
+                        
+                        if success and data and "output" in data:
+                            logger.debug("Webhook response contains output")
+                            if view.command_msg:
+                                logger.debug("Updating command message with response")
+                                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                                await view.command_msg.edit(content=data["output"])
+                        else:
+                            logger.warning("Webhook response indicates failure")
+                            
                     except Exception as e:
-                        logger.error(f"Webhook send failed: {e}")
+                        logger.error(f"Webhook send failed: {str(e)}", exc_info=True)
                         success = False
                         data = None
+                        
+                        if view.command_msg:
+                            error_msg = Strings.DAYOFF_ERROR.format(
+                                days="Відмова від вихідних",
+                                error=Strings.UNEXPECTED_ERROR
+                            )
+                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                            await view.command_msg.edit(content=error_msg)
                     
                     if success and data and "output" in data:
                         # Update command message with success
