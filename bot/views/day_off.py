@@ -223,23 +223,30 @@ class DeclineButton(discord.ui.Button):
         view = self.view
         if isinstance(view, DayOffView):
             logger.debug(f"Decline button clicked by {interaction.user}")
+            logger.debug(f"View has_survey: {view.has_survey}, cmd_or_step: {view.cmd_or_step}")
+            
             # First, acknowledge the interaction to prevent timeout
             if not interaction.response.is_done():
                 try:
                     await interaction.response.defer(ephemeral=False)
+                    logger.debug("Interaction deferred successfully")
                 except Exception as e:
                     logger.error(f"Failed to defer interaction: {e}")
                     return
             
             # Add processing reaction to command message
             if view.command_msg:
+                logger.debug(f"Adding processing reaction to command message")
                 await view.command_msg.add_reaction(Strings.PROCESSING)
+            else:
+                logger.debug("No command_msg available")
             
             try:
-                logger.debug(f"Attempting to send webhook for decline action")
+                logger.debug(f"Preparing to send webhook for decline action")
                 if view.has_survey:
-                    # Dynamic survey flow
+                    logger.debug("Handling decline action as survey step")
                     state = survey_manager.get_survey(view.user_id)
+                    logger.debug(f"Survey state: {'exists' if state else 'not found'}")
                     if not state:
                         if view.command_msg:
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
