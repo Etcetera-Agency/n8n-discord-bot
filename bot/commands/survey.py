@@ -435,7 +435,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
 
         # Assign callback and create view
         button.callback = button_callback
-        view = discord.ui.View(timeout=constants.SURVEY_STEP_TIMEOUT) # Use timeout from constants
+        view = discord.ui.View(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"]) # Use timeout from constants
         view.add_item(button)
 
         # Send the question message with the button
