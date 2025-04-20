@@ -111,7 +111,7 @@ class SlashCommands:
             
             # First send the command usage message and store it
             if not interaction.response.is_done():
-                await interaction.response.send_message(f"{interaction.user} {Strings.SELECT_DAYS_THISWEEK}")
+                await interaction.response.send_message(f"{interaction.user} {Strings.DAY_OFF_THISWEEK}")
             command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
@@ -137,7 +137,7 @@ class SlashCommands:
                 # First send the command usage message and store it
                 logger.debug("Sending command usage message")
                 if not interaction.response.is_done():
-                    await interaction.response.send_message(f"{interaction.user} {Strings.SELECT_DAYS_NEXTWEEK}")
+                    await interaction.response.send_message(f"{interaction.user} {Strings.DAY_OFF_NEXTWEEK}")
                 command_msg = await interaction.original_response()
                 
                 # Then send the buttons in a separate message
