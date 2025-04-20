@@ -632,7 +632,7 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> Non
         payload = {
             "command": "survey",
             "status": "end",
-            # Only send the last answered step for "end" as well, with correct structure
+            "message": "",
             "result": {
                 "stepName": list(survey.results.keys())[-1] if survey.results else "",
                 "value": list(survey.results.values())[-1] if survey.results else ""
