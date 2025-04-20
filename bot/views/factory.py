@@ -1,11 +1,6 @@
 from typing import Optional, Union
 import discord
-<<<<<<< HEAD
-from config import logger, ViewType
-=======
-from typing import Optional, Union
 from config import ViewType, logger, Strings
->>>>>>> 3c2b0b6b0f922f9b07de6b3f4dba3cdc79ccc344
 from bot.views.workload import create_workload_view
 from bot.views.day_off import create_day_off_view
 
@@ -116,19 +111,11 @@ def create_view(
     view_name: str, 
     cmd_or_step: str,
     user_id: str,
-    view_type: ViewType = ViewType.SLASH,
-<<<<<<< HEAD
-    has_survey: bool = False,
-    **kwargs
-) -> Union[discord.ui.View, None]:
-    """Create appropriate view based on parameters"""
-=======
     timeout: Optional[float] = None,
     has_survey: bool = False
 ) -> Union[discord.ui.View, discord.ui.Modal]:
     """
     Factory function to create the appropriate view type.
->>>>>>> 3c2b0b6b0f922f9b07de6b3f4dba3cdc79ccc344
     
     # Survey view handling (button-based implementation)
     if view_name == "survey":
@@ -150,13 +137,7 @@ def create_view(
     if view_name == "workload":
         return create_workload_view(cmd_or_step, user_id, **kwargs)
     elif view_name == "day_off":
-<<<<<<< HEAD
-        return create_day_off_view(cmd_or_step, user_id, **kwargs)
-        
-    return discord.ui.View()
-=======
         return create_day_off_view(cmd_or_step, user_id, timeout, has_survey)
     
     # Default empty view
     return discord.ui.View(timeout=timeout)
->>>>>>> 3c2b0b6b0f922f9b07de6b3f4dba3cdc79ccc344

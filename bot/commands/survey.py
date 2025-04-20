@@ -3,65 +3,7 @@ import discord
 from typing import Optional, List, Any # Added Any
 from config import ViewType, logger, Strings, Config, constants # Added constants
 from services import survey_manager, webhook_service
-<<<<<<< HEAD
 # Removed factory import
-=======
-from bot.views.factory import create_view, WorkloadTodayModal, WorkloadNextWeekModal, DayOffNextWeekModal
-
-class SurveyButtonView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)  # Persistent view
-    
-    @discord.ui.button(custom_id="survey_step_*")
-    async def handle_survey_step(self, interaction: discord.Interaction, button: discord.ui.Button):
-        logger.info(f"Survey step button clicked: {interaction.data}")
-        try:
-            # Parse survey ID and step name from custom_id
-            _, survey_id, step_name = interaction.data["custom_id"].split("_")
-            
-            # Get survey from manager
-            survey = survey_manager.get_survey(survey_id)
-            if not survey:
-                await interaction.response.send_message(
-                    Strings.SURVEY_START_ERROR,
-                    ephemeral=True
-                )
-                return
-            
-            # Verify channel match
-            if str(interaction.channel.id) != str(survey.channel_id):
-                await interaction.response.send_message(
-                    "Це опитування не для цього каналу.",
-                    ephemeral=True
-                )
-                return
-            
-            # Create appropriate modal
-            modals = {
-                "workloadtoday": WorkloadTodayModal,
-                "workloadnextweek": WorkloadNextWeekModal,
-                "dayoffnextweek": DayOffNextWeekModal,
-                "connects": None  # Handled separately
-            }
-            
-            ModalClass = modals.get(step_name.lower())
-            if ModalClass:
-                await interaction.response.send_modal(
-                    ModalClass(survey, step_name)
-                )
-            else:
-                await interaction.response.send_message(
-                    Strings.INVALID_STEP_MESSAGE,
-                    ephemeral=True
-                )
-                
-        except Exception as e:
-            logger.error(f"Error handling survey button: {e}")
-            await interaction.response.send_message(
-                Strings.GENERAL_ERROR,
-                ephemeral=True
-            )
->>>>>>> 3c2b0b6b0f922f9b07de6b3f4dba3cdc79ccc344
 
 # ==================================
 # Survey-Specific Modals
