@@ -39,42 +39,42 @@ class WebServer:
             # Create consistent session ID format
             session_id = f"{channel_id}_{user_id}"
 
-            class StartSurveyButton(discord.ui.Button):
-                def __init__(self, user_id: str, channel_id: str):
-                    # Encode both IDs in the custom ID using a separator
-                    super().__init__(
-                        style=discord.ButtonStyle.success,
-                        label=Strings.START_SURVEY_BUTTON,
-                        custom_id=f"survey_start_{session_id}"  # Use consistent session ID format
-                    )
-                    self.user_id = user_id
-                    self.channel_id = channel_id
-                    self.session_id = session_id  # Use pre-validated session ID
-                    
-                async def callback(self, interaction: discord.Interaction):
-                    await interaction.response.defer()
-                    try:
-                        from bot.commands.survey import handle_start_daily_survey
-                        # Pass both IDs explicitly
-                        await handle_start_daily_survey(
-                            interaction.client,
-                            user_id=self.user_id,
-                            channel_id=self.channel_id,
-                            session_id=self.session_id,  # Pass combined session ID
-                            steps=[]
-                        )
-                    except Exception as e:
-                        logger.error(f"Survey start error: {str(e)}")
-                        await interaction.followup.send(f"<@{self.user_id}> {Strings.SURVEY_START_ERROR}")
+            # Removed the entire nested StartSurveyButton class definition (lines 42-103).
+            # Button interaction is now handled by the on_interaction listener
+            # in bot/commands/events.py based on the custom_id.
 
             try:
-                channel = await self.bot.fetch_channel(channel_id)
-                view = discord.ui.View(timeout=None)
-                view.add_item(StartSurveyButton(user_id, str(channel_id)))
+                # Ensure channel_id is int for fetch_channel
+                try:
+                    target_channel_id = int(channel_id)
+                except ValueError:
+                    logger.error(f"Invalid channel ID received in HTTP request: {channel_id}")
+                    return web.json_response({"error": "Invalid channel ID format"}, status=400)
+
+                channel = await self.bot.fetch_channel(target_channel_id)
+                view = discord.ui.View(timeout=None) # Persistent view
+
+                # Create a standard button with the specific custom_id
+                # custom_id format: survey_start_{channel_id}_{user_id}
+                start_button = discord.ui.Button(
+                    style=discord.ButtonStyle.success,
+                    label=Strings.START_SURVEY_BUTTON,
+                    custom_id=f"survey_start_{session_id}" # Match the ID handled in on_interaction
+                )
+                
+                view.add_item(start_button) # Add the standard button to the view
+                
                 await channel.send(f"<@{user_id}> {Strings.SURVEY_GREETING}", view=view)
+                logger.info(f"Sent persistent survey start button to user {user_id} in channel {channel_id} with custom_id: survey_start_{session_id}")
                 return web.json_response({"status": "Greeting message sent"})
+            except discord.NotFound:
+                 logger.error(f"Channel {channel_id} not found when trying to send persistent button.")
+                 return web.json_response({"error": f"Channel {channel_id} not found"}, status=404)
+            except discord.Forbidden:
+                 logger.error(f"Bot lacks permissions for channel {channel_id} to send persistent button.")
+                 return web.json_response({"error": f"Bot cannot access channel {channel_id}"}, status=403)
             except Exception as e:
-                logger.error(f"Failed to send button: {str(e)}")
+                logger.error(f"Failed to send persistent button: {str(e)}", exc_info=True)
                 return web.json_response({"error": "Failed to initialize survey"}, status=500)
             
         except Exception as e:
