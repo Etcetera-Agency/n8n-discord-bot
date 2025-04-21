@@ -235,6 +235,7 @@ async def on_message(message: discord.Message):
         await message.add_reaction("✅" if success else Strings.ERROR)
         # Process commands *only* if mentioned
         logger.debug(f"Bot was mentioned. Calling process_commands for message: '{message.content}'")
+        logger.debug(f"Attempting to process commands for message: '{message.content}'") # Added log
         await bot.process_commands(message)
         # No return needed here, the elif below handles the non-mention case
 
