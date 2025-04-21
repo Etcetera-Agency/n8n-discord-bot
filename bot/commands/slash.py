@@ -393,7 +393,7 @@ class SlashCommands:
                 logger.debug(f"[{interaction.user}] - Attempting to send webhook for connects command")
                 success, data = await webhook_service.send_webhook(
                     interaction,
-                    command="connects",
+                    command="connects_thisweek",
                     status="ok",
                     result={"connects": connects}
                 )
