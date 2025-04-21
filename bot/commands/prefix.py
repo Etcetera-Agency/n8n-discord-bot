@@ -30,8 +30,15 @@ class PrefixCommands:
             # --- NEW LOG ADDED ---
             logger.info(f"DEBUG: register_cmd received text: '{text}' (type: {type(text)})")
             # --- END NEW LOG ---
+
+            # --- ADDED STRIP ---
+            original_text = text # Keep original for logging
+            text = text.strip()
+            logger.info(f"DEBUG: register_cmd stripped text: '{text}' (original: '{original_text}')")
+            # --- END ADDED STRIP ---
+
             logger.info(f"Attempting to execute register_cmd with text: {text}") # Added log
-            if not text:
+            if not text: # This check now uses the stripped text
                 logger.info(f"Text argument is empty for register command from {ctx.author}. Sending usage message.") # Added log
                 await ctx.send("Потрібний формат !register Name Surname as in Team Directory")
                 logger.warning(f"Register command failed: text argument missing from {ctx.author}")
