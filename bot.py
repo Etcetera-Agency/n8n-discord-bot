@@ -157,8 +157,7 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow):
 ###############################################################################
 # Discord on_message Event
 ###############################################################################
-@bot.event
-async def on_message(message: discord.Message):
+async def on_message(message: discord.Message): # Removed @bot.event decorator
     logger.debug(f"on_message triggered by user {message.author} with content: '{message.content}'") # ADDED VERY FIRST LOG
     if message.author == bot.user:
         logger.debug("on_message: Ignoring message from self.") # Log self-ignore
@@ -341,6 +340,9 @@ async def main():
     # Start HTTP server
     from web import server
     server_task = asyncio.create_task(server.run_server(bot))
+
+    # Manually add the on_message listener
+    bot.add_listener(on_message) # Added manual listener registration
 
     # Start Discord bot
     await bot.start(Config.DISCORD_TOKEN)
