@@ -182,6 +182,9 @@ async def on_close():
 ##############################################################################
 @bot.event # Re-added @bot.event decorator
 async def on_message(message: discord.Message):
+    # --- NEW LOG ADDED ---
+    logger.debug(f"--- on_message ENTRY --- User: {message.author}, Content: '{message.content}'")
+    # --- END NEW LOG ---
     logger.debug(f"on_message triggered by user {message.author} with content: '{message.content}'") # ADDED VERY FIRST LOG
     if message.author == bot.user:
         logger.debug("on_message: Ignoring message from self.") # Log self-ignore
@@ -204,9 +207,18 @@ async def on_message(message: discord.Message):
 
         # Add success or error reaction
         await message.add_reaction("✅" if success else Strings.ERROR)
-        return # Stop processing after handling mention
+        # --- MODIFICATION START ---
+        # Now, process commands *only* if mentioned
+        logger.debug(f"Bot was mentioned. Calling process_commands for message: '{message.content}'")
+        await bot.process_commands(message)
+        # --- MODIFICATION END ---
+        # We don't return here anymore, but the subsequent checks won't run if mention was handled.
 
-    if message.content.startswith("start_daily_survey"):
+    # --- REMOVED process_commands call from here ---
+    # Only process commands if mentioned (handled above)
+    # We might still want other non-command logic here if needed.
+    elif message.content.startswith("start_daily_survey"): # Changed to elif
+        # This block will now only run if the bot was NOT mentioned AND the message starts with start_daily_survey
         parts = message.content.split()
         if len(parts) >= 4:
             user_id = parts[1]
@@ -214,16 +226,8 @@ async def on_message(message: discord.Message):
             steps = parts[3:]
             await handle_start_daily_survey(bot, user_id, channel_id, steps)
     
-    logger.debug(f"Reached end of on_message for message: '{message.content}'. Calling process_commands.") # Added log
-    await bot.process_commands(message)
+    # logger.debug(f"Reached end of on_message for message: '{message.content}'. Calling process_commands.") # Removed this log as process_commands moved
 
-###############################################################################
-# PREFIX COMMANDS
-###############################################################################
-
-###############################################################################
-# SLASH COMMANDS
-###############################################################################
 
 ###############################################################################
 # Main function to run both the HTTP/HTTPS server and the Discord Bot
