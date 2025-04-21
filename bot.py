@@ -159,7 +159,9 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow):
 ###############################################################################
 @bot.event
 async def on_message(message: discord.Message):
+    logger.debug(f"on_message triggered by user {message.author} with content: '{message.content}'") # ADDED VERY FIRST LOG
     if message.author == bot.user:
+        logger.debug("on_message: Ignoring message from self.") # Log self-ignore
         return
 
     if bot.user in message.mentions:
