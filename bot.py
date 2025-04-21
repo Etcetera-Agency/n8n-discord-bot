@@ -59,7 +59,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Import and setup event handlers
 from bot.commands import events
-# events.setup(bot) # Temporarily commented out to isolate potential interference
+events.setup(bot) # Uncommented events setup
 
 # Import and register survey button handler
 from bot.commands.survey import SurveyButtonView
@@ -155,9 +155,25 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow):
 ###############################################################################
 
 ###############################################################################
-# Discord on_message Event
 ###############################################################################
-async def on_message(message: discord.Message): # Removed @bot.event decorator
+# Discord Events
+###############################################################################
+@bot.event
+async def on_ready():
+    logger.info(f"Bot connected as {bot.user}")
+    logger.info("Prefix commands should be registered now.") # Added log
+    # Note: Slash commands are synced separately, usually in on_ready or a setup cog
+
+@bot.event
+async def on_close():
+    logger.info("Bot shutting down, cleaning up resources")
+    # Add any necessary cleanup here
+
+###############################################################################
+# Discord on_message Event
+##############################################################################
+@bot.event # Re-added @bot.event decorator
+async def on_message(message: discord.Message):
     logger.debug(f"on_message triggered by user {message.author} with content: '{message.content}'") # ADDED VERY FIRST LOG
     if message.author == bot.user:
         logger.debug("on_message: Ignoring message from self.") # Log self-ignore
@@ -340,9 +356,6 @@ async def main():
     # Start HTTP server
     from web import server
     server_task = asyncio.create_task(server.run_server(bot))
-
-    # Manually add the on_message listener
-    bot.add_listener(on_message) # Added manual listener registration
 
     # Start Discord bot
     await bot.start(Config.DISCORD_TOKEN)
