@@ -36,12 +36,23 @@ class PrefixCommands:
                 ctx: Command context
                 text: Registration text
             """
-            logger.info(f"Register command from {ctx.author}: {text}")
-            await webhook_service.send_webhook(
-                ctx,
-                command="register",
-                result={"text": text}
-            )
+            logger.info(f"Register command from {ctx.author}: {text}. Attempting to send webhook...")
+            try:
+                # Assuming send_webhook returns a boolean or status indicator
+                success = await webhook_service.send_webhook(
+                    ctx,
+                    command="register",
+                    result={"text": text}
+                )
+                if success: # Check if the webhook call was successful (adjust condition if needed)
+                    logger.info(f"Webhook for register command sent successfully for {ctx.author}.")
+                    await ctx.send(f"Registration attempt for '{text}' sent successfully.") # Confirmation message
+                else:
+                    logger.warning(f"Webhook for register command failed for {ctx.author}. No explicit error, but indication of failure.")
+                    await ctx.send(f"Registration attempt for '{text}' failed. Please check logs or contact admin.") # Failure message
+            except Exception as e:
+                logger.error(f"Error sending webhook for register command for {ctx.author}: {e}", exc_info=True)
+                await ctx.send(f"An error occurred during registration for '{text}'. Please contact admin.") # Error message
 
         @self.bot.command(name="unregister", help="Використання: !unregister")
         async def unregister_cmd(ctx: commands.Context):

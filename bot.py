@@ -204,6 +204,7 @@ async def on_message(message: discord.Message):
 
         # Add success or error reaction
         await message.add_reaction("✅" if success else Strings.ERROR)
+        return # Stop processing after handling mention
 
     if message.content.startswith("start_daily_survey"):
         parts = message.content.split()
