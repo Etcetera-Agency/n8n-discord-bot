@@ -3,6 +3,11 @@ from config import Config, logger
 from web import create_and_start_server
 from bot_instance import bot # Import the bot instance from the renamed file
 
+@bot.event
+async def on_message(message):
+    logger.info(f"on_message received: {message.content}")
+    await bot.process_commands(message) # Ensure commands are still processed
+
 async def main():
     """
     Main entry point for the application.
