@@ -147,7 +147,8 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow):
         await bot.webhook_service.send_webhook(
             channel,
             command="survey",
-            result={"final": survey.results}
+            status="end", # Added status="end"
+            result=survey.results[survey.steps[-1]] # Changed result to send only the last step's result
         )
     survey_manager.remove_survey(survey.user_id)
 

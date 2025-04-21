@@ -15,6 +15,7 @@ class PrefixCommands:
         Args:
             bot: Discord bot instance
         """
+        logger.info("Initializing PrefixCommands...") # Added log for initialization check
         self.bot = bot
         self.register_commands()
         

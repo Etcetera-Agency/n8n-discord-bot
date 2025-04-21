@@ -470,13 +470,35 @@ When a user interacts with a button or select menu:
 When a user completes a step in a survey:
 
 ```json
+"command": "survey",
+"status": "step",
+"message": "",
+"result": {
+  "stepName": "workload_today", // or other step names like "day_off_nextweek"
+  "value": 20, // Example value for workload/connects
+  "daysSelected": ["Понеділок", "Середа"] // Example value for day off
+},
+"author": "User#1234",
+"userId": "123456789012345678",
+"sessionId": "550e8400-e29b-41d4-a716-446655440000",
+"channelId": "987654321098765432",
+"channelName": "general",
+"timestamp": 1620000000
+}
+}
+```
+
+#### 4. Survey Completion
+
+When a user completes all steps in a survey:
+
 {
   "command": "survey",
-  "status": "step",
+  "status": "end",
   "message": "",
   "result": {
-    "stepName": "workload_today",
-    "value": 20
+    "stepName": "dayoff_nextweek", // Example last step name
+    "value": ["Понеділок", "Вівторок"] // Example result for the last step
   },
   "author": "User#1234",
   "userId": "123456789012345678",
@@ -485,27 +507,6 @@ When a user completes a step in a survey:
   "channelName": "general",
   "timestamp": 1620000000
 }
-```
-
-#### 4. Survey Completion
-
-When a user completes all steps in a survey:
-
-```json
-{
-  "command": "survey",
-  "status": "end",
-  "message": "",
-  "result": {
-    "stepName": "workload_nextweek",
-    "value": 20
-  },
-  "author": "User#1234",
-  "userId": "123456789012345678",
-  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
-  "channelId": "987654321098765432",
-  "channelName": "general",
-  "timestamp": 1620000000
 }
 ```
 
@@ -519,10 +520,8 @@ When a user executes a slash command:
   "status": "ok",
   "message": "",
   "result": {
-    "start_day": "15",
-    "start_month": "June",
-    "end_day": "30",
-    "end_month": "June"
+    "start_date": "YYYY-MM-DD",
+    "end_date": "YYYY-MM-DD"
   },
   "author": "User#1234",
   "userId": "123456789012345678",
@@ -531,6 +530,27 @@ When a user executes a slash command:
   "channelName": "general",
   "timestamp": 1620000000
 }
+
+#### 6. Connects Slash Command
+
+When a user executes the /connects_thisweek slash command:
+
+```json
+{
+  "command": "connects_thisweek",
+  "status": "ok",
+  "message": "",
+  "result": {
+    "connects": 80 // Example value
+  },
+  "author": "User#1234",
+  "userId": "123456789012345678",
+  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+  "channelId": "987654321098765432",
+  "channelName": "general",
+  "timestamp": 1620000000
+}
+```
 ```
 
 ### n8n Responses to Bot
