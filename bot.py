@@ -195,6 +195,7 @@ async def on_message(message: discord.Message):
 ###############################################################################
 @bot.command(name="register", help="Використання: !register <будь-який текст>")
 async def register_cmd(ctx: commands.Context, *, text: str):
+    logger.info(f"Attempting !register command from {ctx.author} with text: {text}") # Added log
     await bot.webhook_service.send_webhook(
         ctx,
         command="register",
@@ -203,6 +204,7 @@ async def register_cmd(ctx: commands.Context, *, text: str):
 
 @bot.command(name="unregister", help="Використання: !unregister")
 async def unregister_cmd(ctx: commands.Context):
+    logger.info(f"Attempting !unregister command from {ctx.author}") # Added log
     await bot.webhook_service.send_webhook(
         ctx,
         command="unregister",

@@ -183,6 +183,7 @@ class WebhookService:
         Returns:
             Tuple of (success, response_data)
         """
+        logger.debug(f"send_webhook called with command: {command}, status: {status}, result: {result}") # Added log
         # Determine if we're dealing with a Context or Interaction
         is_interaction = isinstance(target, discord.Interaction)
         
@@ -210,8 +211,10 @@ class WebhookService:
         if extra_headers:
             headers.update(extra_headers)
             
+        logger.debug(f"Calling send_webhook_with_retry with payload: {payload}") # Added log
         # Send webhook and get response
         success, data = await self.send_webhook_with_retry(target, payload, headers)
+        logger.debug(f"send_webhook_with_retry returned: success={success}, data={data}") # Added log
         
         # Check if n8n wants to continue the survey
         if success and data and "survey" in data and data["survey"] == "continue":
@@ -253,8 +256,9 @@ class WebhookService:
                 else:
                      logger.error(f"[SurveyContinuation] Invalid channel object for user {user_id}, cannot send error message.")
 
+        logger.debug(f"send_webhook returning: success={success}, data={data}") # Added log
         return success, data
-
+ 
     async def send_interaction_response(
         self,
         interaction: discord.Interaction,
@@ -370,50 +374,64 @@ class WebhookService:
                     await error_channel.send("Failed to initialize webhook session")
                 raise WebhookError("Failed to initialize HTTP session")
             
-        logger.info(f"Sending webhook to URL: {self.url}")
-        logger.debug(f"Payload: {payload}")
-        logger.debug(f"Headers: {headers}")
+        logger.info(f"Attempting to send webhook to URL: {self.url}") # Modified log
+        logger.debug(f"Webhook Payload: {payload}") # Modified log
+        logger.debug(f"Webhook Headers: {headers}") # Modified log
         
         for attempt in range(max_retries):
+            request_id = str(uuid.uuid4())[:8] # Add unique ID for tracking
+            logger.info(f"[{request_id}] Sending webhook attempt {attempt+1}/{max_retries}") # Added log + request_id
             try:
-                logger.info(f"Sending to n8n (attempt {attempt+1}/{max_retries})")
+                logger.debug(f"[{request_id}] Preparing POST request to {self.url}") # Added log
                 async with self.http_session.post(
                     self.url,
                     json=payload,
                     headers=headers,
                     timeout=15
                 ) as response:
-                    response_text = await response.text()
-                    logger.info(f"Response status: {response.status}")
-                    logger.debug(f"Response text: {response_text}")
+                    response_text = await response.text() # Keep reading text first
+                    logger.info(f"[{request_id}] Received response status: {response.status}") # Added log + request_id
+                    logger.debug(f"[{request_id}] Raw response text: {response_text}") # Added log + request_id
                     
                     if response.status == 200:
                         try:
-                            data = await response.json()
-                            logger.debug(f"Parsed JSON response: {data}")
+                            data = await response.json() # Now parse JSON
+                            logger.info(f"[{request_id}] Successfully received and parsed 200 OK response.") # Added log
+                            logger.debug(f"[{request_id}] Parsed JSON response: {data}") # Added log
                             return True, data
                         except Exception as e:
-                            logger.error(f"JSON parse error: {e}")
+                            logger.error(f"[{request_id}] JSON parse error: {e}. Response text was: {response_text}", exc_info=True) # Added log + request_id + exc_info
                             if error_channel:
                                 await error_channel.send("Received invalid response from n8n")
                             fallback = response_text.strip()
                             return True, {"output": fallback or "No valid JSON from n8n."}
-                    else:
-                        logger.warning(f"[{request_id}] HTTP Error {response.status}")
-                        if attempt == max_retries - 1:
+                    elif response.status >= 500: # Server errors might be retryable
+                         logger.warning(f"[{request_id}] Received server error status: {response.status}. Will retry if possible.")
+                         # Let retry logic handle it
+                    else: # Client errors (4xx) are usually not retryable
+                        logger.error(f"[{request_id}] Received client error status: {response.status}. Aborting retries.") # Added log
+                        if attempt == max_retries - 1: # Log final attempt error
                             if hasattr(target_channel, "channel"):
                                 await target_channel.channel.send(f"Error calling n8n: code {response.status}")
                             else:
                                 await self.send_error_message(target_channel, f"Error calling n8n: code {response.status}")
+            except aiohttp.ClientConnectorError as e:
+                logger.error(f"[{request_id}] Attempt {attempt+1} failed: Connection Error - {e}. Will retry if possible.", exc_info=True) # Specific error + exc_info
+                # Let retry logic handle it
+            except asyncio.TimeoutError:
+                 logger.error(f"[{request_id}] Attempt {attempt+1} failed: Request Timeout. Will retry if possible.", exc_info=True) # Specific error + exc_info
+                 # Let retry logic handle it
             except Exception as e:
-                logger.error(f"[{request_id}] Attempt {attempt+1} failed: {e}")
-                if attempt == max_retries - 1:
+                logger.error(f"[{request_id}] Attempt {attempt+1} failed with unexpected error: {e}. Aborting retries.", exc_info=True) # Added log + request_id + exc_info
+                if attempt == max_retries - 1: # Log final attempt error
                     if hasattr(target_channel, "channel"):
                         await target_channel.channel.send(f"An error occurred: {e}")
                     else:
                         await self.send_error_message(target_channel, f"An error occurred: {e}")
             if attempt < max_retries - 1:
-                await asyncio.sleep(retry_delay * (attempt + 1))
+                await asyncio.sleep(retry_delay * (attempt + 1)) # Exponential backoff might be better, but simple delay for now
+        
+        logger.error(f"[{request_id}] Webhook failed after {max_retries} attempts.") # Added log
         return False, None
     
     async def send_error_message(self, target: Any, message: str) -> None:
