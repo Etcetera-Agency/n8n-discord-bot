@@ -1,6 +1,7 @@
 from discord.ext import commands
 from services import webhook_service
 from config import logger
+from typing import Optional # Import Optional
 
 class PrefixCommands:
     """
