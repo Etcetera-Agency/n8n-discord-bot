@@ -54,23 +54,39 @@ http_session = None
 ###############################################################################
 # Discord Bot Setup
 ###############################################################################
+# --- MOVED FROM bot/client.py START ---
+# Set up intents
 intents = discord.Intents.default()
 intents.message_content = True
+
+# Create bot instance
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Initialize webhook service
+# Assuming WebhookService is available in this scope (imported earlier)
+bot.webhook_service = WebhookService()
+# Start initialization in background (might need adjustment based on WebhookService.initialize)
+# Consider if await is needed or if create_task is appropriate here
+# For simplicity, let's assume direct call or background task is handled elsewhere/not needed immediately
+# asyncio.create_task(bot.webhook_service.initialize()) # Revisit if needed
+
 # Import command handlers
-from bot.commands.prefix import PrefixCommands # Added import
+from bot.commands.prefix import PrefixCommands
+from bot.commands.slash import SlashCommands
+from bot.commands.events import EventHandlers # Assuming EventHandlers setup is needed
+from bot.commands.survey import SurveyButtonView # Keep survey view import
 
-# Import and setup event handlers
-from bot.commands import events
-events.setup(bot) # Uncommented events setup
+# Register commands and event handlers
+prefix_commands = PrefixCommands(bot)
+slash_commands = SlashCommands(bot)
+event_handlers = EventHandlers(bot)
+# event_handlers.setup() # Call setup if EventHandlers class requires it
 
-# Import and register survey button handler
-from bot.commands.survey import SurveyButtonView
+# Register survey button handler
 bot.add_view(SurveyButtonView())
 
-# Initialize prefix commands
-prefix_commands = PrefixCommands(bot)
+logger.info("Bot instance created and handlers initialized in bot.py")
+# --- MOVED FROM bot/client.py END ---
 
 ###############################################################################
 # Survey Management
