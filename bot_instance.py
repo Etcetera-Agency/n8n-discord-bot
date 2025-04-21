@@ -216,6 +216,7 @@ async def on_message(message: discord.Message):
         logger.debug("on_message: Ignoring message from self.") # Log self-ignore
         return
 
+    logger.debug(f"Checking mentions. message.mentions: {message.mentions}, bot.user: {bot.user}") # Added log
     if bot.user in message.mentions:
         logger.debug(f"Bot was mentioned in message: '{message.content}'") # Added log
         # Add processing reaction
