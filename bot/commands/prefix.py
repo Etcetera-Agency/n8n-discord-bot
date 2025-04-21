@@ -23,6 +23,11 @@ class PrefixCommands:
         
         @self.bot.command(name="register", help="Використання: !register <будь-який текст>")
         async def register_cmd(ctx: commands.Context, *, text: str):
+            logger.info(f"Attempting to execute register_cmd with text: {text}") # Added log
+            if not text:
+                await ctx.send("Потрібний формат !register Name Surname as in Team Directory")
+                logger.warning(f"Register command failed: text argument missing from {ctx.author}")
+                return
             """
             Register a user with the given text.
             
@@ -39,6 +44,7 @@ class PrefixCommands:
 
         @self.bot.command(name="unregister", help="Використання: !unregister")
         async def unregister_cmd(ctx: commands.Context):
+            logger.info(f"Attempting to execute unregister_cmd") # Added log
             """
             Unregister a user.
             
@@ -50,4 +56,4 @@ class PrefixCommands:
                 ctx,
                 command="unregister",
                 result={}
-            ) 
+            )

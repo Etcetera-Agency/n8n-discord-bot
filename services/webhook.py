@@ -5,7 +5,7 @@ import discord
 import os
 from typing import Dict, Any, Tuple, Optional, Union
 from discord.ext import commands
-from config import Config, logger
+from config import Config, logger, Strings # Added Strings
 from services.session import session_manager
 from services.survey import survey_manager
 
@@ -290,7 +290,7 @@ class WebhookService:
             
             # Send the message with view if provided
             response_message = await interaction.followup.send(initial_message, view=view, wait=True)
-            await response_message.add_reaction(Config.Strings.PROCESSING)  # Show processing
+            await response_message.add_reaction(Strings.PROCESSING)  # Show processing
             
             # Send the webhook
             success, data = await self.send_webhook(
@@ -303,7 +303,7 @@ class WebhookService:
             )
             
             # Remove processing reaction
-            await response_message.remove_reaction(Config.Strings.PROCESSING, interaction.client.user)
+            await response_message.remove_reaction(Strings.PROCESSING, interaction.client.user)
             
             # If webhook was successful and we got output, delete the original message
             if success and data and "output" in data:
@@ -321,7 +321,7 @@ class WebhookService:
                 
                 error_msg = f"{user_input}\nПомилка: Не вдалося виконати команду." if user_input else f"{initial_message}\nПомилка: Не вдалося виконати команду."
                 await response_message.edit(content=error_msg)
-                await response_message.add_reaction(Config.Strings.ERROR)  # Show error
+                await response_message.add_reaction(Strings.ERROR)  # Show error
                 
         except Exception as e:
             logger.error(f"Error in send_interaction_response: {e}")
@@ -330,9 +330,9 @@ class WebhookService:
                     "Помилка: Не вдалося обробити команду.",
                     ephemeral=False
                 )
-                await message.add_reaction(Config.Strings.PROCESSING)  # Show that processing was attempted
-                await message.remove_reaction(Config.Strings.PROCESSING, interaction.client.user)
-                await message.add_reaction(Config.Strings.ERROR)  # Show error
+                await message.add_reaction(Strings.PROCESSING)  # Show that processing was attempted
+                await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                await message.add_reaction(Strings.ERROR)  # Show error
     
     async def send_webhook_with_retry(
         self,

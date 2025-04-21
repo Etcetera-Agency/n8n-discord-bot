@@ -20,7 +20,8 @@ from config import (
     MONTHS,
     ViewType,
     logger,
-    WebhookService
+    WebhookService,
+    Strings # Added Strings
 )
 
 ###############################################################################
@@ -181,7 +182,7 @@ async def on_message(message: discord.Message):
 
     if bot.user in message.mentions:
         # Add processing reaction
-        await message.add_reaction(Config.Strings.PROCESSING)
+        await message.add_reaction(Strings.PROCESSING)
 
         # Process the message
         success, _ = await bot.webhook_service.send_webhook(
@@ -192,10 +193,10 @@ async def on_message(message: discord.Message):
         )
 
         # Remove processing reaction
-        await message.remove_reaction("⏳", bot.user)
+        await message.remove_reaction(Strings.PROCESSING, bot.user)
 
         # Add success or error reaction
-        await message.add_reaction("✅" if success else Config.Strings.ERROR)
+        await message.add_reaction("✅" if success else Strings.ERROR)
 
     if message.content.startswith("start_daily_survey"):
         parts = message.content.split()
@@ -211,143 +212,10 @@ async def on_message(message: discord.Message):
 ###############################################################################
 # PREFIX COMMANDS
 ###############################################################################
-@bot.command(name="register", help="Використання: !register <будь-який текст>")
-async def register_cmd(ctx: commands.Context, *, text: str):
-    logger.info(f"Attempting !register command from {ctx.author} with text: {text}") # Added log
-    await bot.webhook_service.send_webhook(
-        ctx,
-        command="register",
-        result={"text": text}
-    )
-
-@bot.command(name="unregister", help="Використання: !unregister")
-async def unregister_cmd(ctx: commands.Context):
-    logger.info(f"Attempting !unregister command from {ctx.author}") # Added log
-    await bot.webhook_service.send_webhook(
-        ctx,
-        command="unregister",
-        result={}
-    )
 
 ###############################################################################
 # SLASH COMMANDS
 ###############################################################################
-day_off_group = app_commands.Group(name="day_off", description=Config.Strings.DAY_OFF_GROUP)
-
-@day_off_group.command(name="thisweek", description=Config.Strings.DAY_OFF_THISWEEK)
-async def day_off_thisweek(interaction: discord.Interaction):
-    await interaction.response.defer(thinking=True, ephemeral=False)
-    view = create_view("day_off", "day_off_thisweek", str(interaction.user.id))
-    await interaction.followup.send("Оберіть свої вихідні (цей тиждень), потім натисніть «Відправити»:", view=view, ephemeral=False)
-
-@day_off_group.command(name="nextweek", description=Config.Strings.DAY_OFF_NEXTWEEK)
-async def day_off_nextweek(interaction: discord.Interaction):
-    await interaction.response.defer(thinking=True, ephemeral=False)
-    view = create_view("day_off", "day_off_nextweek", str(interaction.user.id))
-    await interaction.followup.send("Оберіть свої вихідні (наступний тиждень), потім натисніть «Відправити»:", view=view, ephemeral=False)
-
-bot.tree.add_command(day_off_group)
-
-@bot.tree.command(name="vacation", description=Config.Strings.VACATION)
-@app_commands.describe(
-    start_day=Config.Strings.START_DAY,
-    start_month=Config.Strings.START_MONTH,
-    end_day=Config.Strings.END_DAY,
-    end_month=Config.Strings.END_MONTH
-)
-async def vacation_slash(
-    interaction: discord.Interaction,
-    start_day: int,
-    start_month: str,
-    end_day: int,
-    end_month: str
-):
-    # Validate inputs
-    if not (1 <= start_day <= 31) or not (1 <= end_day <= 31):
-        await interaction.response.send_message(Config.Strings.INVALID_DAY, ephemeral=False)
-        return
-
-    # Process vacation request
-    await bot.webhook_service.send_webhook(
-        interaction,
-        command="vacation",
-        result={
-            "start_day": str(start_day),
-            "start_month": start_month,
-            "end_day": str(end_day),
-            "end_month": end_month
-        }
-    )
-@vacation_slash.autocomplete("start_month")
-@vacation_slash.autocomplete("end_month")
-async def month_autocomplete(interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-    current = current.lower()
-    return [
-        app_commands.Choice(name=month, value=month)
-        for month in MONTHS
-        if current in month.lower()
-    ][:25]  # Limit to 25 choices as per Discord limits
-
-@bot.tree.command(name="workload_today", description=Config.Strings.WORKLOAD_TODAY)
-async def slash_workload_today(interaction: discord.Interaction):
-    view = create_view("workload", "workload_today", str(interaction.user.id))
-    await interaction.response.send_message(f"{Config.Strings.WORKLOAD_TODAY}\nЯкщо нічого, оберіть «Нічого немає».", view=view, ephemeral=False)
-
-@bot.tree.command(name="workload_nextweek", description=Config.Strings.WORKLOAD_NEXTWEEK)
-async def slash_workload_nextweek(interaction: discord.Interaction):
-    view = create_view("workload", "workload_nextweek", str(interaction.user.id))
-    await interaction.response.send_message(f"{Config.Strings.WORKLOAD_NEXTWEEK}\nЯкщо нічого, оберіть «Нічого немає».", view=view, ephemeral=False)
-
-@bot.tree.command(name="connects", description=Config.Strings.CONNECTS)
-@app_commands.describe(
-    connects=Config.Strings.CONNECTS_PARAM
-)
-async def slash_connects(interaction: discord.Interaction, connects: int):
-    # First defer the response to ensure Discord shows the command usage
-    await interaction.response.defer(thinking=True, ephemeral=False)
-
-    logger.info(f"[DEBUG] Connects command from {interaction.user}: {connects}")
-
-    # Get the original message
-    message = await interaction.original_response()
-    if message:
-        await message.add_reaction(Config.Strings.PROCESSING)
-
-    try:
-        # Send webhook
-        success, data = await bot.webhook_service.send_webhook(
-            interaction,
-            command="connects",
-            result={"connects": connects}
-        )
-        logger.debug(f"[DEBUG] Webhook response for connects: success={success}, data={data}")
-
-        if message:
-            await message.remove_reaction(Config.Strings.PROCESSING, interaction.client.user)
-
-        if success and data and "output" in data:
-            await interaction.followup.send(data["output"])
-        else:
-            error_msg = Config.Strings.CONNECTS_ERROR.format(
-                connects=connects,
-                error=Config.Strings.GENERAL_ERROR
-            )
-            if message:
-                await message.edit(content=error_msg)
-                await message.add_reaction(Config.Strings.ERROR)
-            else:
-                await interaction.followup.send(error_msg)
-
-    except Exception as e:
-        logger.error(f"Error in connects command: {e}")
-        if message:
-            await message.remove_reaction(Config.Strings.PROCESSING, interaction.client.user)
-            error_msg = Config.Strings.CONNECTS_ERROR.format(
-                connects=connects,
-                error=Config.Strings.UNEXPECTED_ERROR
-            )
-            await message.edit(content=error_msg)
-            await message.add_reaction(Config.Strings.ERROR)
 
 ###############################################################################
 # Main function to run both the HTTP/HTTPS server and the Discord Bot
