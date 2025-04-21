@@ -348,22 +348,7 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
     
     logger.info(f"Starting survey with steps: {steps}")
 
-    # Define the desired order of steps
-    step_order = ["workload_today", "workload_nextweek", "connects", "dayoff_nextweek"]
-    ordered_steps = []
-    other_steps = []
-
-    # Separate and order the steps
-    for step in step_order:
-        if step in steps:
-            ordered_steps.append(step)
-            steps.remove(step)  # remove from original list to avoid duplicates
-
-    other_steps = [step for step in steps]  # remaining steps are "other" steps
-    final_steps = ordered_steps + other_steps  # combine ordered steps with other steps
-    steps = final_steps  # reassign steps with ordered steps
-
-    logger.info(f"Ordered survey steps: {steps}")
+    # The step ordering code is not needed and has been removed.
 
     # --- Start New Survey Flow ---
     try:
@@ -449,7 +434,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
         step_questions = {
             "workload_today": Strings.WORKLOAD_TODAY,
             "workload_nextweek": Strings.WORKLOAD_NEXTWEEK,
-            "connects": Strings.CONNECTS,
+            "connects_thisweek": Strings.CONNECTS,
             "dayoff_nextweek": Strings.DAY_OFF_NEXTWEEK
         }
         question_text = step_questions.get(step_name)
@@ -511,9 +496,9 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                         logger.error(f"Error deleting original survey question message: {e_cleanup}")
                         survey.current_question_message_id = None
 
-            elif step_name == "connects":
+            elif step_name == "connects_thisweek":
                 try:
-                    logger.info(f"Button callback for connects survey step: {step_name}")
+                    logger.info(f"Button callback for connects_thisweek survey step: {step_name}")
                     
                     # Verify interaction hasn't been responded to
                     if interaction.response.is_done():
@@ -531,7 +516,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                     logger.error("Interaction already responded to when trying to send modal")
                     return
                 except Exception as e:
-                    logger.error(f"Error in connects button callback: {e}", exc_info=True)
+                    logger.error(f"Error in connects_thisweek button callback: {e}", exc_info=True)
                     try:
                         if not interaction.response.is_done():
                             await interaction.response.send_message(

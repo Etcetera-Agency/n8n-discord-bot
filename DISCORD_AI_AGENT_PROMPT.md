@@ -40,7 +40,7 @@
          - **Day-off**: "Вихідні: [Day1 of the week] [ DD.MM.YYYY], [Day2 of the week] [ DD.MM.YYYY] записані.\nНе забудь попередити клієнтів. "
          - **Day-off**: "Вихідний: [Day of the week] [ DD.MM.YYYY] записан. Не забудь попередити клієнтів."
          - **Day-off w**: "Записав! Не плануюєш вихідні."
-        - **Workload Nothing**: "Зрозумів! Не береш вихідні!"
+        - **Workload Nothing**: "Дякую!"
          - **Survey**: "Дякую! [підсумок]\n\nToDo:\n1. [завдання1]\n2. [завдання2]"
       
       ## 📊 JSON Formats
@@ -124,7 +124,7 @@ else
 	if request.status is "end" -> (
          1. Use Command Handling Instruction from command with same naming as step from result
          2. Retrieve incomplete tasks with tool Notion get Page for url from user.todo_page_url and parse 
-         3. Return final step summary + tasks like `{"output": "Дякую!\n\nЗверни увагу, що у тебе в ToDo є такі завдання, які було б чудово виконати:\n1. [назва завдання 1]\n2. [назва завдання 2]"}`)
+         3. Return final summary + tasks like `{"output": "Дякую!\n\nЗверни увагу, що у тебе в ToDo є такі завдання, які було б чудово виконати:\n1. [назва завдання 1]\n2. [назва завдання 2]"}`)
          </Command> 
      </Command Handling Instruction>
 
@@ -134,7 +134,7 @@ else
 
   <Goal>
     <Primary>
-      Streamline scheduling, resource planning (workloads, connects, time-off), 
+      Streamline scheduling, resource planning (workloads, connects, day-off, vacation), 
       and track tasks for the Discord user. Ensure efficient management of calendars, 
       workloads, and reminders, always returning responses in Ukrainian and in valid JSON.
     </Primary>
