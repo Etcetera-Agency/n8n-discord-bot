@@ -1,7 +1,6 @@
 import os
 import discord
 from discord.ext import commands
-from discord.ext.commands import get_prefix # Import get_prefix
 from discord import app_commands
 import aiohttp
 import uuid
