@@ -24,6 +24,9 @@ class PrefixCommands:
         
         @self.bot.command(name="register", help="Використання: !register <будь-який текст>")
         async def register_cmd(ctx: commands.Context, *, text: str):
+            # --- NEW PRINT ADDED ---
+            print(f"RAW PRINT: register_cmd received text: '{text}' (type: {type(text)})")
+            # --- END NEW PRINT ---
             # --- NEW LOG ADDED ---
             logger.info(f"DEBUG: register_cmd received text: '{text}' (type: {type(text)})")
             # --- END NEW LOG ---
