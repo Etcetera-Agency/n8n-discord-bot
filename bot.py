@@ -58,6 +58,9 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Import command handlers
+from bot.commands.prefix import PrefixCommands # Added import
+
 # Import and setup event handlers
 from bot.commands import events
 events.setup(bot) # Uncommented events setup
@@ -65,6 +68,9 @@ events.setup(bot) # Uncommented events setup
 # Import and register survey button handler
 from bot.commands.survey import SurveyButtonView
 bot.add_view(SurveyButtonView())
+
+# Initialize prefix commands
+prefix_commands = PrefixCommands(bot)
 
 ###############################################################################
 # Survey Management
