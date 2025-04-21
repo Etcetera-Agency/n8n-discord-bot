@@ -24,6 +24,9 @@ class PrefixCommands:
         
         @self.bot.command(name="register", help="Використання: !register <будь-який текст>")
         async def register_cmd(ctx: commands.Context, *, text: str):
+            # --- NEW LOG ADDED ---
+            logger.info(f"DEBUG: register_cmd received text: '{text}' (type: {type(text)})")
+            # --- END NEW LOG ---
             logger.info(f"Attempting to execute register_cmd with text: {text}") # Added log
             if not text:
                 logger.info(f"Text argument is empty for register command from {ctx.author}. Sending usage message.") # Added log
