@@ -17,7 +17,7 @@ class EventHandlers:
         """Register all event handlers with the bot"""
         self.bot.add_listener(self.on_ready)
         self.bot.add_listener(self.on_close)
-        self.bot.add_listener(self.on_message)
+        # self.bot.add_listener(self.on_message) # Removed duplicate listener registration
 
     async def on_ready(self):
         logger.info(f"Bot connected as {self.bot.user}")
