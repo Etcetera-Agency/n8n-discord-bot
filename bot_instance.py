@@ -208,22 +208,19 @@ async def on_close():
 ##############################################################################
 @bot.event # Re-added @bot.event decorator
 async def on_message(message: discord.Message):
-    # --- NEW LOG ADDED ---
-    logger.debug(f"--- on_message ENTRY --- User: {message.author}, Content: '{message.content}'")
-    # --- END NEW LOG ---
-    logger.debug(f"on_message triggered by user {message.author} with content: '{message.content}'") # ADDED VERY FIRST LOG
+    # Ignore messages from the bot itself
     if message.author == bot.user:
-        logger.debug("on_message: Ignoring message from self.") # Log self-ignore
         return
 
-    logger.debug(f"Checking mentions. message.mentions: {message.mentions}, bot.user: {bot.user}") # Added log
+    # Process commands first
+    await bot.process_commands(message)
+
+    # Handle messages where the bot is mentioned (if not already handled as a command)
     if bot.user in message.mentions:
-        logger.debug(f"Bot was mentioned in message: '{message.content}'") # Added log
         # Add processing reaction
         await message.add_reaction(Strings.PROCESSING)
 
-        logger.debug(f"Attempting to send webhook for mention message: '{message.content}'") # Added log
-        # Process the message
+        # Process the message (send webhook for mention)
         success, _ = await bot.webhook_service.send_webhook(
             message,
             command="mention",
@@ -236,14 +233,9 @@ async def on_message(message: discord.Message):
 
         # Add success or error reaction
         await message.add_reaction("✅" if success else Strings.ERROR)
-        # Process commands *only* if mentioned
-        logger.debug(f"Bot was mentioned. Calling process_commands for message: '{message.content}'")
-        logger.debug(f"Attempting to process commands for message: '{message.content}'") # Added log
-        await bot.process_commands(message)
-        # No return needed here, the elif below handles the non-mention case
 
-    elif message.content.startswith("start_daily_survey"): # Ensure this is elif
-        # This block will now only run if the bot was NOT mentioned AND the message starts with start_daily_survey
+    # Handle other specific message types (if not a command and not a mention handled above)
+    elif message.content.startswith("start_daily_survey"):
         parts = message.content.split()
         if len(parts) >= 4:
             user_id = parts[1]
@@ -251,7 +243,8 @@ async def on_message(message: discord.Message):
             steps = parts[3:]
             await handle_start_daily_survey(bot, user_id, channel_id, steps)
 
-    # Ensure no process_commands call happens here for non-mentioned messages
+    # No need for a general webhook send here, as it was causing timeouts and is handled for mentions above.
+    # If other general message handling is needed, it would go here.
 
 
 ###############################################################################
