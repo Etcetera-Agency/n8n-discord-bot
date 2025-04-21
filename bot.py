@@ -207,17 +207,12 @@ async def on_message(message: discord.Message):
 
         # Add success or error reaction
         await message.add_reaction("✅" if success else Strings.ERROR)
-        # --- MODIFICATION START ---
-        # Now, process commands *only* if mentioned
+        # Process commands *only* if mentioned
         logger.debug(f"Bot was mentioned. Calling process_commands for message: '{message.content}'")
         await bot.process_commands(message)
-        # --- MODIFICATION END ---
-        # We don't return here anymore, but the subsequent checks won't run if mention was handled.
+        # No return needed here, the elif below handles the non-mention case
 
-    # --- REMOVED process_commands call from here ---
-    # Only process commands if mentioned (handled above)
-    # We might still want other non-command logic here if needed.
-    elif message.content.startswith("start_daily_survey"): # Changed to elif
+    elif message.content.startswith("start_daily_survey"): # Ensure this is elif
         # This block will now only run if the bot was NOT mentioned AND the message starts with start_daily_survey
         parts = message.content.split()
         if len(parts) >= 4:
@@ -226,7 +221,7 @@ async def on_message(message: discord.Message):
             steps = parts[3:]
             await handle_start_daily_survey(bot, user_id, channel_id, steps)
     
-    # logger.debug(f"Reached end of on_message for message: '{message.content}'. Calling process_commands.") # Removed this log as process_commands moved
+    # Ensure no process_commands call happens here for non-mentioned messages
 
 
 ###############################################################################
