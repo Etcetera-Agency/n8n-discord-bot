@@ -212,12 +212,17 @@ async def on_message(message: discord.Message):
     if message.author == bot.user:
         return
 
-    # Process commands first. If a command is found and processed, stop here.
+    # Check for the specific pattern "@Etcetera-Bot !register"
+    if message.content == f"<@{bot.user.id}> !register" or message.content == f"<@!{bot.user.id}> !register":
+        await message.channel.send("Потрібний формат !register Name Surname as in Team Directory")
+        return # Stop processing after sending the specific message
+
+    # Process commands. If a command is found and processed, stop here.
     command_processed = await bot.process_commands(message)
     if command_processed:
         return
 
-    # If no command was processed, handle other message types.
+    # If no command was processed and it wasn't the specific mention pattern, handle other message types.
 
     # Handle messages where the bot is mentioned (if not already handled as a command)
     if bot.user in message.mentions:
