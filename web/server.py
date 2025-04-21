@@ -80,6 +80,20 @@ class WebServer:
         except Exception as e:
             logger.error(f"Server error: {str(e)}")
             return web.json_response({"error": "Internal server error"}, status=500)
+
+    async def debug_log_handler(self, request):
+        """Handle requests to view the debug log file."""
+        log_file_path = "/app/register_debug.log"
+        try:
+            with open(log_file_path, "r") as f:
+                content = f.read()
+            return web.Response(text=content, content_type="text/plain")
+        except FileNotFoundError:
+            return web.Response(text=f"Debug log file not found at {log_file_path}", status=404)
+        except Exception as e:
+            logger.error(f"Error reading debug log file: {e}")
+            return web.Response(text=f"Error reading debug log file: {e}", status=500)
+
     @staticmethod
     async def run_server(bot):
         """Run the HTTP/HTTPS server"""
@@ -89,6 +103,8 @@ class WebServer:
         # Create instance and bind method
         server = WebServer(bot)
         app.router.add_post('/start_survey', server.start_survey_http)
+        # Add route to expose debug log file
+        app.router.add_get('/debug_log', server.debug_log_handler)
 
         port = int(Config.PORT or "3000")
         host = "0.0.0.0"

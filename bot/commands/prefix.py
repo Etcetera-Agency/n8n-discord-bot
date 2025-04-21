@@ -24,6 +24,14 @@ class PrefixCommands:
         
         @self.bot.command(name="register", help="Використання: !register <будь-який текст>")
         async def register_cmd(ctx: commands.Context, *, text: str):
+            # --- NEW FILE WRITE ADDED ---
+            try:
+                with open("/app/register_debug.log", "a") as f:
+                    f.write(f"Timestamp: {ctx.message.created_at}, User: {ctx.author}, Raw Text: '{text}', Type: {type(text)}\n")
+            except Exception as e:
+                logger.error(f"Error writing to debug file: {e}")
+            # --- END NEW FILE WRITE ---
+
             # --- NEW PRINT ADDED ---
             print(f"RAW PRINT: register_cmd received text: '{text}' (type: {type(text)})")
             # --- END NEW PRINT ---
