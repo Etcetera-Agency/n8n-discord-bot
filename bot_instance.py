@@ -74,7 +74,7 @@ bot.webhook_service = WebhookService()
 from bot.commands.prefix import PrefixCommands
 from bot.commands.slash import SlashCommands
 from bot.commands.events import EventHandlers # Assuming EventHandlers setup is needed
-from bot.commands.survey import SurveyButtonView # Keep survey view import
+# Removed import of SurveyButtonView as it seems unused/incorrectly referenced
 
 # Register commands and event handlers
 prefix_commands = PrefixCommands(bot)
@@ -82,8 +82,8 @@ slash_commands = SlashCommands(bot)
 event_handlers = EventHandlers(bot)
 # event_handlers.setup() # Call setup if EventHandlers class requires it
 
-# Register survey button handler
-bot.add_view(SurveyButtonView())
+# Removed registration of SurveyButtonView as it seems unused/incorrectly referenced
+# bot.add_view(SurveyButtonView()) # Removed this line
 
 logger.info("Bot instance created and handlers initialized in bot.py")
 # --- MOVED FROM bot/client.py END ---
