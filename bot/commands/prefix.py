@@ -23,53 +23,24 @@ class PrefixCommands:
         """Register all prefix commands."""
         
         @self.bot.command(name="register", help="Використання: !register <будь-який текст>")
-        async def register_cmd(ctx: commands.Context, *, text: str):
-            # --- NEW DEBUG WEBHOOK ADDED ---
-            debug_payload = {
-                "command": "debug_register_text",
-                "userId": str(ctx.author.id),
-                "channelId": str(ctx.channel.id),
-                "rawTextArgument": text,
-                "textArgumentType": str(type(text))
-            }
-            # Send this debug payload to the main webhook URL
-            # You can set up a separate webhook in n8n to catch payloads with command "debug_register_text"
-            try:
-                # Use a separate instance or method if needed to avoid interfering with the main webhook_service state
-                # For simplicity, calling the main send_webhook_with_retry, but be aware of potential side effects
-                # A dedicated debug webhook URL would be better if available
-                logger.info(f"Sending debug webhook for register_cmd with raw text: '{text}'")
-                await webhook_service.send_webhook_with_retry(
-                    ctx, # Pass context for channel/user info
-                    debug_payload,
-                    {"Authorization": f"Bearer {webhook_service.auth_token}"} # Use existing auth
-                )
-                logger.info("Debug webhook sent successfully.")
-            except Exception as e:
-                logger.error(f"Error sending debug webhook: {e}", exc_info=True)
-            # --- END NEW DEBUG WEBHOOK ---
+        # Make text argument optional
+        async def register_cmd(ctx: commands.Context, *, text: Optional[str] = None):
+            # Removed debug webhook and associated logs
 
-            # Removed previous print and file write debug methods
+            # Added strip to handle potential whitespace if text is not None
+            if text is not None:
+                text = text.strip()
 
-            # --- NEW LOG ADDED ---
-            logger.info(f"DEBUG: register_cmd received text: '{text}' (type: {type(text)})")
-            # --- END NEW LOG ---
+            logger.info(f"Attempting to execute register_cmd with text: '{text}' from {ctx.author}") # Updated log
 
-            # --- ADDED STRIP ---
-            original_text = text # Keep original for logging
-            text = text.strip()
-            logger.info(f"DEBUG: register_cmd stripped text: '{text}' (original: '{original_text}')")
-            # --- END ADDED STRIP ---
-
-            logger.info(f"Attempting to execute register_cmd with text: {text}") # Added log
-            if not text: # This check now uses the stripped text
-                logger.info(f"Text argument is empty for register command from {ctx.author}. Sending usage message.") # Added log
+            if not text: # This check now correctly handles None or empty string after stripping
+                logger.info(f"Text argument is empty for register command from {ctx.author}. Sending usage message.")
                 await ctx.send("Потрібний формат !register Name Surname as in Team Directory")
                 logger.warning(f"Register command failed: text argument missing from {ctx.author}")
                 return
             """
             Register a user with the given text.
-            
+
             Args:
                 ctx: Command context
                 text: Registration text
