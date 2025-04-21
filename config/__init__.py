@@ -8,6 +8,7 @@ from config.constants import (
 )
 from config.logger import logger, setup_logging
 from config.strings import Strings
+from services.webhook import WebhookService # Import WebhookService
 
 __all__ = [
     'Config',
@@ -18,5 +19,6 @@ __all__ = [
     'VIEW_CONFIGS',
     'logger',
     'setup_logging',
-    'Strings'
+    'Strings',
+    'WebhookService' # Add WebhookService to __all__
 ]
