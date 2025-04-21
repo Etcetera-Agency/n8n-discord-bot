@@ -17,7 +17,7 @@ class EventHandlers:
         """Register all event handlers with the bot"""
         self.bot.add_listener(self.on_ready)
         self.bot.add_listener(self.on_close)
-        # self.bot.add_listener(self.on_message) # Removed duplicate listener registration
+        # Ensure on_message listener is NOT added here
 
     async def on_ready(self):
         logger.info(f"Bot connected as {self.bot.user}")
@@ -39,34 +39,5 @@ class EventHandlers:
         if self.http_session and not self.http_session.closed:
             await self.http_session.close()
 
-    async def on_message(self, message: discord.Message):
-        if message.author == self.bot.user:
-            return
-
-        if self.bot.user in message.mentions:
-            await message.add_reaction(Strings.PROCESSING)
-            success, _ = await self.bot.webhook_service.send_webhook(
-                message,
-                command="mention",
-                status="ok",
-                message=message.content,
-                result={},
-                author=f"{message.author.name}#{message.author.discriminator}",
-                userId=str(message.author.id),
-                sessionId=str(message.author.id),
-                channelId=str(message.channel.id),
-                channelName=getattr(message.channel, "name", ""),
-                timestamp=int(message.created_at.timestamp())
-            )
-            await message.remove_reaction("⏳", self.bot.user)
-            await message.add_reaction("✅" if success else Strings.ERROR)
-
-        if message.content.startswith("start_daily_survey"):
-            parts = message.content.split()
-            if len(parts) >= 4:
-                user_id = parts[1]
-                channel_id = parts[2]
-                steps = parts[3:]
-                await self.handle_start_daily_survey(user_id, channel_id, steps)
-
-        await self.bot.process_commands(message)
+    # Removed the on_message handler from this class to avoid duplication
+    # The primary on_message handler is now in bot.py
