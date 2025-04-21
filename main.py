@@ -1,7 +1,7 @@
 import asyncio
 from config import Config, logger
 from web import create_and_start_server
-from bot.bot import bot # Import the bot instance directly from bot.py
+from bot import bot # Import the bot instance directly from bot.py
 
 async def main():
     """
