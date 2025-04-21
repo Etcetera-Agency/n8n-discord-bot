@@ -212,8 +212,12 @@ async def on_message(message: discord.Message):
     if message.author == bot.user:
         return
 
-    # Process commands first
-    await bot.process_commands(message)
+    # Process commands first. If a command is found and processed, stop here.
+    command_processed = await bot.process_commands(message)
+    if command_processed:
+        return
+
+    # If no command was processed, handle other message types.
 
     # Handle messages where the bot is mentioned (if not already handled as a command)
     if bot.user in message.mentions:
@@ -243,8 +247,7 @@ async def on_message(message: discord.Message):
             steps = parts[3:]
             await handle_start_daily_survey(bot, user_id, channel_id, steps)
 
-    # No need for a general webhook send here, as it was causing timeouts and is handled for mentions above.
-    # If other general message handling is needed, it would go here.
+    # Any other general message handling that should happen for non-command, non-mention messages would go here.
 
 
 ###############################################################################
