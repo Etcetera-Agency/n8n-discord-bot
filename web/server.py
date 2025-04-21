@@ -83,7 +83,7 @@ class WebServer:
 
     async def debug_log_handler(self, request):
         """Handle requests to view the debug log file."""
-        log_file_path = "/app/register_debug.log"
+        log_file_path = "/app/logs/register_debug.log" # Updated path
         try:
             with open(log_file_path, "r") as f:
                 content = f.read()
