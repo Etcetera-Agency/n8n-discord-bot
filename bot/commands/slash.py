@@ -364,7 +364,7 @@ class SlashCommands:
             view.buttons_msg = buttons_msg  # Store reference to buttons message
 
         @self.bot.tree.command(
-            name="connects",
+            name="connects_thisweek",
             description=Strings.CONNECTS
         )
         async def slash_connects(interaction: discord.Interaction, connects: int):
@@ -390,41 +390,76 @@ class SlashCommands:
             
             try:
                 # Send webhook
+                logger.debug(f"[{interaction.user}] - Attempting to send webhook for connects command")
                 success, data = await webhook_service.send_webhook(
                     interaction,
                     command="connects",
                     status="ok",
                     result={"connects": connects}
                 )
+                logger.debug(f"[{interaction.user}] - Webhook response for connects: success={success}, data={data}")
                 
-                logger.debug(f"[DEBUG] Webhook response for connects: success={success}, data={data}")
-                
+                logger.debug(f"[{interaction.user}] - Checking webhook success and data for connects command")
                 if message:
+                    logger.debug(f"[{interaction.user}] - Attempting to remove processing reaction from message {message.id}")
                     # Remove processing reaction
                     await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                    logger.debug(f"[{interaction.user}] - Removed processing reaction from message {message.id}")
                 
+                logger.debug(f"[{interaction.user}] - Checking webhook success and data for connects command")
                 if success and data and "output" in data:
                     if message:
-                        pass
+                        logger.debug(f"[{interaction.user}] - Message exists, no edit needed for success output")
+                        pass # No need to edit the original message if sending a follow-up
+                    logger.debug(f"[{interaction.user}] - Attempting to send followup message with output: {data['output']}")
                     await interaction.followup.send(data["output"])
+                    logger.debug(f"[{interaction.user}] - Followup message sent")
                 else:
+                    logger.debug(f"[{interaction.user}] - Webhook failed or no output in data for connects command")
                     error_msg = Strings.CONNECTS_ERROR.format(
                         connects=connects,
                         error=Strings.GENERAL_ERROR
                     )
                     if message:
+                        logger.debug(f"[{interaction.user}] - Attempting to edit message {message.id} with error message: {error_msg}")
                         await message.edit(content=error_msg)
+                        logger.debug(f"[{interaction.user}] - Attempting to add error reaction to message {message.id}")
                         await message.add_reaction(Strings.ERROR)
+                        logger.debug(f"[{interaction.user}] - Added error reaction to message {message.id}")
                     else:
+                        logger.debug(f"[{interaction.user}] - Attempting to send followup error message: {error_msg}")
                         await interaction.followup.send(error_msg)
+                        logger.debug(f"[{interaction.user}] - Followup error message sent")
                     
             except Exception as e:
-                logger.error(f"Error in connects command: {e}")
+                logger.error(f"[{interaction.user}] - ⛔ Error in connects command: {e}", exc_info=True)
                 if message:
-                    await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                    logger.debug(f"[{interaction.user}] - Handling error for message {message.id}")
+                    try:
+                        await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                    except Exception as remove_e:
+                        logger.error(f"[{interaction.user}] - Error removing processing reaction in error handler: {remove_e}")
+                    
                     error_msg = Strings.CONNECTS_ERROR.format(
                         connects=connects,
                         error=Strings.UNEXPECTED_ERROR
                     )
-                    await message.edit(content=error_msg)
-                    await message.add_reaction(Strings.ERROR)
+                    try:
+                        await message.edit(content=error_msg)
+                    except Exception as edit_e:
+                        logger.error(f"[{interaction.user}] - Error editing message with error message in error handler: {edit_e}")
+                        
+                    try:
+                        await message.add_reaction(Strings.ERROR)
+                    except Exception as add_e:
+                        logger.error(f"[{interaction.user}] - Error adding error reaction in error handler: {add_e}")
+                else:
+                    logger.debug(f"[{interaction.user}] - No message to edit, sending followup error message")
+                    error_msg = Strings.CONNECTS_ERROR.format(
+                        connects=connects,
+                        error=Strings.UNEXPECTED_ERROR
+                    )
+                    try:
+                        await interaction.followup.send(error_msg)
+                    except Exception as followup_e:
+                        logger.error(f"[{interaction.user}] - Error sending followup error message in error handler: {followup_e}")
