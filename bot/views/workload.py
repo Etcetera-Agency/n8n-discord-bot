@@ -253,7 +253,6 @@ class WorkloadButton(discord.ui.Button):
                 logger.error(f"Error in workload button: {e}")
                 if view.command_msg:
                     await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                    from config import Strings
                     value = 0 if self.label == "Нічого немає" else self.label
                     error_msg = Strings.WORKLOAD_ERROR.format(
                         hours=value,
@@ -263,7 +262,7 @@ class WorkloadButton(discord.ui.Button):
                     await view.command_msg.add_reaction(Strings.ERROR)
                 if view.buttons_msg:
                     await view.buttons_msg.delete()
-                logger.error(f"Failed to send error response in workload callback: {e_resp}")
+                logger.error(f"Failed to send error response in workload callback: {e}")
 
 def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None, has_survey: bool = False) -> WorkloadView:
     """Create workload view for regular commands only"""

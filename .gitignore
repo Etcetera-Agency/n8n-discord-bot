@@ -1,1 +1,4 @@
 .env
+bot/views/day_off 2.py
+bot/views/workload 2.py
+update_survey 2.md

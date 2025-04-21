@@ -177,12 +177,13 @@ class SlashCommands:
             end_month=Strings.END_MONTH
         )
         async def vacation_slash(
-            interaction: discord.Interaction, 
+            interaction: discord.Interaction,
             start_day: int,
             start_month: str,
             end_day: int,
             end_month: str
         ):
+            from config import Strings # Import Strings locally
             """
             Set vacation dates.
             
@@ -371,9 +372,10 @@ class SlashCommands:
             Set Upwork connects for this week.
             
             Args:
-                interaction: Discord interaction
+                interaction: discord.Interaction
                 connects: Number of connects
             """
+            from config import Strings # Import Strings locally
             logger.info(f"[DEBUG] Connects command from {interaction.user}: {connects}")
             
             # First, acknowledge the interaction to prevent timeout
