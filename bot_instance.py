@@ -1,6 +1,7 @@
 import os
 import discord
 from discord.ext import commands
+from discord.ext.commands import get_prefix # Import get_prefix
 from discord import app_commands
 import aiohttp
 import uuid
@@ -61,7 +62,16 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 # Create bot instance
-bot = commands.Bot(command_prefix="!", intents=intents)
+async def get_custom_prefix(bot, message):
+    """Determines the command prefix based on message content."""
+    prefixes = ["!"]
+    if bot.user in message.mentions:
+        prefixes.append(f"<@{bot.user.id}> ") # Add mention as a prefix (with space)
+        prefixes.append(f"<@!{bot.user.id}> ") # Add mention with nickname as a prefix (with space)
+    return commands.when_mentioned_or(*prefixes)(bot, message) # Use when_mentioned_or to handle mentions and other prefixes
+
+# Create bot instance
+bot = commands.Bot(command_prefix=get_custom_prefix, intents=intents)
 
 # Initialize webhook service
 # Assuming WebhookService is available in this scope (imported earlier)
