@@ -26,6 +26,7 @@ class PrefixCommands:
         async def register_cmd(ctx: commands.Context, *, text: str):
             logger.info(f"Attempting to execute register_cmd with text: {text}") # Added log
             if not text:
+                logger.info(f"Text argument is empty for register command from {ctx.author}. Sending usage message.") # Added log
                 await ctx.send("Потрібний формат !register Name Surname as in Team Directory")
                 logger.warning(f"Register command failed: text argument missing from {ctx.author}")
                 return
