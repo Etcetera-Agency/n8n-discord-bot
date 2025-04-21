@@ -187,7 +187,8 @@ async def on_message(message: discord.Message):
             channel_id = parts[2]
             steps = parts[3:]
             await handle_start_daily_survey(bot, user_id, channel_id, steps)
-
+    
+    logger.debug(f"Reached end of on_message for message: '{message.content}'. Calling process_commands.") # Added log
     await bot.process_commands(message)
 
 ###############################################################################
