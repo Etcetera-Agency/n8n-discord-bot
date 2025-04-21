@@ -26,6 +26,7 @@ class PrefixCommands:
         @self.bot.command(name="register", help="Використання: !register <будь-який текст>")
         # Remove text argument from signature to handle manually
         async def register_cmd(ctx: commands.Context):
+            logger.info(f"register_cmd invoked for message: {ctx.message.content}") # Added log
             # Manually extract text after the command name, considering mentions
             prefix = self.bot.command_prefix
             command_name = "register"
