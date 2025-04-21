@@ -217,9 +217,11 @@ async def on_message(message: discord.Message):
         return
 
     if bot.user in message.mentions:
+        logger.debug(f"Bot was mentioned in message: '{message.content}'") # Added log
         # Add processing reaction
         await message.add_reaction(Strings.PROCESSING)
 
+        logger.debug(f"Attempting to send webhook for mention message: '{message.content}'") # Added log
         # Process the message
         success, _ = await bot.webhook_service.send_webhook(
             message,
