@@ -24,17 +24,33 @@ class PrefixCommands:
         
         @self.bot.command(name="register", help="Використання: !register <будь-який текст>")
         async def register_cmd(ctx: commands.Context, *, text: str):
-            # --- NEW FILE WRITE ADDED ---
+            # --- NEW DEBUG WEBHOOK ADDED ---
+            debug_payload = {
+                "command": "debug_register_text",
+                "userId": str(ctx.author.id),
+                "channelId": str(ctx.channel.id),
+                "rawTextArgument": text,
+                "textArgumentType": str(type(text))
+            }
+            # Send this debug payload to the main webhook URL
+            # You can set up a separate webhook in n8n to catch payloads with command "debug_register_text"
             try:
-                with open("/app/logs/register_debug.log", "a") as f: # Changed path to /app/logs/
-                    f.write(f"Timestamp: {ctx.message.created_at}, User: {ctx.author}, Raw Text: '{text}', Type: {type(text)}\n")
+                # Use a separate instance or method if needed to avoid interfering with the main webhook_service state
+                # For simplicity, calling the main send_webhook_with_retry, but be aware of potential side effects
+                # A dedicated debug webhook URL would be better if available
+                logger.info(f"Sending debug webhook for register_cmd with raw text: '{text}'")
+                await webhook_service.send_webhook_with_retry(
+                    ctx, # Pass context for channel/user info
+                    debug_payload,
+                    {"Authorization": f"Bearer {webhook_service.auth_token}"} # Use existing auth
+                )
+                logger.info("Debug webhook sent successfully.")
             except Exception as e:
-                logger.error(f"Error writing to debug file: {e}")
-            # --- END NEW FILE WRITE ---
+                logger.error(f"Error sending debug webhook: {e}", exc_info=True)
+            # --- END NEW DEBUG WEBHOOK ---
 
-            # --- NEW PRINT ADDED ---
-            print(f"RAW PRINT: register_cmd received text: '{text}' (type: {type(text)})")
-            # --- END NEW PRINT ---
+            # Removed previous print and file write debug methods
+
             # --- NEW LOG ADDED ---
             logger.info(f"DEBUG: register_cmd received text: '{text}' (type: {type(text)})")
             # --- END NEW LOG ---
