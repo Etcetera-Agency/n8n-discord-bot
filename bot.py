@@ -14,6 +14,7 @@ from aiohttp import web
 from config import Config
 from services.session import SessionManager
 from services.webhook import WebhookService, initialize_survey_functions
+from services.survey import SurveyFlow # Import SurveyFlow
 from config import (
     WORKLOAD_OPTIONS,
     WEEKDAY_OPTIONS,
@@ -32,7 +33,7 @@ logger = setup_logging()
 
 ###############################################################################
 # Load environment variables
-###############################################################################
+##############################################################################
 load_dotenv()
 
 from config.config import Config
@@ -60,7 +61,16 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 # Create bot instance
-bot = commands.Bot(command_prefix="!", intents=intents)
+async def get_custom_prefix(bot, message):
+    """Determines the command prefix based on message content."""
+    prefixes = ["!"]
+    if bot.user in message.mentions:
+        prefixes.append(f"<@{bot.user.id}> ") # Add mention as a prefix (with space)
+        prefixes.append(f"<@!{bot.user.id}> ") # Add mention with nickname as a prefix (with space)
+    return commands.when_mentioned_or(*prefixes)(bot, message) # Use when_mentioned_or to handle mentions and other prefixes
+
+# Create bot instance
+bot = commands.Bot(command_prefix=get_custom_prefix, intents=intents)
 
 # Initialize webhook service
 # Assuming WebhookService is available in this scope (imported earlier)
@@ -74,7 +84,7 @@ bot.webhook_service = WebhookService()
 from bot.commands.prefix import PrefixCommands
 from bot.commands.slash import SlashCommands
 from bot.commands.events import EventHandlers # Assuming EventHandlers setup is needed
-from bot.commands.survey import SurveyButtonView # Keep survey view import
+# Removed import of SurveyButtonView as it seems unused/incorrectly referenced
 
 # Register commands and event handlers
 prefix_commands = PrefixCommands(bot)
@@ -82,15 +92,15 @@ slash_commands = SlashCommands(bot)
 event_handlers = EventHandlers(bot)
 # event_handlers.setup() # Call setup if EventHandlers class requires it
 
-# Register survey button handler
-bot.add_view(SurveyButtonView())
+# Removed registration of SurveyButtonView as it seems unused/incorrectly referenced
+# bot.add_view(SurveyButtonView()) # Removed this line
 
 logger.info("Bot instance created and handlers initialized in bot.py")
 # --- MOVED FROM bot/client.py END ---
 
 ###############################################################################
 # Survey Management
-###############################################################################
+##############################################################################
 
 async def survey_incomplete_timeout(user_id: str):
     survey = survey_manager.get_survey(user_id)
@@ -176,7 +186,7 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow):
 
 ###############################################################################
 # UI Component Factory
-###############################################################################
+##############################################################################
 
 ###############################################################################
 ###############################################################################
@@ -194,23 +204,34 @@ async def on_close():
     # Add any necessary cleanup here
 
 ###############################################################################
+###############################################################################
+###############################################################################
 # Discord on_message Event
 ##############################################################################
 @bot.event # Re-added @bot.event decorator
 async def on_message(message: discord.Message):
-    # --- NEW LOG ADDED ---
-    logger.debug(f"--- on_message ENTRY --- User: {message.author}, Content: '{message.content}'")
-    # --- END NEW LOG ---
-    logger.debug(f"on_message triggered by user {message.author} with content: '{message.content}'") # ADDED VERY FIRST LOG
+    # Ignore messages from the bot itself
     if message.author == bot.user:
-        logger.debug("on_message: Ignoring message from self.") # Log self-ignore
         return
 
+    # Check for the specific pattern "@Etcetera-Bot !register"
+    if message.content == f"<@{bot.user.id}> !register" or message.content == f"<@!{bot.user.id}> !register":
+        await message.channel.send("Потрібний формат !register Name Surname as in Team Directory")
+        return # Stop processing after sending the specific message
+
+    # Process commands. If a command is found and processed, stop here.
+    command_processed = await bot.process_commands(message)
+    if command_processed:
+        return
+
+    # If no command was processed and it wasn't the specific mention pattern, handle other message types.
+
+    # Handle messages where the bot is mentioned (if not already handled as a command)
     if bot.user in message.mentions:
         # Add processing reaction
         await message.add_reaction(Strings.PROCESSING)
 
-        # Process the message
+        # Process the message (send webhook for mention)
         success, _ = await bot.webhook_service.send_webhook(
             message,
             command="mention",
@@ -223,26 +244,22 @@ async def on_message(message: discord.Message):
 
         # Add success or error reaction
         await message.add_reaction("✅" if success else Strings.ERROR)
-        # Process commands *only* if mentioned
-        logger.debug(f"Bot was mentioned. Calling process_commands for message: '{message.content}'")
-        await bot.process_commands(message)
-        # No return needed here, the elif below handles the non-mention case
 
-    elif message.content.startswith("start_daily_survey"): # Ensure this is elif
-        # This block will now only run if the bot was NOT mentioned AND the message starts with start_daily_survey
+    # Handle other specific message types (if not a command and not a mention handled above)
+    elif message.content.startswith("start_daily_survey"):
         parts = message.content.split()
         if len(parts) >= 4:
             user_id = parts[1]
             channel_id = parts[2]
             steps = parts[3:]
             await handle_start_daily_survey(bot, user_id, channel_id, steps)
-    
-    # Ensure no process_commands call happens here for non-mentioned messages
+
+    # Any other general message handling that should happen for non-command, non-mention messages would go here.
 
 
 ###############################################################################
 # Main function to run both the HTTP/HTTPS server and the Discord Bot
-###############################################################################
+##############################################################################
 async def main():
     # Start HTTP server
     from web import server

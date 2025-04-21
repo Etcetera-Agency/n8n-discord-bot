@@ -1,4 +1,4 @@
-# The bot instance is now in bot_instance.py at the root level.
+# The bot instance is now in bot.py at the root level.
 # main.py imports it directly from there.
 # We no longer need to expose the root bot instance through this package's __init__.py.
 

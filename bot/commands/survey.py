@@ -6,6 +6,7 @@ from services import survey_manager, webhook_service
 from services.survey import SurveyFlow # Added import
 # Removed factory import
 from bot.views.workload import create_workload_view # Added import
+from bot import bot # Import the bot instance
 
 # ==================================
 # Survey-Specific Modals
@@ -250,23 +251,14 @@ async def handle_survey_incomplete(session_id: str) -> None:
         logger.debug(f"No survey found for session_id {session_id} during incomplete handling.")
         return
 
-    # Fetch channel using bot instance if available, otherwise fall back
-    bot_instance = getattr(survey, 'bot', None) # Check if bot instance is stored
+    # Fetch channel using the global bot instance
     channel = None
-    if bot_instance:
-        try:
-            channel = await bot_instance.fetch_channel(int(survey.channel_id))
-        except (discord.NotFound, discord.Forbidden):
-             logger.warning(f"Could not fetch channel {survey.channel_id} via bot instance.")
-        except Exception as e:
-             logger.error(f"Error fetching channel {survey.channel_id} via bot instance: {e}")
-
-    if not channel: # Fallback if bot instance not available or fetch failed
-        try:
-            # This might not work reliably depending on cache state
-            channel = discord.utils.get(discord.utils.get_all_channels(), id=int(survey.channel_id))
-        except Exception as e:
-             logger.error(f"Error getting channel {survey.channel_id} via utils: {e}")
+    try:
+        channel = await bot.fetch_channel(int(survey.channel_id))
+    except (discord.NotFound, discord.Forbidden):
+         logger.warning(f"Could not fetch channel {survey.channel_id} via bot instance.")
+    except Exception as e:
+         logger.error(f"Error fetching channel {survey.channel_id} via bot instance: {e}")
 
     if not channel:
         logger.warning(f"Channel {survey.channel_id} could not be found for incomplete survey session {session_id}")
@@ -288,7 +280,7 @@ async def handle_survey_incomplete(session_id: str) -> None:
     survey_manager.remove_survey(survey.user_id) # Remove by user_id
     logger.info(f"Survey for user {survey.user_id} (session {session_id}) timed out with incomplete steps: {incomplete}")
 
-async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, channel_id: str, session_id: str) -> None:
+async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: str) -> None:
     """Initiates or resumes the daily survey for a user in a specific channel.
     Checks for existing sessions, verifies channel registration with n8n,
     retrieves, filters, and orders steps, then starts the survey by asking the first step.
@@ -302,10 +294,8 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
             logger.info(f"Resuming existing survey for user {user_id} in channel {channel_id}")
             step = existing_survey.current_step()
             if step:
-                channel = await bot_instance.fetch_channel(int(existing_survey.channel_id))
+                channel = await bot.fetch_channel(int(existing_survey.channel_id))
                 if channel:
-                    # Store bot instance for potential use in timeout handler
-                    existing_survey.bot = bot_instance
                     await ask_dynamic_step(channel, existing_survey, step) # Resend current step question/button
                     return
             else: # Survey exists but is somehow done? Clean up and proceed.
@@ -330,8 +320,8 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
     
     # Check channel response data
     steps = data.get("steps", [])
-    channel = await bot_instance.fetch_channel(channel_id)
-    
+    channel = await bot.fetch_channel(channel_id)
+
     if not channel:
         logger.warning(f"Channel {channel_id} not found")
         return
@@ -366,7 +356,7 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
         n8n_steps = data.get("steps", [])
         if not n8n_steps:
             logger.info(f"No survey steps provided by n8n for channel {channel_id}. Sending complete message.")
-            channel = await bot_instance.fetch_channel(int(channel_id))
+            channel = await bot.fetch_channel(int(channel_id))
             if channel: await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
             return
 
@@ -375,7 +365,7 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
 
         if not final_steps:
             logger.info(f"No *required* survey steps found for channel {channel_id} after filtering {n8n_steps}.")
-            channel = await bot_instance.fetch_channel(int(channel_id))
+            channel = await bot.fetch_channel(int(channel_id))
             if channel: await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
             return
 
@@ -383,12 +373,11 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
 
         # Create the survey object
         survey = survey_manager.create_survey(user_id, channel_id, final_steps, session_id) # Pass session_id
-        survey.bot = bot_instance # Store bot instance
 
         # Ask the first step
         first_step = survey.current_step()
         if first_step:
-            channel = await bot_instance.fetch_channel(int(channel_id))
+            channel = await bot.fetch_channel(int(channel_id))
             if channel:
                 await ask_dynamic_step(channel, survey, first_step)
             else:
@@ -397,7 +386,7 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
         else:
             # Should not happen if final_steps is not empty, but handle defensively
             logger.error(f"Survey created for user {user_id} but no first step available. Steps: {final_steps}")
-            channel = await bot_instance.fetch_channel(int(channel_id))
+            channel = await bot.fetch_channel(int(channel_id))
             if channel: await channel.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}: No steps found.")
             survey_manager.remove_survey(user_id)
 
@@ -406,7 +395,7 @@ async def handle_start_daily_survey(bot_instance: discord.Client, user_id: str, 
         # Try to send an error message to the channel
         survey = None
         try:
-            channel = await bot_instance.fetch_channel(int(channel_id))
+            channel = await bot.fetch_channel(int(channel_id))
             await channel.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}: {str(e)}")
         except:
             logger.error(f"Could not send error message to channel {channel_id}")
