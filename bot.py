@@ -59,7 +59,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Import and setup event handlers
 from bot.commands import events
-events.setup(bot)
+# events.setup(bot) # Temporarily commented out to isolate potential interference
 
 # Import and register survey button handler
 from bot.commands.survey import SurveyButtonView
