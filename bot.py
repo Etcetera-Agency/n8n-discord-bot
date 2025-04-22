@@ -227,12 +227,12 @@ async def on_message(message: discord.Message):
     # If no command was processed and it wasn't the specific mention pattern, handle other message types.
 
     # Handle messages where the bot is mentioned (if not already handled as a command)
-    if bot.user in message.mentions:
+    if bot.user in message.mentions and not command_processed:
         # Add processing reaction
         await message.add_reaction(Strings.PROCESSING)
 
         # Process the message (send webhook for mention)
-        success, _ = await bot.webhook_service.send_webhook(
+        success, data = await bot.webhook_service.send_webhook(
             message,
             command="mention",
             message=message.content,
@@ -242,8 +242,15 @@ async def on_message(message: discord.Message):
         # Remove processing reaction
         await message.remove_reaction(Strings.PROCESSING, bot.user)
 
-        # Add success or error reaction
+        # Add success/error reaction
         await message.add_reaction("✅" if success else Strings.ERROR)
+
+        # Send n8n response if available
+        if success and data and isinstance(data, list) and len(data) > 0:
+            if isinstance(data[0], dict) and "output" in data[0]:
+                await message.channel.send(str(data[0]["output"]))
+            else:
+                await message.channel.send(str(data))
 
     # Handle other specific message types (if not a command and not a mention handled above)
     elif message.content.startswith("start_daily_survey"):
