@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import asyncio
 from config import Config, logger
-from bot.commands import PrefixCommands, SlashCommands, EventHandlers
+from discord_bot.commands import PrefixCommands, SlashCommands, EventHandlers
 from services.webhook import WebhookService
 
 def create_bot() -> commands.Bot:

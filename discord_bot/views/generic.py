@@ -1,6 +1,6 @@
 import discord
 from typing import Optional, List
-from bot.views.base import BaseView
+from .base import BaseView
 from services import webhook_service
 
 class GenericSelect(discord.ui.Select):

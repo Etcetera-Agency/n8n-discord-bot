@@ -1,8 +1,8 @@
 from typing import Optional, Union
 import discord
 from config import ViewType, logger, Strings
-from bot.views.workload import create_workload_view
-from bot.views.day_off import create_day_off_view
+from .workload import create_workload_view
+from .day_off import create_day_off_view
 
 class WorkloadTodayModal(discord.ui.Modal):
     def __init__(self, survey, step_name):

@@ -81,9 +81,9 @@ bot.webhook_service = WebhookService()
 # asyncio.create_task(bot.webhook_service.initialize()) # Revisit if needed
 
 # Import command handlers
-from bot.commands.prefix import PrefixCommands
-from bot.commands.slash import SlashCommands
-from bot.commands.events import EventHandlers # Assuming EventHandlers setup is needed
+from discord_bot.commands.prefix import PrefixCommands
+from discord_bot.commands.slash import SlashCommands
+from discord_bot.commands.events import EventHandlers # Assuming EventHandlers setup is needed
 # Removed import of SurveyButtonView as it seems unused/incorrectly referenced
 
 # Register commands and event handlers

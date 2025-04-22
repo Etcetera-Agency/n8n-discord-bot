@@ -1,7 +1,7 @@
-from bot.commands.prefix import PrefixCommands
-from bot.commands.slash import SlashCommands
-from bot.commands.events import EventHandlers
-from bot.commands.survey import (
+from .prefix import PrefixCommands
+from .slash import SlashCommands
+from .events import EventHandlers
+from .survey import (
     handle_survey_incomplete,
     handle_start_daily_survey,
     ask_dynamic_step,

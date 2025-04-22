@@ -5,7 +5,7 @@ from discord.ext import commands
 from typing import List
 from config import MONTHS, ViewType, logger, Strings, constants
 from services import webhook_service
-from bot.views.factory import create_view
+from discord_bot.views.factory import create_view
 import asyncio
 
 class SlashCommands:

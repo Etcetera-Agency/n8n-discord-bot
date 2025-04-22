@@ -5,8 +5,8 @@ from config import ViewType, logger, Strings, Config, constants # Added constant
 from services import survey_manager, webhook_service
 from services.survey import SurveyFlow # Added import
 # Removed factory import
-from bot.views.workload import create_workload_view # Added import
-from bot import bot # Import the bot instance
+from discord_bot.views.workload import create_workload_view # Added import
+from bot import bot # Import the bot instance from the root bot.py
 
 # ==================================
 # Survey-Specific Modals

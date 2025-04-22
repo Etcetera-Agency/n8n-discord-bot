@@ -1,7 +1,7 @@
 # Simplified imports for command-only views
-from bot.views.workload import WorkloadView, WorkloadButton
-from bot.views.day_off import DayOffView, DayOffButton
-from bot.views.factory import create_view
+from .workload import WorkloadView, WorkloadButton
+from .day_off import DayOffView, DayOffButton
+from .factory import create_view
 
 __all__ = [
     'WorkloadView',
