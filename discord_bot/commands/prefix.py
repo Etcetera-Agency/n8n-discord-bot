@@ -65,23 +65,15 @@ class PrefixCommands:
                     result={"text": text}
                 )
                 logger.info(f"Webhook send_webhook returned success: {success}, data type: {type(data)}, data: {data}") # Added log to inspect data type and content
-                if success and data: # Simplified check
-                   logger.info(f"Simplified send condition met for {ctx.author}. Attempting to send data: {data}") # Added log for simplified check
-                   # Attempt to send the data received, regardless of its exact structure
-                   # This might need further refinement based on the actual data structure
-                   if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
-                        await ctx.send(data[0]["output"])
-                   else:
-                        await ctx.send(f"Received data from n8n but could not extract output: {data}") # Send raw data if structure is unexpected
-                elif success:
-                   logger.info(f"Webhook for register command sent successfully for {ctx.author}. No data received from n8n.") # Updated log message
-                   await ctx.send(f"Registration attempt for '{text}' sent successfully, but no specific response from n8n.") # Default success message if no output
-                else:
-                   logger.warning(f"Webhook for register command failed for {ctx.author}. No explicit error, but indication of failure.")
-                   await ctx.send(f"Registration attempt for '{text}' failed. Please check logs or contact admin.") # Failure message
-            except Exception as e:
-                logger.error(f"Error sending webhook for register command for {ctx.author}: {e}", exc_info=True)
-                await ctx.send(f"An error occurred during registration for '{text}'. Please contact admin.") # Error message
+                if success: # Send message if webhook is successful, regardless of data content
+                   logger.info(f"Webhook successful for {ctx.author}. Data received: {data}") # Log data received
+                   await channel.send(f"Webhook successful. Received data: {data}") # Send success message with data using channel.send()
+                 else:
+                    logger.warning(f"Webhook for register command failed for {ctx.author}. Success: {success}, Data: {data}") # Log success status and data
+                    await channel.send(f"Registration attempt for '{text}' failed. Webhook call was not successful.") # Failure message using channel.send()
+             except Exception as e:
+                 logger.error(f"Error sending webhook for register command for {ctx.author}: {e}", exc_info=True)
+                 await channel.send(f"An error occurred during registration for '{text}'. Please contact admin.") # Error message using channel.send()
 
         @self.bot.command(name="unregister", help="Використання: !unregister")
         async def unregister_cmd(ctx: commands.Context):
