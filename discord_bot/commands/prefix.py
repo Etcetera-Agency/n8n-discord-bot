@@ -66,11 +66,7 @@ class PrefixCommands:
                 )
                 logger.info(f"Webhook send_webhook returned success: {success}, data type: {type(data)}, data: {data}")
                 if success:
-                   # Add checkmark reaction to the original message
-                   await ctx.message.add_reaction("✅")
-                   logger.info(f"Added checkmark reaction to message {ctx.message.id}")
-
-                   # Send the message after adding the reaction
+                   # Send the n8n response message
                    if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
                        await channel.send(str(data[0]["output"]))
                    else:
