@@ -58,22 +58,23 @@ class PrefixCommands:
             """
             logger.info(f"Register command from {ctx.author}: {text}. Attempting to send webhook...")
             try:
-                # Assuming send_webhook returns a boolean or status indicator
-                success, data = await webhook_service.send_webhook( # Modified to capture data
+                success, data = await webhook_service.send_webhook(
                     ctx,
                     command="register",
                     result={"text": text}
                 )
-                logger.info(f"Webhook send_webhook returned success: {success}, data type: {type(data)}, data: {data}") # Added log to inspect data type and content
-                if success: # Send message if webhook is successful, regardless of data content
-                   logger.info(f"Webhook successful for {ctx.author}. Data received: {data}") # Log data received
-                   await channel.send(f"Webhook successful. Received data: {data}") # Send success message with data using channel.send()
-                 else:
-                    logger.warning(f"Webhook for register command failed for {ctx.author}. Success: {success}, Data: {data}") # Log success status and data
-                    await channel.send(f"Registration attempt for '{text}' failed. Webhook call was not successful.") # Failure message using channel.send()
-             except Exception as e:
-                 logger.error(f"Error sending webhook for register command for {ctx.author}: {e}", exc_info=True)
-                 await channel.send(f"An error occurred during registration for '{text}'. Please contact admin.") # Error message using channel.send()
+                logger.info(f"Webhook send_webhook returned success: {success}, data type: {type(data)}, data: {data}")
+                if success:
+                    if isinstance(data, dict) and "output" in data:
+                        await channel.send(str(data["output"]))
+                    else:
+                        await channel.send(str(data))
+                else:
+                    logger.warning(f"Webhook for register command failed for {ctx.author}. Success: {success}, Data: {data}")
+                    await channel.send(f"Registration attempt for '{text}' failed. Webhook call was not successful.")
+            except Exception as e:
+                logger.error(f"Error sending webhook for register command for {ctx.author}: {e}", exc_info=True)
+                await channel.send(f"An error occurred during registration for '{text}'. Please contact admin.")
 
         @self.bot.command(name="unregister", help="Використання: !unregister")
         async def unregister_cmd(ctx: commands.Context):
