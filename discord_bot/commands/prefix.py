@@ -26,7 +26,7 @@ class PrefixCommands:
         @self.bot.command(name="register", help="Використання: !register <будь-який текст>")
         # Remove text argument from signature to handle manually
         async def register_cmd(ctx: commands.Context):
-            logger.info(f"register_cmd function entered for message: {ctx.message.content}") # Added log at function start
+            logger.info(f"register_cmd function entered for message: {ctx.message.content}")
             # Manually extract text after the command name, considering mentions
             prefix = self.bot.command_prefix
             command_name = "register"
@@ -42,9 +42,9 @@ class PrefixCommands:
                 text_start_index = prefix_command_index + len(prefix) + len(command_name)
                 text = message_content[text_start_index:].strip()
 
-            logger.info(f"Attempting to execute register_cmd with extracted text: '{text}' from {ctx.author}") # Updated log
+            logger.info(f"Attempting to execute register_cmd with extracted text: '{text}' from {ctx.author}")
 
-            if not text: # This check now correctly handles empty extracted text
+            if not text:
                 logger.info(f"Extracted text argument is empty for register command from {ctx.author}. Sending usage message.")
                 await ctx.send("Потрібний формат !register Name Surname as in Team Directory")
                 logger.warning(f"Register command failed: text argument missing from {ctx.author}")
@@ -66,14 +66,18 @@ class PrefixCommands:
                 )
                 logger.info(f"Webhook send_webhook returned success: {success}, data type: {type(data)}, data: {data}")
                 if success:
-                    # Always expect: [{"output": "..."}]
-                    if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
-                        await channel.send(str(data[0]["output"]))
-                    else:
-                        await channel.send(str(data))
+                   # Add checkmark reaction to the original message
+                   await ctx.message.add_reaction("✅")
+                   logger.info(f"Added checkmark reaction to message {ctx.message.id}")
+
+                   # Send the message after adding the reaction
+                   if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
+                       await channel.send(str(data[0]["output"]))
+                   else:
+                       await channel.send(str(data))
                 else:
-                    logger.warning(f"Webhook for register command failed for {ctx.author}. Success: {success}, Data: {data}")
-                    await channel.send(f"Registration attempt for '{text}' failed. Webhook call was not successful.")
+                   logger.warning(f"Webhook for register command failed for {ctx.author}. Success: {success}, Data: {data}")
+                   await channel.send(f"Registration attempt for '{text}' failed. Webhook call was not successful.")
             except Exception as e:
                 logger.error(f"Error sending webhook for register command for {ctx.author}: {e}", exc_info=True)
                 await channel.send(f"An error occurred during registration for '{text}'. Please contact admin.")
