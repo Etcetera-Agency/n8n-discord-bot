@@ -26,7 +26,7 @@ class PrefixCommands:
         @self.bot.command(name="register", help="Використання: !register <будь-який текст>")
         # Remove text argument from signature to handle manually
         async def register_cmd(ctx: commands.Context):
-            logger.info(f"register_cmd invoked for message: {ctx.message.content}") # Added log
+            logger.info(f"register_cmd function entered for message: {ctx.message.content}") # Added log at function start
             # Manually extract text after the command name, considering mentions
             prefix = self.bot.command_prefix
             command_name = "register"
@@ -51,7 +51,7 @@ class PrefixCommands:
                 return
             """
             Register a user with the given text.
-
+            
             Args:
                 ctx: Command context
                 text: Registration text (extracted manually)
@@ -64,12 +64,17 @@ class PrefixCommands:
                     command="register",
                     result={"text": text}
                 )
-                logger.info(f"Webhook send_webhook returned success: {success}, data: {data}") # Added log to inspect data
-                if success and data and isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]: # Modified check
-                   logger.info(f"Webhook for register command sent successfully for {ctx.author}. Sending n8n output.")
-                   await ctx.send(data[0]["output"]) # Use English 'o'
+                logger.info(f"Webhook send_webhook returned success: {success}, data type: {type(data)}, data: {data}") # Added log to inspect data type and content
+                if success and data: # Simplified check
+                   logger.info(f"Simplified send condition met for {ctx.author}. Attempting to send data: {data}") # Added log for simplified check
+                   # Attempt to send the data received, regardless of its exact structure
+                   # This might need further refinement based on the actual data structure
+                   if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
+                        await ctx.send(data[0]["output"])
+                   else:
+                        await ctx.send(f"Received data from n8n but could not extract output: {data}") # Send raw data if structure is unexpected
                 elif success:
-                   logger.info(f"Webhook for register command sent successfully for {ctx.author}. No expected output structure received from n8n.") # Updated log message
+                   logger.info(f"Webhook for register command sent successfully for {ctx.author}. No data received from n8n.") # Updated log message
                    await ctx.send(f"Registration attempt for '{text}' sent successfully, but no specific response from n8n.") # Default success message if no output
                 else:
                    logger.warning(f"Webhook for register command failed for {ctx.author}. No explicit error, but indication of failure.")
