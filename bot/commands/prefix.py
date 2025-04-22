@@ -64,9 +64,12 @@ class PrefixCommands:
                     command="register",
                     result={"text": text}
                 )
-                if success: # Check if the webhook call was successful (adjust condition if needed)
-                    logger.info(f"Webhook for register command sent successfully for {ctx.author}.")
-                    await ctx.send(f"Registration attempt for '{text}' sent successfully.") # Confirmation message
+                if success and data and "output" in data:
+                    logger.info(f"Webhook for register command sent successfully for {ctx.author}. Sending n8n output.")
+                    await ctx.send(data["output"]) # Send n8n webhook output
+                elif success:
+                    logger.info(f"Webhook for register command sent successfully for {ctx.author}. No output received from n8n.")
+                    await ctx.send(f"Registration attempt for '{text}' sent successfully, but no specific response from n8n.") # Default success message if no output
                 else:
                     logger.warning(f"Webhook for register command failed for {ctx.author}. No explicit error, but indication of failure.")
                     await ctx.send(f"Registration attempt for '{text}' failed. Please check logs or contact admin.") # Failure message
