@@ -65,8 +65,9 @@ class PrefixCommands:
                 )
                 logger.info(f"Webhook send_webhook returned success: {success}, data type: {type(data)}, data: {data}")
                 if success:
-                    if isinstance(data, dict) and "output" in data:
-                        await channel.send(str(data["output"]))
+                    # Always expect: [{"output": "..."}]
+                    if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
+                        await channel.send(str(data[0]["output"]))
                     else:
                         await channel.send(str(data))
                 else:
