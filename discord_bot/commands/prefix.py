@@ -64,13 +64,13 @@ class PrefixCommands:
                     command="register",
                     result={"text": text}
                 )
-                logger.info(f"Webhook send_webhook returned success: {success}, data type: {type(data)}, data: {data}")
-                if success:
-                   # Send the n8n response message
-                   if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
-                       await channel.send(str(data[0]["output"]))
-                   else:
-                       await channel.send(str(data))
+                logger.info(f"Webhook send_webhook returned success: {success}, data: {data}")
+                if success and data and isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
+                   logger.info(f"Webhook for register command succeeded for {ctx.author}")
+                   await channel.send(str(data[0]["output"]))
+                elif success:
+                   logger.info(f"Webhook succeeded but unexpected response format from {ctx.author}")
+                   await channel.send(f"Registration attempt for '{text}' was processed")
                 else:
                    logger.warning(f"Webhook for register command failed for {ctx.author}. Success: {success}, Data: {data}")
                    await channel.send(f"Registration attempt for '{text}' failed. Webhook call was not successful.")
