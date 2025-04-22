@@ -58,6 +58,7 @@ class PrefixCommands:
             """
             logger.info(f"Register command from {ctx.author}: {text}. Attempting to send webhook...")
             try:
+                channel = ctx.channel
                 success, data = await webhook_service.send_webhook(
                     ctx,
                     command="register",
