@@ -233,7 +233,7 @@ async def on_message(message: discord.Message):
 
             # Check for known commands after the mention
             if content_after_mention.startswith("!unregister"):
-                logger.info("Identified !unregister command after mention.")
+                logger.info(f"Identified !unregister command after mention. Full content after mention: '{content_after_mention}'")
                 # Manually create a Context object
                 ctx = await bot.get_context(message)
                 # Call the unregister command handler directly
@@ -243,10 +243,10 @@ async def on_message(message: discord.Message):
                 return # Exit after handling the command
 
             elif content_after_mention.startswith("!register"):
-                 logger.info("Identified !register command after mention.")
+                 logger.info(f"Identified !register command after mention. Full content after mention: '{content_after_mention}'")
                  # Extract text argument after "!register"
                  text_after_command = content_after_mention[len("!register"):].strip()
-                 logger.info(f"Extracted text after !register: '{text_after_command}'") # Added log
+                 logger.info(f"Extracted text after !register: '{text_after_command}'")
 
                  # Manually create a Context object
                  ctx = await bot.get_context(message)

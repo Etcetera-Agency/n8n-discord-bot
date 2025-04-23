@@ -62,21 +62,21 @@ class PrefixCommands:
                 await channel.send(f"An error occurred during registration for '{text}'. Please contact admin.")
 
         async def unregister_cmd(ctx: commands.Context):
-            logger.info(f"Attempting to execute unregister_cmd") # Added log
+            logger.info(f"Attempting to execute unregister_cmd for message: {ctx.message.content}")
             """
             Unregister a user.
             
             Args:
                 ctx: Command context
             """
-            logger.info(f"Unregister command from {ctx.author}")
+            logger.info(f"Unregister command from {ctx.author}. Attempting to send webhook...")
             success, data = await webhook_service.send_webhook(
                 ctx,
                 command="unregister",
                 message=ctx.message.content, # Set message to full message content
                 result={}
             )
-            logger.info(f"Webhook send_webhook returned success: {success}, data: {data} for unregister command") # Added log
+            logger.info(f"Webhook send_webhook returned success: {success}, data: {data} for unregister command")
             channel = ctx.channel
             if success and data and isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
                logger.info(f"Webhook for unregister command succeeded for {ctx.author}")
