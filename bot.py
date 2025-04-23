@@ -214,8 +214,19 @@ async def on_message(message: discord.Message):
     if message.author == bot.user:
         return
 
+    # If the message starts with the prefix, assume it's a prefix command
+    # and prevent it from triggering the mention handling below.
+    # Check if message starts with any of the bot's prefixes
+    prefixes = await bot.get_prefix(message)
+    is_prefix_command = any(message.content.startswith(p) for p in prefixes)
+
+    if is_prefix_command:
+        await bot.process_commands(message) # Still process commands normally
+        return # Exit the handler if it's a prefix command
+
     # Handle specific mention commands that bot.process_commands might miss
     # Process commands. If a command is found and processed, stop here.
+    # This call might be redundant after the prefix check, but kept for safety
     command_processed = await bot.process_commands(message)
     if command_processed:
         return
