@@ -272,7 +272,7 @@ class WebhookService:
         logger.debug(f"Calling send_webhook_with_retry with payload: {payload}") # Added log
         # Send webhook and get response
         success, data = await self.send_webhook_with_retry(target, payload, headers)
-        logger.debug(f"send_webhook_with_retry returned: success={success}, data={data}") # Added log
+        logger.debug(f"send_webhook_with_retry returned (in send_webhook): success={success}, data={data}") # Added log with context
         
         # Check if n8n wants to continue the survey
         if success and data and "survey" in data and data["survey"] == "continue":
@@ -457,12 +457,14 @@ class WebhookService:
                             data = await response.json() # Now parse JSON
                             logger.info(f"[{request_id}] Successfully received and parsed 200 OK response.") # Added log
                             logger.debug(f"[{request_id}] Parsed JSON response: {data}") # Added log
+                            logger.debug(f"[{request_id}] Returning from send_webhook_with_retry (200 OK): success=True, data={data}") # Added log
                             return True, data
                         except Exception as e:
                             logger.error(f"[{request_id}] JSON parse error: {e}. Response text was: {response_text}", exc_info=True) # Added log + request_id + exc_info
                             if error_channel:
                                 await error_channel.send("Received invalid response from n8n")
                             fallback = response_text.strip()
+                            logger.debug(f"[{request_id}] Returning from send_webhook_with_retry (JSON error): success=True, data={{'output': '...'}}") # Added log
                             return True, {"output": fallback or "No valid JSON from n8n."}
                     elif response.status >= 500: # Server errors might be retryable
                          logger.warning(f"[{request_id}] Received server error status: {response.status}. Will retry if possible.")
@@ -491,6 +493,7 @@ class WebhookService:
                 await asyncio.sleep(retry_delay * (attempt + 1)) # Exponential backoff might be better, but simple delay for now
         
         logger.error(f"[{request_id}] Webhook failed after {max_retries} attempts.") # Added log
+        logger.debug(f"[{request_id}] Returning from send_webhook_with_retry (Failed): success=False, data=None") # Added log
         return False, None
     
     async def send_error_message(self, target: Any, message: str) -> None:
