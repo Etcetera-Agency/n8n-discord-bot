@@ -70,20 +70,25 @@ class PrefixCommands:
                 ctx: Command context
             """
             logger.info(f"Unregister command from {ctx.author}. Attempting to send webhook...")
-            success, data = await webhook_service.send_webhook(
-                ctx,
-                command="unregister",
-                message=ctx.message.content, # Set message to full message content
-                result={}
-            )
-            logger.info(f"Webhook send_webhook returned success: {success}, data: {data} for unregister command")
-            channel = ctx.channel
-            if success and data and isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
-               logger.info(f"Webhook for unregister command succeeded for {ctx.author}")
-               await channel.send(str(data[0]["output"]))
-            elif success:
-               logger.info(f"Webhook succeeded but unexpected response format from {ctx.author} for unregister command")
-               await channel.send(f"Unregistration attempt was processed.")
-            else:
-               logger.warning(f"Webhook for unregister command failed for {ctx.author}. Success: {success}, Data: {data}")
-               await channel.send(f"Unregistration attempt failed. Webhook call was not successful.")
+            channel = ctx.channel # Get channel before potential error
+            try:
+                success, data = await webhook_service.send_webhook(
+                    ctx,
+                    command="unregister",
+                    message=ctx.message.content, # Set message to full message content
+                    result={}
+                )
+                logger.info(f"Webhook send_webhook returned success: {success}, data: {data} for unregister command")
+                
+                if success and data and isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
+                   logger.info(f"Webhook for unregister command succeeded for {ctx.author}")
+                   await channel.send(str(data[0]["output"]))
+                elif success:
+                   logger.info(f"Webhook succeeded but unexpected response format from {ctx.author} for unregister command")
+                   await channel.send(f"Unregistration attempt was processed.")
+                else:
+                   logger.warning(f"Webhook for unregister command failed for {ctx.author}. Success: {success}, Data: {data}")
+                   await channel.send(f"Unregistration attempt failed. Webhook call was not successful.")
+            except Exception as e:
+                logger.error(f"Error sending webhook for unregister command for {ctx.author}: {e}", exc_info=True)
+                await channel.send(f"An error occurred during unregistration. Please contact admin.")
