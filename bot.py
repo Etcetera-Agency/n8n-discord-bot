@@ -209,76 +209,81 @@ async def on_close():
 # Discord on_message Event
 ##############################################################################
 @bot.event # Re-added @bot.event decorator
+@bot.event
 async def on_message(message: discord.Message):
-    logger.info(f"on_message triggered for message: {message.content}") # Added log
+    logger.info(f"on_message triggered for message: {message.content}")
     # Ignore messages from the bot itself
     if message.author == bot.user:
-        logger.info("Ignoring message from bot user") # Added log
+        logger.info("Ignoring message from bot user")
         return
-
-    # If the message starts with the prefix, assume it's a prefix command
-    # and prevent it from triggering the mention handling below.
-    # Check if message starts with any of the bot's prefixes
-    prefixes = await bot.get_prefix(message)
-    logger.info(f"Prefixes for message: {prefixes}") # Added log
-    is_prefix_command = any(message.content.startswith(p) for p in prefixes)
-    logger.info(f"is_prefix_command: {is_prefix_command}") # Added log
-
-    if is_prefix_command:
-        # Specific handling for mention + !unregister to ensure it's processed
-        if bot.user in message.mentions and "!unregister" in message.content:
-            logger.info("Detected mention + !unregister pattern, attempting manual command invocation.") # Added log
-            ctx = await bot.get_context(message)
-            if ctx.command and ctx.command.name == "unregister":
-                 logger.info("Manually invoking unregister command via mention + prefix handling") # Added log
-                 await bot.invoke(ctx) # Invoke the command
-                 return # Exit after handling
-            else:
-                 logger.warning(f"Mention + !unregister pattern detected, but get_context did not parse 'unregister' command. Parsed command: {ctx.command}") # Added log
-
-        logger.info("Message identified as prefix command, processing commands...") # Added log
-        command_processed = await bot.process_commands(message) # Still process commands normally
-        logger.info(f"bot.process_commands returned: {command_processed}") # Added log
-        return # Exit the handler if it's a prefix command
-
-    # Handle specific mention commands that bot.process_commands might miss
-    # Process commands. If a command is found and processed, stop here.
-    # This call might be redundant after the prefix check, but kept for safety
-    logger.info("Message not identified as prefix command, attempting secondary command processing...") # Added log
-    command_processed = await bot.process_commands(message)
-    logger.info(f"Secondary bot.process_commands returned: {command_processed}") # Added log
-    if command_processed:
-        return
-
-    # If no command was processed, handle other message types.
-
-    # Handle messages where the bot is mentioned (if not already handled as a command)
+    # Handle messages where the bot is mentioned
     if bot.user in message.mentions:
-        logger.info("Bot mentioned in message, triggering mention handling...") # Added log
-        # Add processing reaction
-        await message.add_reaction(Strings.PROCESSING)
+        logger.info("Bot mentioned in message, attempting to parse command...")
 
-        # Process the message (send webhook for mention)
-        success, data = await bot.webhook_service.send_webhook(
-            message,
-            command="mention",
-            message=message.content,
-            result={}
-        )
+        # Extract content after the mention
+        # Find the position after the bot mention
+        mention_index = message.content.find(f"<@{bot.user.id}>")
+        if mention_index == -1:
+             mention_index = message.content.find(f"<@!{bot.user.id}>")
 
-        # Remove processing reaction
-        await message.remove_reaction(Strings.PROCESSING, bot.user)
+        if mention_index != -1:
+            # Adjust slice to account for the length of the mention string found
+            mention_string_length = len(f"<@{bot.user.id}>") if message.content[mention_index:].startswith(f"<@{bot.user.id}>") else len(f"<@!{bot.user.id}>")
+            content_after_mention = message.content[mention_index + mention_string_length:].strip()
 
-        # Add success/error reaction
-        await message.add_reaction("✅" if success else Strings.ERROR)
+            # Check for known commands after the mention
+            if content_after_mention.startswith("!unregister"):
+                logger.info("Identified !unregister command after mention.")
+                # Manually create a Context object
+                ctx = await bot.get_context(message)
+                # Call the unregister command handler directly
+                # Assuming prefix_commands instance is accessible in this scope
+                await prefix_commands.unregister_cmd(ctx)
+                logger.info("unregister_cmd handler called.")
+                return # Exit after handling the command
 
-        # Send n8n response if available
-        if success and data and isinstance(data, list) and len(data) > 0:
-            if isinstance(data[0], dict) and "output" in data[0]:
-                await message.channel.send(str(data[0]["output"]))
+            elif content_after_mention.startswith("!register"):
+                 logger.info("Identified !register command after mention.")
+                 # Manually create a Context object
+                 ctx = await bot.get_context(message)
+                 # Call the register command handler directly
+                 await prefix_commands.register_cmd(ctx)
+                 logger.info("register_cmd handler called.")
+                 return # Exit after handling the command
+
             else:
-                await message.channel.send(str(data))
-    # Handle other specific message types (if not a command and not a mention handled above)
+                # If mentioned but no known command follows, proceed with generic mention handling
+                logger.info("Bot mentioned but no known command found, proceeding with generic mention handling.")
+                # Add processing reaction
+                await message.add_reaction(Strings.PROCESSING)
+
+                # Process the message (send webhook for mention)
+                success, data = await bot.webhook_service.send_webhook(
+                    message,
+                    command="mention",
+                    message=message.content,
+                    result={}
+                )
+
+                # Remove processing reaction
+                await message.remove_reaction(Strings.PROCESSING, bot.user)
+
+                # Add success/error reaction
+                await message.add_reaction("✅" if success else Strings.ERROR)
+
+                # Send n8n response if available
+                if success and data and isinstance(data, list) and len(data) > 0:
+                    if isinstance(data[0], dict) and "output" in data[0]:
+                        await message.channel.send(str(data[0]["output"]))
+                    else:
+                        await message.channel.send(str(data))
+        else:
+             # This case should ideally not happen if bot.user in message.mentions is true,
+             # but as a fallback
+             logger.warning("Bot mentioned but mention string not found in message content.")
+             # Optionally handle as generic mention or ignore
+
+    # Handle other specific message types (if not a mention handled above)
     elif message.content.startswith("start_daily_survey"):
         parts = message.content.split()
         if len(parts) >= 4:
@@ -287,7 +292,11 @@ async def on_message(message: discord.Message):
             steps = parts[3:]
             await handle_start_daily_survey(bot, user_id, channel_id, steps)
 
-    # Any other general message handling that should happen for non-command, non-mention messages would go here.
+    # Any other general message handling that should happen for non-mention messages would go here.
+    # Currently, no other general message handling is needed based on the original code structure.
+    pass
+# Any other general message handling that should happen for non-command, non-mention messages would go here.
+
 
 
 ###############################################################################

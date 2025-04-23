@@ -23,7 +23,6 @@ class PrefixCommands:
     def register_commands(self) -> None:
         """Register all prefix commands."""
         
-        @self.bot.command(name="register", help="Використання: !register <будь-який текст>")
         # Remove text argument from signature to handle manually
         async def register_cmd(ctx: commands.Context):
             logger.info(f"register_cmd function entered for message: {ctx.message.content}")
@@ -79,7 +78,6 @@ class PrefixCommands:
                 logger.error(f"Error sending webhook for register command for {ctx.author}: {e}", exc_info=True)
                 await channel.send(f"An error occurred during registration for '{text}'. Please contact admin.")
 
-        @self.bot.command(name="unregister", help="Використання: !unregister")
         async def unregister_cmd(ctx: commands.Context):
             logger.info(f"Attempting to execute unregister_cmd") # Added log
             """
