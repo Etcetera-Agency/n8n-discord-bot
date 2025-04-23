@@ -20,8 +20,8 @@ class PrefixCommands:
         self.bot = bot
         # Removed self.register_commands() as commands are now methods
 
-    async def register_cmd(self, ctx: commands.Context, text: str = ""):
-        logger.info(f"register_cmd function entered with text: '{text}' for message: {ctx.message.content}")
+    async def register_cmd(self, ctx: commands.Context, full_command_text: str, text: str = ""):
+        logger.info(f"register_cmd function entered with full_command_text: '{full_command_text}', text: '{text}' for message: {ctx.message.content}")
 
         if not text:
             logger.info(f"Text argument is empty for register command from {ctx.author}. Sending usage message.")
@@ -41,7 +41,7 @@ class PrefixCommands:
             success, data = await webhook_service.send_webhook(
                 ctx,
                 command="register",
-                message=ctx.message.content,
+                message=full_command_text,
                 result={"text": text}
             )
             logger.info(f"Webhook send_webhook returned success: {success}, data: {data}")
@@ -58,8 +58,8 @@ class PrefixCommands:
             logger.error(f"Error sending webhook for register command for {ctx.author}: {e}", exc_info=True)
             await channel.send(f"An error occurred during registration for '{text}'. Please contact admin.")
 
-    async def unregister_cmd(self, ctx: commands.Context):
-        logger.info(f"Attempting to execute unregister_cmd for message: {ctx.message.content}")
+    async def unregister_cmd(self, ctx: commands.Context, full_command_text: str):
+        logger.info(f"Attempting to execute unregister_cmd for message: {ctx.message.content}, full_command_text: '{full_command_text}'")
         """
         Unregister a user.
         
@@ -72,7 +72,7 @@ class PrefixCommands:
             success, data = await webhook_service.send_webhook(
                 ctx,
                 command="unregister",
-                message=ctx.message.content,
+                message=full_command_text,
                 result={}
             )
             logger.info(f"Webhook send_webhook returned success: {success}, data: {data} for unregister command")

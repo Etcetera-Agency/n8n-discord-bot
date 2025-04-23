@@ -239,7 +239,7 @@ async def on_message(message: discord.Message):
                 logger.info("Calling prefix_commands.unregister_cmd(ctx)...")
                 # Call the unregister command handler directly
                 # Assuming prefix_commands instance is accessible in this scope
-                await prefix_commands.unregister_cmd(ctx)
+                await prefix_commands.unregister_cmd(ctx, full_command_text=content_after_mention)
                 logger.info("unregister_cmd handler called.")
                 return # Exit after handling the command
 
@@ -252,8 +252,8 @@ async def on_message(message: discord.Message):
                  # Manually create a Context object
                  ctx = await bot.get_context(message)
                  logger.info("Calling prefix_commands.register_cmd(ctx, text=text_after_command)...")
-                 # Call the register command handler directly, passing the extracted text
-                 await prefix_commands.register_cmd(ctx, text=text_after_command) # Pass text as keyword argument
+                 # Call the register command handler directly, passing the extracted text and full command text
+                 await prefix_commands.register_cmd(ctx, full_command_text=content_after_mention, text=text_after_command) # Pass text and full_command_text as keyword arguments
                  logger.info("register_cmd handler called.")
                  return # Exit after handling the command
 
