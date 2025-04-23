@@ -210,24 +210,32 @@ async def on_close():
 ##############################################################################
 @bot.event # Re-added @bot.event decorator
 async def on_message(message: discord.Message):
+    logger.info(f"on_message triggered for message: {message.content}") # Added log
     # Ignore messages from the bot itself
     if message.author == bot.user:
+        logger.info("Ignoring message from bot user") # Added log
         return
 
     # If the message starts with the prefix, assume it's a prefix command
     # and prevent it from triggering the mention handling below.
     # Check if message starts with any of the bot's prefixes
     prefixes = await bot.get_prefix(message)
+    logger.info(f"Prefixes for message: {prefixes}") # Added log
     is_prefix_command = any(message.content.startswith(p) for p in prefixes)
+    logger.info(f"is_prefix_command: {is_prefix_command}") # Added log
 
     if is_prefix_command:
-        await bot.process_commands(message) # Still process commands normally
+        logger.info("Message identified as prefix command, processing commands...") # Added log
+        command_processed = await bot.process_commands(message) # Still process commands normally
+        logger.info(f"bot.process_commands returned: {command_processed}") # Added log
         return # Exit the handler if it's a prefix command
 
     # Handle specific mention commands that bot.process_commands might miss
     # Process commands. If a command is found and processed, stop here.
     # This call might be redundant after the prefix check, but kept for safety
+    logger.info("Message not identified as prefix command, attempting secondary command processing...") # Added log
     command_processed = await bot.process_commands(message)
+    logger.info(f"Secondary bot.process_commands returned: {command_processed}") # Added log
     if command_processed:
         return
 
@@ -235,6 +243,7 @@ async def on_message(message: discord.Message):
 
     # Handle messages where the bot is mentioned (if not already handled as a command)
     if bot.user in message.mentions:
+        logger.info("Bot mentioned in message, triggering mention handling...") # Added log
         # Add processing reaction
         await message.add_reaction(Strings.PROCESSING)
 
