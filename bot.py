@@ -225,6 +225,17 @@ async def on_message(message: discord.Message):
     logger.info(f"is_prefix_command: {is_prefix_command}") # Added log
 
     if is_prefix_command:
+        # Specific handling for mention + !unregister to ensure it's processed
+        if bot.user in message.mentions and "!unregister" in message.content:
+            logger.info("Detected mention + !unregister pattern, attempting manual command invocation.") # Added log
+            ctx = await bot.get_context(message)
+            if ctx.command and ctx.command.name == "unregister":
+                 logger.info("Manually invoking unregister command via mention + prefix handling") # Added log
+                 await bot.invoke(ctx) # Invoke the command
+                 return # Exit after handling
+            else:
+                 logger.warning(f"Mention + !unregister pattern detected, but get_context did not parse 'unregister' command. Parsed command: {ctx.command}") # Added log
+
         logger.info("Message identified as prefix command, processing commands...") # Added log
         command_processed = await bot.process_commands(message) # Still process commands normally
         logger.info(f"bot.process_commands returned: {command_processed}") # Added log
