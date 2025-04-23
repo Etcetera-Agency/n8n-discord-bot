@@ -10,7 +10,7 @@ This file provides examples of the JSON payloads sent by the Discord bot to the 
 {
   "command": "register",
   "status": "ok",
-  "message": "@Etcetera-Bot !register User Name",
+  "message": "!register User Name",
   "result": {
     "text": "User Name"
   },
@@ -29,7 +29,7 @@ This file provides examples of the JSON payloads sent by the Discord bot to the 
 {
   "command": "unregister",
   "status": "ok",
-  "message": "@Etcetera-Bot !unregister",
+  "message": "!unregister",
   "result": {},
   "userId": "YOUR_USER_ID",
   "channelId": "YOUR_CHANNEL_ID",
