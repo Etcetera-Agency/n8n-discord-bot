@@ -61,8 +61,9 @@ class PrefixCommands:
                 channel = ctx.channel
                 success, data = await webhook_service.send_webhook(
                     ctx,
-                    command="register",
-                    result={"text": text}
+                    command="register", # Keep command as "register"
+                    message=ctx.message.content, # Set message to full message content
+                    result={"text": text} # Keep result structure
                 )
                 logger.info(f"Webhook send_webhook returned success: {success}, data: {data}")
                 if success and data and isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
@@ -88,8 +89,20 @@ class PrefixCommands:
                 ctx: Command context
             """
             logger.info(f"Unregister command from {ctx.author}")
-            await webhook_service.send_webhook(
+            success, data = await webhook_service.send_webhook(
                 ctx,
                 command="unregister",
+                message=ctx.message.content, # Set message to full message content
                 result={}
             )
+            logger.info(f"Webhook send_webhook returned success: {success}, data: {data} for unregister command") # Added log
+            channel = ctx.channel
+            if success and data and isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
+               logger.info(f"Webhook for unregister command succeeded for {ctx.author}")
+               await channel.send(str(data[0]["output"]))
+            elif success:
+               logger.info(f"Webhook succeeded but unexpected response format from {ctx.author} for unregister command")
+               await channel.send(f"Unregistration attempt was processed.")
+            else:
+               logger.warning(f"Webhook for unregister command failed for {ctx.author}. Success: {success}, Data: {data}")
+               await channel.send(f"Unregistration attempt failed. Webhook call was not successful.")

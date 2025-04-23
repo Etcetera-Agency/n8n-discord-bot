@@ -214,20 +214,16 @@ async def on_message(message: discord.Message):
     if message.author == bot.user:
         return
 
-    # Check for the specific pattern "@Etcetera-Bot !register"
-    if message.content == f"<@{bot.user.id}> !register" or message.content == f"<@!{bot.user.id}> !register":
-        await message.channel.send("Потрібний формат !register Name Surname as in Team Directory")
-        return # Stop processing after sending the specific message
-
+    # Handle specific mention commands that bot.process_commands might miss
     # Process commands. If a command is found and processed, stop here.
     command_processed = await bot.process_commands(message)
     if command_processed:
         return
 
-    # If no command was processed and it wasn't the specific mention pattern, handle other message types.
+    # If no command was processed, handle other message types.
 
     # Handle messages where the bot is mentioned (if not already handled as a command)
-    if bot.user in message.mentions and not command_processed:
+    if bot.user in message.mentions:
         # Add processing reaction
         await message.add_reaction(Strings.PROCESSING)
 
@@ -251,7 +247,6 @@ async def on_message(message: discord.Message):
                 await message.channel.send(str(data[0]["output"]))
             else:
                 await message.channel.send(str(data))
-
     # Handle other specific message types (if not a command and not a mention handled above)
     elif message.content.startswith("start_daily_survey"):
         parts = message.content.split()

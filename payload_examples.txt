@@ -1,0 +1,294 @@
+# Example Webhook Payloads
+
+This file provides examples of the JSON payloads sent by the Discord bot to the n8n webhook.
+
+## Prefix Commands
+
+### !register Command Payload
+
+```json
+{
+  "command": "register",
+  "status": "ok",
+  "message": "@Etcetera-Bot !register User Name",
+  "result": {
+    "text": "User Name"
+  },
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+```
+
+### !unregister Command Payload
+
+```json
+{
+  "command": "unregister",
+  "status": "ok",
+  "message": "@Etcetera-Bot !unregister",
+  "result": {},
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+
+## Survey Commands
+
+### Survey Step Submission Payload (Workload)
+
+```json
+{
+  "command": "survey",
+  "status": "step",
+  "message": "",
+  "result": {
+    "stepName": "workload_today",
+    "value": 20
+  },
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+```
+
+### Survey Step Submission Payload (Connects)
+
+```json
+{
+  "command": "survey",
+  "status": "step",
+  "message": "",
+  "result": {
+    "stepName": "connects_thisweek",
+    "value": 80
+  },
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+```
+
+### Survey Step Submission Payload (Day Off)
+
+```json
+{
+  "command": "survey",
+  "status": "step",
+  "message": "",
+  "result": {
+    "stepName": "day_off_nextweek",
+    "daysSelected": ["YYYY-MM-DD", "YYYY-MM-DD"]
+  },
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+```
+
+### Survey Incomplete Payload
+
+```json
+{
+  "command": "survey",
+  "status": "incomplete",
+  "message": "",
+  "result": {
+    "incompleteSteps": ["workload_nextweek", "day_off_nextweek"]
+  },
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+```
+
+### Survey Completion Payload
+
+```json
+{
+  "command": "survey",
+  "status": "end",
+  "message": "",
+  "result": {
+    "stepName": "last_step_name",
+    "value": "last_step_value"
+  },
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+## Slash Commands
+
+### Generic Slash Command Payload
+
+```json
+{
+  "command": "slash_command_name",
+  "status": "ok",
+  "message": "",
+  "result": {
+    "option1": "value1",
+    "option2": "value2"
+  },
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+```
+
+### /vacation Command Payload
+
+```json
+{
+  "command": "vacation",
+  "status": "ok",
+  "message": "",
+  "result": {
+    "start_date": "YYYY-MM-DD",
+    "end_date": "YYYY-MM-DD"
+  },
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+```
+
+### /connects_thisweek Command Payload
+
+```json
+{
+  "command": "connects_thisweek",
+  "status": "ok",
+  "message": "",
+  "result": {
+    "connects": 80
+  },
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+```
+
+### Workload Slash Command Payload (e.g., /workload_today)
+
+```json
+{
+  "command": "workload_today",
+  "status": "ok",
+  "message": "",
+  "result": {
+    "value": 20
+  },
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+```
+
+### Day Off Slash Command Payload (e.g., /day_off_nextweek)
+
+```json
+{
+  "command": "day_off_nextweek",
+  "status": "ok",
+  "message": "",
+  "result": {
+    "value": ["YYYY-MM-DD", "YYYY-MM-DD"]
+  },
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+## System Commands
+
+### check_channel Command Payload
+
+```json
+{
+  "command": "check_channel",
+  "status": "ok",
+  "message": "",
+  "result": {},
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "system",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+
+
+## Mention Command
+
+### !mention Command Payload
+
+```json
+{
+  "command": "mention",
+  "status": "ok",
+  "message": "@Etcetera-Bot What is the weather like today?",
+  "result": {},
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+## Button/Select Interaction
+
+### Button/Select Interaction Payload
+
+```json
+{
+  "command": "button_pressed",
+  "status": "ok",
+  "message": "",
+  "result": {
+    "label": "Button Label",
+    "custom_id": "button_custom_id",
+    "value": "Button Label or Select Value"
+  },
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}

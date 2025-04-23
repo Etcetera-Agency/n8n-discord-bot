@@ -476,7 +476,7 @@ When a user completes a step in a survey:
 "result": {
   "stepName": "workload_today", // or other step names like "day_off_nextweek"
   "value": 20, // Example value for workload/connects
-  "daysSelected": ["Понеділок", "Середа"] // Example value for day off
+  "daysSelected": ["YYYY-MM-DD", "YYYY-MM-DD"] // Example value for day off
 },
 "author": "User#1234",
 "userId": "123456789012345678",

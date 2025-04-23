@@ -112,7 +112,10 @@ class WebhookService:
         status: str = "ok",
         message: str = "",
         result: Optional[Dict[str, Any]] = None,
-        is_system: bool = False
+        is_system: bool = False,
+        author: Optional[str] = None, # Added author
+        channel_name: Optional[str] = None, # Added channel_name
+        timestamp: Optional[int] = None # Added timestamp
     ) -> Dict[str, Any]:
         """
         Build a consistent payload for n8n webhooks.
@@ -125,6 +128,9 @@ class WebhookService:
             message: Message string (default: "")
             result: Result dictionary (optional)
             is_system: Whether this is a system call (default: False)
+            author: Author tag (optional)
+            channel_name: Channel name (optional)
+            timestamp: Message timestamp (optional)
             
         Returns:
             Dict containing the webhook payload with required structure:
@@ -136,6 +142,9 @@ class WebhookService:
                 "userId": "...",    # Required
                 "channelId": "...", # Required
                 "sessionId": "..."  # Required (channelId_userId)
+                "author": "...",    # Optional
+                "channelName": "...", # Optional
+                "timestamp": ...    # Optional
             }
         """
         if result is None:
@@ -157,6 +166,14 @@ class WebhookService:
             "channelId": channel_id,
             "sessionId": session_id
         }
+        
+        # Add optional fields if provided
+        if author is not None:
+            payload["author"] = author
+        if channel_name is not None:
+            payload["channelName"] = channel_name
+        if timestamp is not None:
+            payload["timestamp"] = timestamp
         
         return payload
     
@@ -184,24 +201,58 @@ class WebhookService:
             Tuple of (success, response_data)
         """
         logger.debug(f"send_webhook called with command: {command}, status: {status}, result: {result}") # Added log
-        # Determine if we're dealing with a Context or Interaction
-        is_interaction = isinstance(target, discord.Interaction)
         
-        if is_interaction:
-            user = target.user
+        user_id = None
+        channel_id = None
+        author = None
+        channel_name = None
+        timestamp = None
+        channel = None # Initialize channel variable
+
+        # Determine if we're dealing with a Context or Interaction
+        if isinstance(target, commands.Context):
+            user_id = str(target.author.id)
+            channel_id = str(target.channel.id)
+            author = str(target.author)
+            channel_name = target.channel.name if hasattr(target.channel, 'name') else None
+            timestamp = int(target.message.created_at.timestamp()) if hasattr(target.message, 'created_at') else None
             channel = target.channel
-        else:
-            user = target.author
+        elif isinstance(target, discord.Interaction):
+            user_id = str(target.user.id)
+            channel_id = str(target.channel.id)
+            author = str(target.user)
+            channel_name = target.channel.name if hasattr(target.channel, 'name') else None
+            timestamp = int(target.created_at.timestamp()) if hasattr(target, 'created_at') else None
             channel = target.channel
+        elif isinstance(target, discord.TextChannel):
+            # For TextChannel target, we might not have user/author/timestamp easily
+            # Depending on use case, these might be passed as extra args or be None
+            channel_id = str(target.id)
+            channel_name = target.name if hasattr(target, 'name') else None
+            channel = target
+            # user_id, author, timestamp would be None unless explicitly passed
+
+        if not user_id and not isinstance(target, discord.TextChannel):
+             logger.warning(f"send_webhook called without user_id for target type {type(target)}")
+             # Decide how to handle: raise error, use default, or proceed without user_id
+             # For now, let's proceed but log a warning. build_payload will raise error if user_id is required.
+
+        if not channel_id:
+             logger.warning(f"send_webhook called without channel_id for target type {type(target)}")
+             # Decide how to handle: raise error, use default, or proceed without channel_id
+             # For now, let's proceed but log a warning. build_payload will raise error if channel_id is required.
             
         # Build the payload using the unified builder
         payload = self.build_payload(
             command=command,
-            user_id=str(user.id),
-            channel_id=str(channel.id),
+            user_id=user_id,
+            channel_id=channel_id,
             status=status,
             message=message,
-            result=result
+            result=result,
+            author=author, # Pass author
+            channel_name=channel_name, # Pass channel_name
+            timestamp=timestamp # Pass timestamp
         )
         
         # Set up headers
@@ -383,6 +434,7 @@ class WebhookService:
             logger.info(f"[{request_id}] Sending webhook attempt {attempt+1}/{max_retries}") # Added log + request_id
             try:
                 logger.debug(f"[{request_id}] Preparing POST request to {self.url}") # Added log
+                logger.debug(f"[{request_id}] Final Webhook Payload being sent: {payload}") # Added log to check payload
                 async with self.http_session.post(
                     self.url,
                     json=payload,
