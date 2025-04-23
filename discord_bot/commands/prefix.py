@@ -45,9 +45,10 @@ class PrefixCommands:
                 result={"text": text}
             )
             logger.info(f"Webhook send_webhook returned success: {success}, data: {data}")
-            if success and data and isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
+            # Check if data is a dictionary and contains 'output'
+            if success and data and isinstance(data, dict) and "output" in data:
                logger.info(f"Webhook for register command succeeded for {ctx.author}")
-               await channel.send(str(data[0]["output"]))
+               await channel.send(str(data["output"]))
             elif success:
                logger.info(f"Webhook succeeded but unexpected response format from {ctx.author}")
                await channel.send(f"Registration attempt for '{text}' was processed")
@@ -77,9 +78,10 @@ class PrefixCommands:
             )
             logger.info(f"Webhook send_webhook returned success: {success}, data: {data} for unregister command")
             
-            if success and data and isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
+            # Check if data is a dictionary and contains 'output'
+            if success and data and isinstance(data, dict) and "output" in data:
                logger.info(f"Webhook for unregister command succeeded for {ctx.author}")
-               await channel.send(str(data[0]["output"]))
+               await channel.send(str(data["output"]))
             elif success:
                logger.info(f"Webhook succeeded but unexpected response format from {ctx.author} for unregister command")
                await channel.send(f"Unregistration attempt was processed.")
