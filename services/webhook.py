@@ -224,6 +224,13 @@ class WebhookService:
             channel_name = target.channel.name if hasattr(target.channel, 'name') else None
             timestamp = int(target.created_at.timestamp()) if hasattr(target, 'created_at') else None
             channel = target.channel
+        elif isinstance(target, discord.message.Message):
+            user_id = str(target.author.id)
+            channel_id = str(target.channel.id)
+            author = str(target.author)
+            channel_name = target.channel.name if hasattr(target.channel, 'name') else None
+            timestamp = int(target.created_at.timestamp()) if hasattr(target, 'created_at') else None
+            channel = target.channel
         elif isinstance(target, discord.TextChannel):
             # For TextChannel target, we might not have user/author/timestamp easily
             # Depending on use case, these might be passed as extra args or be None
@@ -241,7 +248,7 @@ class WebhookService:
              logger.warning(f"send_webhook called without channel_id for target type {type(target)}")
              # Decide how to handle: raise error, use default, or proceed without channel_id
              # For now, let's proceed but log a warning. build_payload will raise error if channel_id is required.
-            
+
         # Build the payload using the unified builder
         payload = self.build_payload(
             command=command,
