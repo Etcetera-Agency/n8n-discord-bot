@@ -259,30 +259,44 @@ async def on_message(message: discord.Message):
 
             else:
                 # If mentioned but no known command follows, proceed with generic mention handling
-                logger.info("Bot mentioned but no known command found, proceeding with generic mention handling.")
-                # Add processing reaction
-                await message.add_reaction(Strings.PROCESSING)
+                logger.info("Bot mentioned but no known command found, proceeding with generic mention handling using defer.")
+                # Get context and defer
+                ctx = await bot.get_context(message)
+                await ctx.defer()
 
                 # Process the message (send webhook for mention)
-                success, data = await bot.webhook_service.send_webhook(
-                    message,
-                    command="mention",
-                    message=content_after_mention, # Change from message.content
-                    result={}
-                )
+                try:
+                    success, data = await bot.webhook_service.send_webhook(
+                        ctx, # Pass context instead of message
+                        command="mention",
+                        message=content_after_mention, # Use content after mention
+                        result={}
+                    )
 
-                # Remove processing reaction
-                await message.remove_reaction(Strings.PROCESSING, bot.user)
+                    # Send n8n response or confirmation/error via followup
+                    response_message = None
+                    if success and data:
+                         if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
+                             response_message = str(data[0]["output"])
+                         elif isinstance(data, dict) and "output" in data: # Handle direct dict response too
+                             response_message = str(data["output"])
+                         else:
+                             # Fallback if structure is unexpected but success=True
+                             logger.warning(f"Mention webhook succeeded but response format unexpected: {data}")
+                             response_message = "Processed mention." # Generic success message
 
-                # Add success/error reaction
-                await message.add_reaction("✅" if success else Strings.ERROR)
+                    if response_message:
+                        await ctx.followup.send(response_message)
+                    elif success: # Success but no specific output message
+                         await ctx.followup.send("Processed mention.")
+                    else: # Failure case
+                        logger.warning(f"Webhook for mention failed. Success: {success}, Data: {data}")
+                        await ctx.followup.send("Sorry, I couldn't process that mention.")
 
-                # Send n8n response if available
-                if success and data and isinstance(data, list) and len(data) > 0:
-                    if isinstance(data[0], dict) and "output" in data[0]:
-                        await message.channel.send(str(data[0]["output"]))
-                    else:
-                        await message.channel.send(str(data))
+                except Exception as e:
+                     logger.error(f"Error handling generic mention for {message.author}: {e}", exc_info=True)
+                     # Send error message via followup
+                     await ctx.followup.send("An error occurred while processing your mention.")
         else:
              # This case should ideally not happen if bot.user in message.mentions is true,
              # but as a fallback

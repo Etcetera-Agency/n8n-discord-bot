@@ -22,10 +22,12 @@ class PrefixCommands:
 
     async def register_cmd(self, ctx: commands.Context, full_command_text: str, text: str = ""):
         logger.info(f"register_cmd function entered with full_command_text: '{full_command_text}', text: '{text}' for message: {ctx.message.content}")
+        await ctx.defer() # Defer the response immediately
 
         if not text:
             logger.info(f"Text argument is empty for register command from {ctx.author}. Sending usage message.")
-            await ctx.send("Потрібний формат !register Name Surname as in Team Directory")
+            # Use followup.send for the error message after deferring
+            await ctx.followup.send("Потрібний формат !register Name Surname as in Team Directory")
             logger.warning(f"Register command failed: text argument missing from {ctx.author}")
             return
         """
@@ -37,7 +39,7 @@ class PrefixCommands:
         """
         logger.info(f"Register command from {ctx.author}: {text}. Attempting to send webhook...")
         try:
-            channel = ctx.channel
+            # channel = ctx.channel # No longer need separate channel variable if using ctx.followup
             success, data = await webhook_service.send_webhook(
                 ctx,
                 command="register",
@@ -56,28 +58,31 @@ class PrefixCommands:
                     output_message = str(data[0]["output"])
                     logger.info(f"Webhook for register command succeeded for {ctx.author} with list response.")
 
+            # Send response based on outcome
             if output_message:
-               await channel.send(output_message)
+               await ctx.followup.send(output_message) # Use followup.send
             elif success:
                logger.info(f"Webhook succeeded but no valid output found in response from {ctx.author}")
-               await channel.send(f"Registration attempt for '{text}' was processed")
+               await ctx.followup.send(f"Registration attempt for '{text}' was processed") # Use followup.send
             else:
                logger.warning(f"Webhook for register command failed for {ctx.author}. Success: {success}, Data: {data}")
-               await channel.send(f"Registration attempt for '{text}' failed. Webhook call was not successful.")
+               await ctx.followup.send(f"Registration attempt for '{text}' failed. Webhook call was not successful.") # Use followup.send
+        # Correct indentation for the except block
         except Exception as e:
             logger.error(f"Error sending webhook for register command for {ctx.author}: {e}", exc_info=True)
-            await channel.send(f"An error occurred during registration for '{text}'. Please contact admin.")
-
+            # Use followup.send for the exception message
+            await ctx.followup.send(f"An error occurred during registration for '{text}'. Please contact admin.")
     async def unregister_cmd(self, ctx: commands.Context, full_command_text: str):
         logger.info(f"Attempting to execute unregister_cmd for message: {ctx.message.content}, full_command_text: '{full_command_text}'")
+        await ctx.defer() # Defer the response immediately
         """
         Unregister a user.
-        
+
         Args:
             ctx: Command context
         """
         logger.info(f"Unregister command from {ctx.author}. Attempting to send webhook...")
-        channel = ctx.channel
+        # channel = ctx.channel # No longer need separate channel variable
         try:
             success, data = await webhook_service.send_webhook(
                 ctx,
@@ -99,13 +104,13 @@ class PrefixCommands:
                     logger.info(f"Webhook for unregister command succeeded for {ctx.author} with list response.")
 
             if output_message:
-               await channel.send(output_message)
+               await ctx.followup.send(output_message) # Use followup.send
             elif success:
                logger.info(f"Webhook succeeded but no valid output found in response from {ctx.author} for unregister command")
-               await channel.send(f"Unregistration attempt was processed.")
+               await ctx.followup.send(f"Unregistration attempt was processed.") # Use followup.send
             else:
                logger.warning(f"Webhook for unregister command failed for {ctx.author}. Success: {success}, Data: {data}")
-               await channel.send(f"Unregistration attempt failed. Webhook call was not successful.")
+               await ctx.followup.send(f"Unregistration attempt failed. Webhook call was not successful.") # Use followup.send
         except Exception as e:
             logger.error(f"Error sending webhook for unregister command for {ctx.author}: {e}", exc_info=True)
-            await channel.send(f"An error occurred during unregistration. Please contact admin.")
+            await ctx.followup.send(f"An error occurred during unregistration. Please contact admin.") # Use followup.send
