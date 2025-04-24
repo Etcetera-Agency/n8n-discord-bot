@@ -458,7 +458,12 @@ class WebhookService:
                             logger.info(f"[{request_id}] Successfully received and parsed 200 OK response.") # Added log
                             logger.debug(f"[{request_id}] Parsed JSON response: {data}") # Added log
                             logger.debug(f"[{request_id}] Returning from send_webhook_with_retry (200 OK): success=True, data={data}") # Added log
-                            return True, data
+                            # Explicitly check and return data if not None
+                            if data is not None:
+                                return True, data
+                            else:
+                                logger.error(f"[{request_id}] Data became None after successful JSON parse for 200 OK response.")
+                                return False, None # Return failure if data is unexpectedly None
                         except Exception as e:
                             logger.error(f"[{request_id}] JSON parse error: {e}. Response text was: {response_text}", exc_info=True) # Added log + request_id + exc_info
                             if error_channel:
