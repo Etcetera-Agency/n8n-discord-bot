@@ -211,7 +211,7 @@ async def on_close():
 @bot.event # Re-added @bot.event decorator
 @bot.event
 async def on_message(message: discord.Message):
-    logger.info(f"on_message triggered for message: {message.content}")
+    logger.info(f"on_message triggered for message: {message.content} (Author: {message.author}, Bot mentioned: {bot.user in message.mentions})")
     # Ignore messages from the bot itself
     if message.author == bot.user:
         logger.info("Ignoring message from bot user")
@@ -289,18 +289,20 @@ async def on_message(message: discord.Message):
              logger.warning("Bot mentioned but mention string not found in message content.")
              # Optionally handle as generic mention or ignore
 
-    # Handle other specific message types (if not a mention handled above)
-    elif message.content.startswith("start_daily_survey"):
-        parts = message.content.split()
-        if len(parts) >= 4:
-            user_id = parts[1]
-            channel_id = parts[2]
-            steps = parts[3:]
-            await handle_start_daily_survey(bot, user_id, channel_id, steps)
+        # Handle other specific message types (if not a mention handled above)
+        logger.info(f"Checking for specific message types (start_daily_survey, etc.) for message: {message.content}")
+        if message.content.startswith("start_daily_survey"):
+            logger.info(f"Identified start_daily_survey command for message: {message.content}")
+            parts = message.content.split()
+            if len(parts) >= 4:
+                user_id = parts[1]
+                channel_id = parts[2]
+                steps = parts[3:]
+                await handle_start_daily_survey(bot, user_id, channel_id, steps)
 
-    # Any other general message handling that should happen for non-mention messages would go here.
-    # Currently, no other general message handling is needed based on the original code structure.
-    pass
+        # Any other general message handling that should happen for non-mention messages would go here.
+        # Currently, no other general message handling is needed based on the original code structure.
+        pass
 # Any other general message handling that should happen for non-command, non-mention messages would go here.
 
 
