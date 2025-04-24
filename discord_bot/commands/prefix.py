@@ -46,11 +46,20 @@ class PrefixCommands:
             )
             logger.info(f"Webhook send_webhook returned success: {success}, data: {data}")
             # Check if data is a dictionary and contains 'output'
-            if success and data and isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
-               logger.info(f"Webhook for register command succeeded for {ctx.author}")
-               await channel.send(str(data[0]["output"]))
+            # Check if data is a dictionary with 'output' or a list containing one
+            output_message = None
+            if success and data:
+                if isinstance(data, dict) and "output" in data:
+                    output_message = str(data["output"])
+                    logger.info(f"Webhook for register command succeeded for {ctx.author} with dictionary response.")
+                elif isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
+                    output_message = str(data[0]["output"])
+                    logger.info(f"Webhook for register command succeeded for {ctx.author} with list response.")
+
+            if output_message:
+               await channel.send(output_message)
             elif success:
-               logger.info(f"Webhook succeeded but unexpected response format from {ctx.author}")
+               logger.info(f"Webhook succeeded but no valid output found in response from {ctx.author}")
                await channel.send(f"Registration attempt for '{text}' was processed")
             else:
                logger.warning(f"Webhook for register command failed for {ctx.author}. Success: {success}, Data: {data}")
@@ -79,11 +88,20 @@ class PrefixCommands:
             logger.info(f"Webhook send_webhook returned success: {success}, data: {data} for unregister command")
             
             # Check if data is a dictionary and contains 'output'
-            if success and data and isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
-               logger.info(f"Webhook for unregister command succeeded for {ctx.author}")
-               await channel.send(str(data[0]["output"]))
+            # Check if data is a dictionary with 'output' or a list containing one
+            output_message = None
+            if success and data:
+                if isinstance(data, dict) and "output" in data:
+                    output_message = str(data["output"])
+                    logger.info(f"Webhook for unregister command succeeded for {ctx.author} with dictionary response.")
+                elif isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
+                    output_message = str(data[0]["output"])
+                    logger.info(f"Webhook for unregister command succeeded for {ctx.author} with list response.")
+
+            if output_message:
+               await channel.send(output_message)
             elif success:
-               logger.info(f"Webhook succeeded but unexpected response format from {ctx.author} for unregister command")
+               logger.info(f"Webhook succeeded but no valid output found in response from {ctx.author} for unregister command")
                await channel.send(f"Unregistration attempt was processed.")
             else:
                logger.warning(f"Webhook for unregister command failed for {ctx.author}. Success: {success}, Data: {data}")
