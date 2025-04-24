@@ -211,13 +211,13 @@ async def on_close():
 @bot.event # Re-added @bot.event decorator
 @bot.event
 async def on_message(message: discord.Message):
-    logger.info(f"on_message triggered for message: {message.content} (Author: {message.author}, Bot mentioned: {bot.user in message.mentions})")
     # Ignore messages from the bot itself
     if message.author == bot.user:
         logger.info("Ignoring message from bot user")
         return
     # Handle messages where the bot is mentioned
     if bot.user in message.mentions:
+        logger.info(f"Bot mentioned on_message: {message.content}")
         logger.info("Bot mentioned in message, attempting to parse command...")
 
         # Extract content after the mention
