@@ -478,11 +478,12 @@ class WebhookService:
                          # Let retry logic handle it
                     else: # Client errors (4xx) are usually not retryable
                         logger.error(f"[{request_id}] Received client error status: {response.status}. Aborting retries.") # Added log
-                        if attempt == max_retries - 1: # Log final attempt error
-                            if hasattr(target_channel, "channel"):
-                                await target_channel.channel.send(f"Error calling n8n: code {response.status}")
-                            else:
-                                await self.send_error_message(target_channel, f"Error calling n8n: code {response.status}")
+                        # Removed direct message sending on client error. The caller (e.g., on_message) should handle user feedback.
+                        # if attempt == max_retries - 1: # Log final attempt error
+                        #     if hasattr(target_channel, "channel"):
+                        #         await target_channel.channel.send(f"Error calling n8n: code {response.status}")
+                        #     else:
+                        #         await self.send_error_message(target_channel, f"Error calling n8n: code {response.status}")
             except aiohttp.ClientConnectorError as e:
                 logger.error(f"[{request_id}] Attempt {attempt+1} failed: Connection Error - {e}. Will retry if possible.", exc_info=True) # Specific error + exc_info
                 # Let retry logic handle it
