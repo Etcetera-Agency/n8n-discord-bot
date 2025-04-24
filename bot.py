@@ -259,44 +259,50 @@ async def on_message(message: discord.Message):
 
             else:
                 # If mentioned but no known command follows, proceed with generic mention handling
-                logger.info("Bot mentioned but no known command found, proceeding with generic mention handling using defer.")
-                # Get context and defer
-                ctx = await bot.get_context(message)
-                await ctx.defer()
+                logger.info("Bot mentioned but no known command found, proceeding with generic mention handling using send-and-edit.")
+                # Send initial placeholder message
+                placeholder_message = await message.channel.send(f"Processing your mention, {message.author.mention}...")
 
                 # Process the message (send webhook for mention)
                 try:
+                    # Note: Pass the original message or relevant parts to the webhook service
+                    # Assuming webhook_service can handle the original message object or needs specific data extracted from it.
+                    # If it specifically needs a Context object, this approach needs rethinking.
+                    # Let's assume it can work with the message object for now.
                     success, data = await bot.webhook_service.send_webhook(
-                        ctx, # Pass context instead of message
+                        message, # Pass original message object
                         command="mention",
                         message=content_after_mention, # Use content after mention
                         result={}
                     )
 
-                    # Send n8n response or confirmation/error via followup
-                    response_message = None
+                    # Determine the final response message content
+                    final_content = None
                     if success and data:
                          if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
-                             response_message = str(data[0]["output"])
+                             final_content = str(data[0]["output"])
                          elif isinstance(data, dict) and "output" in data: # Handle direct dict response too
-                             response_message = str(data["output"])
+                             final_content = str(data["output"])
                          else:
                              # Fallback if structure is unexpected but success=True
                              logger.warning(f"Mention webhook succeeded but response format unexpected: {data}")
-                             response_message = "Processed mention." # Generic success message
+                             final_content = f"Processed mention, {message.author.mention}." # Generic success message
 
-                    if response_message:
-                        await ctx.followup.send(response_message)
                     elif success: # Success but no specific output message
-                         await ctx.followup.send("Processed mention.")
+                         final_content = f"Processed mention, {message.author.mention}."
                     else: # Failure case
                         logger.warning(f"Webhook for mention failed. Success: {success}, Data: {data}")
-                        await ctx.followup.send("Sorry, I couldn't process that mention.")
+                        # Include the 404 error detail if possible, assuming data might contain error info
+                        error_detail = f" (Error: {data})" if data else ""
+                        final_content = f"Sorry, {message.author.mention}, I couldn't process that mention.{error_detail}"
+
+                    # Edit the placeholder message with the final content
+                    await placeholder_message.edit(content=final_content)
 
                 except Exception as e:
                      logger.error(f"Error handling generic mention for {message.author}: {e}", exc_info=True)
-                     # Send error message via followup
-                     await ctx.followup.send("An error occurred while processing your mention.")
+                     # Edit the placeholder message with an error message
+                     await placeholder_message.edit(content=f"An error occurred while processing your mention, {message.author.mention}.")
         else:
              # This case should ideally not happen if bot.user in message.mentions is true,
              # but as a fallback
