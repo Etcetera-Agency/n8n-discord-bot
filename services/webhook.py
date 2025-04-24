@@ -460,16 +460,18 @@ class WebhookService:
                             logger.debug(f"[{request_id}] Returning from send_webhook_with_retry (200 OK): success=True, data={data}") # Added log
                             # Explicitly check and return data if not None
                             if data is not None:
+                                logger.debug(f"[{request_id}] Final return from send_webhook_with_retry (200 OK, data not None): success=True, data={data}") # Added log
                                 return True, data
                             else:
                                 logger.error(f"[{request_id}] Data became None after successful JSON parse for 200 OK response.")
+                                logger.debug(f"[{request_id}] Final return from send_webhook_with_retry (200 OK, data is None): success=False, data=None") # Added log
                                 return False, None # Return failure if data is unexpectedly None
                         except Exception as e:
                             logger.error(f"[{request_id}] JSON parse error: {e}. Response text was: {response_text}", exc_info=True) # Added log + request_id + exc_info
                             if error_channel:
                                 await error_channel.send("Received invalid response from n8n")
                             fallback = response_text.strip()
-                            logger.debug(f"[{request_id}] Returning from send_webhook_with_retry (JSON error): success=True, data={{'output': '...'}}") # Added log
+                            logger.debug(f"[{request_id}] Final return from send_webhook_with_retry (JSON error): success=True, data={{'output': '...'}}") # Added log
                             return True, {"output": fallback or "No valid JSON from n8n."}
                     elif response.status >= 500: # Server errors might be retryable
                          logger.warning(f"[{request_id}] Received server error status: {response.status}. Will retry if possible.")
