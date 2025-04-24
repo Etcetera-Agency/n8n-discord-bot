@@ -22,14 +22,18 @@ class PrefixCommands:
 
     async def register_cmd(self, ctx: commands.Context, full_command_text: str, text: str = ""):
         logger.info(f"register_cmd function entered with full_command_text: '{full_command_text}', text: '{text}' for message: {ctx.message.content}")
-        await ctx.defer() # Defer the response immediately
+        # await ctx.defer() # Defer only if proceeding to webhook
 
         if not text:
             logger.info(f"Text argument is empty for register command from {ctx.author}. Sending usage message.")
-            # Use followup.send for the error message after deferring
-            await ctx.followup.send("Потрібний формат !register Name Surname as in Team Directory")
+            # Use ctx.send for immediate error feedback, no defer needed here.
+            await ctx.send("Потрібний формат !register Name Surname as in Team Directory")
             logger.warning(f"Register command failed: text argument missing from {ctx.author}")
             return
+
+        # Defer *after* validation, before webhook call
+        await ctx.defer()
+
         """
         Register a user with the given text.
 
