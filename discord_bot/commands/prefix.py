@@ -48,7 +48,6 @@ class PrefixCommands:
             overwrite.manage_permissions = False
             overwrite.manage_webhooks = False
             overwrite.manage_messages = False
-            overwrite.create_invite = False
             overwrite.create_public_threads = False
             overwrite.create_private_threads = False
             overwrite.send_messages_in_threads = False
