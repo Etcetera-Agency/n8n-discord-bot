@@ -69,6 +69,17 @@ class PrefixCommands:
             await ctx.channel.set_permissions(ctx.author, overwrite=overwrite)
             logger.info(f"Successfully granted specific permissions to {ctx.author} in channel {ctx.channel.name}")
             permission_granted = True
+
+            # Make the channel private by denying read_messages for @everyone
+            try:
+                logger.info(f"Attempting to make channel {ctx.channel.name} private...")
+                await ctx.channel.set_permissions(ctx.guild.default_role, read_messages=False)
+                logger.info(f"Successfully made channel {ctx.channel.name} private.")
+            except discord.Forbidden:
+                logger.error(f"Bot lacks permissions to set permissions for @everyone in channel {ctx.channel.name}")
+            except discord.HTTPException as e:
+                logger.error(f"HTTP error setting permissions for @everyone in channel {ctx.channel.name}: {e}")
+
         except discord.Forbidden:
             logger.error(f"Bot lacks permissions to set permissions for {ctx.author} in channel {ctx.channel.name}")
             # permission_granted remains False
