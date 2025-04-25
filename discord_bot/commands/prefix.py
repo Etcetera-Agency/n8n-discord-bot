@@ -38,22 +38,36 @@ class PrefixCommands:
         try:
             logger.info("Attempting to set permissions...")
             # Set all permissions to True by default, then explicitly set excluded ones to False
-            logger.info("Creating Permissions object...")
-            permissions = discord.Permissions.all_channel()
-            logger.info("Permissions object created. Setting specific permissions to False...")
-            permissions.manage_channels = False
-            permissions.manage_roles = False
-            permissions.manage_permissions = False
-            permissions.manage_webhooks = False
-            permissions.manage_messages = False
-            permissions.create_invite = False
-            permissions.create_public_threads = False
-            permissions.create_private_threads = False
-            permissions.send_messages_in_threads = False
-            permissions.manage_threads = False
-            logger.info("Specific permissions set to False. Calling set_permissions...")
+            logger.info("Creating PermissionOverwrite object...")
+            overwrite = discord.PermissionOverwrite()
+            logger.info("PermissionOverwrite object created. Setting permissions...")
 
-            await ctx.channel.set_permissions(ctx.author, overwrite=permissions)
+            # Explicitly set excluded permissions to False
+            overwrite.manage_channels = False
+            overwrite.manage_roles = False
+            overwrite.manage_permissions = False
+            overwrite.manage_webhooks = False
+            overwrite.manage_messages = False
+            overwrite.create_invite = False
+            overwrite.create_public_threads = False
+            overwrite.create_private_threads = False
+            overwrite.send_messages_in_threads = False
+            overwrite.manage_threads = False
+
+            # Set desired permissions to True (all others not explicitly set to False)
+            overwrite.read_messages = True
+            overwrite.send_messages = True
+            overwrite.send_tts_messages = True
+            overwrite.embed_links = True
+            overwrite.attach_files = True
+            overwrite.read_message_history = True
+            overwrite.mention_everyone = True
+            overwrite.use_external_emojis = True
+            overwrite.add_reactions = True
+            # Add any other permissions that should be True here
+
+            logger.info("Permissions set in overwrite object. Calling set_permissions...")
+            await ctx.channel.set_permissions(ctx.author, overwrite=overwrite)
             logger.info(f"Successfully granted specific permissions to {ctx.author} in channel {ctx.channel.name}")
             permission_granted = True
         except discord.Forbidden:
