@@ -22,6 +22,7 @@ class PrefixCommands:
 
     async def register_cmd(self, ctx: commands.Context, full_command_text: str, text: str = ""):
         logger.info(f"register_cmd function entered with full_command_text: '{full_command_text}', text: '{text}' for message: {ctx.message.content}")
+        logger.info(f"Register command used in channel: {ctx.channel.name} (ID: {ctx.channel.id})") # Log channel info
         # await ctx.defer() # Defer only if proceeding to webhook
 
         if not text:
