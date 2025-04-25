@@ -411,7 +411,7 @@ class SlashCommands:
                     if message:
                         logger.debug(f"[{interaction.user}] - Message exists, no edit needed for success output")
                         pass # No need to edit the original message if sending a follow-up
-                    logger.debug(f"[{interaction.user}] - Attempting to send followup message with output: {data['output']}")
+                    logger.info(f"[{interaction.user}] - Attempting to send followup message. Type: {type(data.get('output'))}, Value: '{data.get('output')}'")
                     await interaction.followup.send(data["output"])
                     logger.debug(f"[{interaction.user}] - Followup message sent")
                 else:
