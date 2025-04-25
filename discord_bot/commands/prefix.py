@@ -1,3 +1,4 @@
+import discord
 from discord.ext import commands
 from services import webhook_service
 from config import logger
@@ -32,7 +33,18 @@ class PrefixCommands:
             logger.warning(f"Register command failed: text argument missing from {ctx.author}")
             return
 
-        # Defer *after* validation, before webhook call
+        # Grant channel permissions before webhook call
+        try:
+            await ctx.channel.set_permissions(ctx.author, read_messages=True, send_messages=True)
+            logger.info(f"Granted read/send permissions to {ctx.author} in channel {ctx.channel.name}")
+            permission_granted = True
+        except discord.Forbidden:
+            logger.error(f"Bot lacks permissions to set permissions for {ctx.author} in channel {ctx.channel.name}")
+            permission_granted = False
+        except discord.HTTPException as e:
+            logger.error(f"Failed to set permissions for {ctx.author} in channel {ctx.channel.name}: {e}")
+            permission_granted = False
+
         # Send placeholder message before webhook call
         placeholder_message = await ctx.send(f"Registering {ctx.author.mention}...")
 
@@ -63,19 +75,27 @@ class PrefixCommands:
                     output_message = str(data[0]["output"])
                     logger.info(f"Webhook for register command succeeded for {ctx.author} with list response.")
 
-            # Determine final content and edit placeholder
-            final_content = None
+            # Determine final content based on webhook result
+            webhook_status_message = None
             if output_message:
-               final_content = output_message
+               webhook_status_message = output_message
             elif success:
                logger.info(f"Webhook succeeded but no valid output found in response from {ctx.author}")
-               final_content = f"Registration attempt for '{text}' processed, {ctx.author.mention}."
+               webhook_status_message = f"Registration attempt for '{text}' processed, {ctx.author.mention}."
             else:
                logger.warning(f"Webhook for register command failed for {ctx.author}. Success: {success}, Data: {data}")
                error_detail = f" (Error: {data})" if data else ""
-               final_content = f"Registration attempt for '{text}' failed, {ctx.author.mention}.{error_detail}"
+               webhook_status_message = f"Registration attempt for '{text}' failed, {ctx.author.mention}.{error_detail}"
 
-            # Edit the placeholder message with the final content
+            # Determine permission status message
+            permission_status_message = ""
+            if permission_granted:
+                permission_status_message = f" You have been granted access to this channel."
+            else:
+                permission_status_message = f" Failed to grant access to this channel (check bot permissions)."
+
+            # Combine messages and edit placeholder
+            final_content = webhook_status_message + permission_status_message
             await placeholder_message.edit(content=final_content)
 
         except Exception as e:
