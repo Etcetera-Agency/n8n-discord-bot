@@ -35,8 +35,21 @@ class PrefixCommands:
 
         # Grant channel permissions before webhook call
         try:
-            await ctx.channel.set_permissions(ctx.author, read_messages=True, send_messages=True)
-            logger.info(f"Granted read/send permissions to {ctx.author} in channel {ctx.channel.name}")
+            # Set all permissions to True by default, then explicitly set excluded ones to False
+            permissions = discord.Permissions.all_channel()
+            permissions.manage_channels = False
+            permissions.manage_roles = False
+            permissions.manage_permissions = False
+            permissions.manage_webhooks = False
+            permissions.manage_messages = False
+            permissions.create_invite = False
+            permissions.create_public_threads = False
+            permissions.create_private_threads = False
+            permissions.send_messages_in_threads = False
+            permissions.manage_threads = False
+
+            await ctx.channel.set_permissions(ctx.author, overwrite=permissions)
+            logger.info(f"Granted specific permissions to {ctx.author} in channel {ctx.channel.name}")
             permission_granted = True
         except discord.Forbidden:
             logger.error(f"Bot lacks permissions to set permissions for {ctx.author} in channel {ctx.channel.name}")
@@ -94,8 +107,8 @@ class PrefixCommands:
             else:
                 permission_status_message = f" Failed to grant access to this channel (check bot permissions)."
 
-            # Combine messages and edit placeholder
-            final_content = webhook_status_message + permission_status_message
+            # Set final content to webhook status message
+            final_content = webhook_status_message
             await placeholder_message.edit(content=final_content)
 
         except Exception as e:
@@ -135,6 +148,18 @@ class PrefixCommands:
                 elif isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
                     output_message = str(data[0]["output"])
                     logger.info(f"Webhook for unregister command succeeded for {ctx.author} with list response.")
+
+            # Determine final content based on webhook result
+            final_content = None
+            if output_message:
+               final_content = output_message
+            elif success:
+               logger.info(f"Webhook succeeded but no valid output found in response from {ctx.author}")
+               final_content = f"Unregistration attempt processed, {ctx.author.mention}."
+            else:
+               logger.warning(f"Webhook for unregister command failed for {ctx.author}. Success: {success}, Data: {data}")
+               error_detail = f" (Error: {data})" if data else ""
+               final_content = f"Unregistration attempt failed, {ctx.author.mention}.{error_detail}"
 
             # Edit the placeholder message with the final content
             await placeholder_message.edit(content=final_content)
