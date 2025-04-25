@@ -34,9 +34,13 @@ class PrefixCommands:
             return
 
         # Grant channel permissions before webhook call
+        permission_granted = False # Initialize as False
         try:
+            logger.info("Attempting to set permissions...")
             # Set all permissions to True by default, then explicitly set excluded ones to False
+            logger.info("Creating Permissions object...")
             permissions = discord.Permissions.all_channel()
+            logger.info("Permissions object created. Setting specific permissions to False...")
             permissions.manage_channels = False
             permissions.manage_roles = False
             permissions.manage_permissions = False
@@ -47,16 +51,20 @@ class PrefixCommands:
             permissions.create_private_threads = False
             permissions.send_messages_in_threads = False
             permissions.manage_threads = False
+            logger.info("Specific permissions set to False. Calling set_permissions...")
 
             await ctx.channel.set_permissions(ctx.author, overwrite=permissions)
-            logger.info(f"Granted specific permissions to {ctx.author} in channel {ctx.channel.name}")
+            logger.info(f"Successfully granted specific permissions to {ctx.author} in channel {ctx.channel.name}")
             permission_granted = True
         except discord.Forbidden:
             logger.error(f"Bot lacks permissions to set permissions for {ctx.author} in channel {ctx.channel.name}")
-            permission_granted = False
+            # permission_granted remains False
         except discord.HTTPException as e:
-            logger.error(f"Failed to set permissions for {ctx.author} in channel {ctx.channel.name}: {e}")
-            permission_granted = False
+            logger.error(f"HTTP error setting permissions for {ctx.author} in channel {ctx.channel.name}: {e}")
+            # permission_granted remains False
+        except Exception as e:
+            logger.error(f"Unexpected error setting permissions for {ctx.author} in channel {ctx.channel.name}: {e}", exc_info=True)
+            # permission_granted remains False
 
         # Send placeholder message before webhook call
         placeholder_message = await ctx.send(f"Registering {ctx.author.mention}...")
