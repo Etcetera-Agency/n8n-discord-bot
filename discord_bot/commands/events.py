@@ -39,5 +39,27 @@ class EventHandlers:
         if self.http_session and not self.http_session.closed:
             await self.http_session.close()
 
+    @commands.Cog.listener()
+    async def on_member_join(self, member):
+        """Assign a specific role to new members joining the server."""
+        logger.info(f"Member {member.name} ({member.id}) joined the server {member.guild.name} ({member.guild.id}).")
+        role_id = 1347214463199215637  # Replace with your actual role ID
+        guild = member.guild
+
+        if guild:
+            role = guild.get_role(role_id)
+            if role:
+                try:
+                    await member.add_roles(role)
+                    logger.info(f"Assigned role {role.name} ({role.id}) to member {member.name} ({member.id}).")
+                except discord.Forbidden:
+                    logger.error(f"Bot does not have permissions to assign role {role.name} ({role.id}) in guild {guild.name} ({guild.id}).")
+                except Exception as e:
+                    logger.error(f"Error assigning role to member {member.name} ({member.id}): {e}")
+            else:
+                logger.warning(f"Role with ID {role_id} not found in guild {guild.name} ({guild.id}).")
+        else:
+            logger.warning(f"Guild not found for member {member.name} ({member.id}).")
+
     # Removed the on_message handler from this class to avoid duplication
     # The primary on_message handler is now in bot.py
