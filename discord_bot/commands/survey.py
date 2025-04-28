@@ -455,27 +455,32 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
 
             # Identify the correct view or modal based on step_name
             if step_name in ["workload_today", "workload_nextweek"]:
-                logger.info(f"Button callback for workload survey step: {step_name}. Sending button view.")
+                logger.info(f"Button callback for workload survey step: {step_name}. Creating workload view.")
                 # Create and send the multi-button workload view
                 workload_view = create_workload_view(step_name, str(interaction.user.id), has_survey=True)
+                logger.info(f"Workload view created: {workload_view}")
                 # Need to store message references on the view for the callback to use
                 workload_view.command_msg = survey.current_question_message_id # Pass the ID of the initial question message
                 workload_view.buttons_msg = None # This view *is* the buttons message, will be set after sending
 
                 # Send the workload button view
                 # Since the initial interaction was deferred in ask_dynamic_step, use followup.send
+                logger.info("Attempting interaction.followup.send with workload view...")
                 buttons_msg = await interaction.followup.send(
                     Strings.SELECT_HOURS, # Or appropriate string
                     view=workload_view,
                     ephemeral=False # Make the button message visible to others
                 )
+                logger.info(f"interaction.followup.send successful. Message ID: {buttons_msg.id}")
                 workload_view.buttons_msg = buttons_msg # Store the message object
 
                 # Clean up the original single button message
                 if survey.current_question_message_id:
                     try:
+                        logger.info(f"Attempting to delete original message ID: {survey.current_question_message_id}")
                         original_msg = await interaction.channel.fetch_message(survey.current_question_message_id)
                         await original_msg.delete()
+                        logger.info(f"Successfully deleted original message ID: {survey.current_question_message_id}")
                         survey.current_question_message_id = None # Clear ID after deletion
                     except discord.NotFound:
                         logger.warning(f"Original survey question message {survey.current_question_message_id} not found for deletion after sending workload view.")
