@@ -447,6 +447,21 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
 
         async def button_callback(interaction: discord.Interaction):
             """Callback for the 'Ввести' button."""
+            # Defer immediately to keep interaction valid
+            try:
+                await interaction.response.defer(ephemeral=False) # Defer publicly
+                logger.info(f"Interaction deferred for step: {step_name}")
+            except discord.errors.InteractionResponded:
+                 logger.warning(f"Interaction already responded/deferred for step: {step_name}")
+            except Exception as defer_error:
+                 logger.error(f"Error deferring interaction for step {step_name}: {defer_error}", exc_info=True)
+                 # Attempt to notify user if possible, then return
+                 try:
+                     await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=True)
+                 except:
+                     pass
+                 return
+
             logger.info(f"Button callback triggered for step: {step_name}") # Added log
             # Verify user matches survey user
             if str(interaction.user.id) != str(survey.user_id):
@@ -464,24 +479,16 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 workload_view.buttons_msg = None # This view *is* the buttons message, will be set after sending
 
                 # Send the workload button view
-                # Since the initial interaction was deferred in ask_dynamic_step, use followup.send
+                # Since the interaction is now deferred, use followup.send
                 logger.info("Attempting interaction.followup.send with workload view...")
-                try:
-                    buttons_msg = await interaction.followup.send(
-                        Strings.SELECT_HOURS, # Or appropriate string
-                        view=workload_view,
-                        ephemeral=False # Make the button message visible to others
-                    )
-                    logger.info(f"interaction.followup.send successful. Message ID: {buttons_msg.id}")
-                    workload_view.buttons_msg = buttons_msg # Store the message object
-                except Exception as followup_error:
-                    logger.error(f"Error during interaction.followup.send: {followup_error}", exc_info=True)
-                    # Attempt to notify user about the error if possible
-                    try:
-                        await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=True)
-                    except Exception as notify_error:
-                        logger.error(f"Failed to send error notification after followup failure: {notify_error}")
-                    return # Stop processing this callback after the error
+                # Removed the extra try/except block here as the defer should fix the root cause
+                buttons_msg = await interaction.followup.send(
+                    Strings.SELECT_HOURS, # Or appropriate string
+                    view=workload_view,
+                    ephemeral=False # Make the button message visible to others
+                )
+                logger.info(f"interaction.followup.send successful. Message ID: {buttons_msg.id}")
+                workload_view.buttons_msg = buttons_msg # Store the message object
 
                 # Clean up the original single button message
                 if survey.current_question_message_id:
