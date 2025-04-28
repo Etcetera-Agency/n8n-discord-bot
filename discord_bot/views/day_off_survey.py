@@ -5,7 +5,7 @@ from config import ViewType, logger, constants
 from services import survey_manager
 import asyncio
 
-class DayOffButton(discord.ui.Button):
+class DayOffButton_survey(discord.ui.Button):
     def __init__(self, *, label: str, custom_id: str, cmd_or_step: str):
         super().__init__(
             style=discord.ButtonStyle.secondary,  # Start with gray color
@@ -18,10 +18,10 @@ class DayOffButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         from config import Strings # Import Strings locally
         # First, acknowledge the interaction to prevent timeout
-        logger.debug(f"[{interaction.user.id}] - Attempting to defer interaction response for DayOffButton")
+        logger.debug(f"[{interaction.user.id}] - Attempting to defer interaction response for DayOffButton_survey")
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=False)
-        logger.debug(f"[{interaction.user.id}] - Interaction response deferred for DayOffButton")
+        logger.debug(f"[{interaction.user.id}] - Interaction response deferred for DayOffButton_survey")
         
         # Get the original message
         message = interaction.message
@@ -41,7 +41,7 @@ class DayOffButton(discord.ui.Button):
             
             # Get parent view and update selected days
             view = self.view
-            if isinstance(view, DayOffView):
+            if isinstance(view, DayOffView_survey):
                 if self.is_selected:
                     if self.label not in view.selected_days:
                         view.selected_days.append(self.label)
@@ -73,7 +73,7 @@ class DayOffButton(discord.ui.Button):
                 await message.edit(content=error_msg)
                 await message.add_reaction(Strings.ERROR)
 
-class ConfirmButton(discord.ui.Button):
+class ConfirmButton_survey(discord.ui.Button):
     def __init__(self):
         super().__init__(
             style=discord.ButtonStyle.success,
@@ -85,12 +85,12 @@ class ConfirmButton(discord.ui.Button):
         from config import Strings # Import Strings locally
         from services import webhook_service
         view = self.view
-        if isinstance(view, DayOffView):
+        if isinstance(view, DayOffView_survey):
             # First, acknowledge the interaction to prevent timeout
-            logger.debug(f"[{interaction.user.id}] - Attempting to defer interaction response for ConfirmButton")
+            logger.debug(f"[{interaction.user.id}] - Attempting to defer interaction response for ConfirmButton_survey")
             if not interaction.response.is_done():
                 await interaction.response.defer(ephemeral=False)
-            logger.debug(f"[{interaction.user.id}] - Interaction response deferred for ConfirmButton")
+            logger.debug(f"[{interaction.user.id}] - Interaction response deferred for ConfirmButton_survey")
             
             # Add processing reaction to command message
             if view.command_msg:
@@ -126,7 +126,7 @@ class ConfirmButton(discord.ui.Button):
                         return
                     
                     # Send webhook for survey step
-                    logger.debug(f"[{interaction.user.id}] - Attempting to send webhook for survey step (ConfirmButton): {view.cmd_or_step}")
+                    logger.debug(f"[{interaction.user.id}] - Attempting to send webhook for survey step (ConfirmButton_survey): {view.cmd_or_step}")
                     success, data = await webhook_service.send_webhook(
                         interaction,
                         command="survey",
@@ -136,7 +136,7 @@ class ConfirmButton(discord.ui.Button):
                             "daysSelected": dates
                         }
                     )
-                    logger.debug(f"[{interaction.user.id}] - Webhook response for survey step (ConfirmButton): success={success}, data={data}")
+                    logger.debug(f"[{interaction.user.id}] - Webhook response for survey step (ConfirmButton_survey): success={success}, data={data}")
                     
                     if not success:
                         if view.command_msg:
@@ -186,14 +186,14 @@ class ConfirmButton(discord.ui.Button):
                         if view.get_date_for_day(day) is not None
                     ]
                     
-                    logger.debug(f"[{interaction.user.id}] - Attempting to send webhook for regular command (ConfirmButton): {view.cmd_or_step}")
+                    logger.debug(f"[{interaction.user.id}] - Attempting to send webhook for regular command (ConfirmButton_survey): {view.cmd_or_step}")
                     success, data = await webhook_service.send_webhook(
                          interaction,
                          command=view.cmd_or_step,
                          status="ok",
                          result={"value": formatted_dates}
                      )
-                    logger.debug(f"[{interaction.user.id}] - Webhook response for regular command (ConfirmButton): success={success}, data={data}")
+                    logger.debug(f"[{interaction.user.id}] - Webhook response for regular command (ConfirmButton_survey): success={success}, data={data}")
                      
                     if success and data and "output" in data:
                         # Update command message with success
@@ -235,7 +235,7 @@ class ConfirmButton(discord.ui.Button):
                 if view.buttons_msg:
                     await view.buttons_msg.delete()
 
-class DeclineButton(discord.ui.Button):
+class DeclineButton_survey(discord.ui.Button):
     def __init__(self):
         super().__init__(
             style=discord.ButtonStyle.danger,
@@ -247,16 +247,16 @@ class DeclineButton(discord.ui.Button):
         from config import Strings # Import Strings locally
         from services import webhook_service
         view = self.view
-        if isinstance(view, DayOffView):
+        if isinstance(view, DayOffView_survey):
             logger.info(f"DECLINE BUTTON STARTED - User: {interaction.user}, Command: {view.cmd_or_step}")
             logger.debug(f"Decline button clicked by {interaction.user}")
             logger.debug(f"View has_survey: {view.has_survey}, cmd_or_step: {view.cmd_or_step}")
             
             # Immediately respond to interaction
             try:
-                logger.debug(f"[{interaction.user.id}] - Attempting to defer interaction response for DeclineButton")
+                logger.debug(f"[{interaction.user.id}] - Attempting to defer interaction response for DeclineButton_survey")
                 await interaction.response.defer(ephemeral=False, thinking=True)
-                logger.debug(f"[{interaction.user.id}] - Interaction deferred with thinking state for DeclineButton")
+                logger.debug(f"[{interaction.user.id}] - Interaction deferred with thinking state for DeclineButton_survey")
             except Exception as e:
                 logger.error(f"Failed to defer interaction: {e}")
                 return
@@ -297,7 +297,7 @@ class DeclineButton(discord.ui.Button):
                         return
                     
                     # Send webhook for survey step
-                    logger.debug(f"[{interaction.user.id}] - Attempting to send webhook for survey step (DeclineButton): {view.cmd_or_step}")
+                    logger.debug(f"[{interaction.user.id}] - Attempting to send webhook for survey step (DeclineButton_survey): {view.cmd_or_step}")
                     success, data = await webhook_service.send_webhook(
                         interaction,
                         command="survey",
@@ -307,7 +307,7 @@ class DeclineButton(discord.ui.Button):
                             "daysSelected": ["Nothing"]  # Keep as "Nothing" for backward compatibility
                         }
                     )
-                    logger.debug(f"[{interaction.user.id}] - Webhook response for survey step (DeclineButton): success={success}, data={data}")
+                    logger.debug(f"[{interaction.user.id}] - Webhook response for survey step (DeclineButton_survey): success={success}, data={data}")
                     
                     if not success:
                         if view.command_msg:
@@ -441,7 +441,7 @@ class DeclineButton(discord.ui.Button):
                 if view.buttons_msg:
                     await view.buttons_msg.delete()
 
-class DayOffView(discord.ui.View):
+class DayOffView_survey(discord.ui.View):
     def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False):
         super().__init__()  # No timeout
         self.cmd_or_step = cmd_or_step
@@ -483,9 +483,9 @@ def create_day_off_view(
     user_id: str,
     timeout: Optional[float] = None,
     has_survey: bool = False
-) -> DayOffView:
+) -> DayOffView_survey:
     """Create a day off view with buttons."""
-    logger.debug(f"Creating DayOffView for {cmd_or_step}, user {user_id}")
+    logger.debug(f"Creating DayOffView_survey for {cmd_or_step}, user {user_id}")
     view = DayOffView(cmd_or_step, user_id, has_survey=has_survey)
     
     # Get current weekday (0 = Monday, 6 = Sunday)
@@ -513,11 +513,11 @@ def create_day_off_view(
             continue
             
         custom_id = f"day_off_button_{day}_{cmd_or_step}_{user_id}"
-        button = DayOffButton(label=day, custom_id=custom_id, cmd_or_step=cmd_or_step)
+        button = DayOffButton_survey(label=day, custom_id=custom_id, cmd_or_step=cmd_or_step)
         view.add_item(button)
     
     # Add confirm and decline buttons
-    view.add_item(ConfirmButton())
-    view.add_item(DeclineButton())
+    view.add_item(ConfirmButton_survey())
+    view.add_item(DeclineButton_survey())
     
     return view

@@ -3,10 +3,10 @@ from typing import Optional
 from config import logger, Strings, constants # Added Strings, constants
 from services import webhook_service # Removed survey_manager
 
-class WorkloadView(discord.ui.View):
+class WorkloadView_slash(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
     def __init__(self, cmd_or_step: str, user_id: str): # Removed has_survey parameter
-        logger.debug(f"[{user_id}] - WorkloadView.__init__ called for cmd_or_step: {cmd_or_step}") # Removed has_survey from log
+        logger.debug(f"[{user_id}] - WorkloadView_slash.__init__ called for cmd_or_step: {cmd_or_step}") # Removed has_survey from log
         super().__init__(timeout=300)  # 5 minute timeout
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
@@ -15,9 +15,9 @@ class WorkloadView(discord.ui.View):
         self.buttons_msg = None  # Reference to the buttons message
         
     async def on_timeout(self):
-        logger.warning(f"WorkloadView timed out for user {self.user_id}")
+        logger.warning(f"WorkloadView_slash timed out for user {self.user_id}")
 
-class WorkloadButton(discord.ui.Button):
+class WorkloadButton_slash(discord.ui.Button):
     def __init__(self, *, label: str, custom_id: str, cmd_or_step: str):
         super().__init__(
             style=discord.ButtonStyle.secondary,
@@ -45,7 +45,7 @@ class WorkloadButton(discord.ui.Button):
 
         try:
             # Validate view
-            if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView):
+            if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView_slash):
                 logger.error("Invalid view in button callback")
                 return
 
@@ -77,12 +77,12 @@ class WorkloadButton(discord.ui.Button):
             logger.info(f"Processing workload selection for user {view.user_id}")
 
         except Exception as e:
-            logger.error(f"Error in WorkloadButton callback: {str(e)}")
+            logger.error(f"Error in WorkloadButton_slash callback: {str(e)}")
             return
 
         try:
             # Ensure we have a valid view
-            if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView):
+            if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView_slash):
                 return
 
             view = self.view
@@ -94,14 +94,14 @@ class WorkloadButton(discord.ui.Button):
             logger.error(f"Interaction handling failed: {e}")
             return
 
-        if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView):
+        if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView_slash):
             logger.error(f"Invalid view in callback: {getattr(self, 'view', None)}")
             return
 
         view = self.view
-        logger.info(f"Processing WorkloadView callback - view user: {view.user_id}, interaction user: {interaction.user.id}")
+        logger.info(f"Processing WorkloadView_slash callback - view user: {view.user_id}, interaction user: {interaction.user.id}")
 
-        if isinstance(view, WorkloadView):
+        if isinstance(view, WorkloadView_slash):
             # First, acknowledge the interaction to prevent timeout - already done at the beginning
             # try:
             #     logger.debug(f"[{view.user_id}] - Attempting to defer interaction response (second check)")
@@ -206,13 +206,13 @@ class WorkloadButton(discord.ui.Button):
                 # Deletion handled at the beginning
 
 
-def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None) -> WorkloadView: # Removed has_survey parameter
+def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None) -> WorkloadView_slash: # Removed has_survey parameter
     """Create workload view for regular commands only"""
     print(f"[{user_id}] - create_workload_view function entered")
     logger.debug(f"[{user_id}] - create_workload_view called with cmd: {cmd}, user_id: {user_id}") # Removed has_survey from log
     try:
-        view = WorkloadView(cmd, user_id) # Removed has_survey argument
-        logger.debug(f"[{user_id}] - WorkloadView instantiated successfully")
+        view = WorkloadView_slash(cmd, user_id) # Removed has_survey argument
+        logger.debug(f"[{user_id}] - WorkloadView_slash instantiated successfully")
     except Exception as e:
         logger.error(f"[{user_id}] - Error instantiating WorkloadView: {e}")
         raise # Re-raise the exception after logging
@@ -225,7 +225,7 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
         for hour in WORKLOAD_OPTIONS:
             print(f"[{user_id}] - Inside workload options loop for hour: {hour}")
             custom_id = f"workload_button_{hour}_{cmd}_{user_id}"
-            button = WorkloadButton(label=hour, custom_id=custom_id, cmd_or_step=cmd) # Pass cmd to button
+            button = WorkloadButton_slash(label=hour, custom_id=custom_id, cmd_or_step=cmd) # Pass cmd to button
             logger.debug(f"[{user_id}] - Adding button with label: {hour}, custom_id: {custom_id}")
             view.add_item(button)
         logger.debug(f"[{user_id}] - Finished adding workload buttons")
