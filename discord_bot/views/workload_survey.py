@@ -2,7 +2,6 @@ import discord
 from typing import Optional
 from config import logger, Strings, constants # Added Strings, constants
 from services import webhook_service, survey_manager
-from discord_bot.commands.survey import cleanup_survey_message, SurveyFlow # Import cleanup_survey_message and SurveyFlow
 
 class WorkloadView_survey(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""

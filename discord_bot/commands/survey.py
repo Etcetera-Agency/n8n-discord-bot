@@ -487,18 +487,22 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 workload_view.buttons_msg = None # This view *is* the buttons message, will be set after sending
 
                 # Send the workload button view
-                # Edit the original interaction response to show the workload view
-                logger.info("Attempting interaction.edit_original_response with workload view...")
-                await interaction.edit_original_response(
-                    content=Strings.SELECT_HOURS, # Set new content
-                    view=workload_view # Add the new view with hour buttons
+                # Instead of editing the original message, send a new message with the workload view
+                logger.info(f"[{interaction.user.id}] - Attempting to send new message with workload view...")
+                buttons_msg = await interaction.followup.send(
+                    content=Strings.SELECT_HOURS, # Content for the new message
+                    view=workload_view, # Add the new view with hour buttons
+                    ephemeral=False # Make the button message visible to others
                 )
-                # Get the message object after editing to store its reference if needed later
-                buttons_msg = await interaction.original_response()
-                logger.info(f"interaction.edit_original_response successful. Message ID: {buttons_msg.id}")
+                logger.info(f"[{interaction.user.id}] - New message with workload view sent. Message ID: {buttons_msg.id}")
                 workload_view.buttons_msg = buttons_msg # Store the message object reference on the view
-                # Removed the cleanup of the original message here.
-                # The WorkloadView callback should handle deleting the buttons message.
+
+                # Now, clean up the original question message
+                logger.info(f"[{interaction.user.id}] - Attempting to clean up original question message ID: {survey.current_question_message_id}")
+                await cleanup_survey_message(interaction, survey)
+                logger.info(f"[{interaction.user.id}] - cleanup_survey_message called for original message {survey.current_question_message_id}")
+
+                # The WorkloadView callback should handle deleting the buttons message after a selection is made.
 
             elif step_name == "connects_thisweek":
                 try:
