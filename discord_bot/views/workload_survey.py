@@ -127,25 +127,12 @@ class WorkloadButton(discord.ui.Button):
                 # Check if a survey exists for this user
                 state = survey_manager.get_survey(view.user_id)
                 
-                logger.info(f"[{view.user_id}] - Checking for active survey in callback. Found: {state is not None}. Interaction ID: {interaction.id}")
+                logger.info(f"[{view.user_id}] - Result of survey_manager.get_survey in callback: {state}. Interaction ID: {interaction.id}") # Added log
 
                 if state: # Proceed if a survey state is found
                     logger.info(f"[{view.user_id}] - Processing as survey step for user {view.user_id}")
                     # Dynamic survey flow
-                    if not state: # This check is now redundant but kept for safety
-                        logger.error(f"Survey state unexpectedly None for user {view.user_id}")
-                        # Handle error - perhaps send a message to the user
-                        if view.command_msg:
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            error_msg = Strings.WORKLOAD_ERROR.format(
-                                hours="Вибір навантаження",
-                                error=Strings.NOT_YOUR_SURVEY # Or a more generic error
-                            )
-                            await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction(Strings.ERROR)
-                        if view.buttons_msg:
-                            await view.buttons_msg.delete()
-                        return
+                    # The redundant check 'if not state:' is removed as it's covered by the outer 'if state:'
 
                     logger.info(f"Found survey for user {view.user_id}, current step: {state.current_step()}")
 
@@ -223,51 +210,73 @@ class WorkloadButton(discord.ui.Button):
                         logger.error("Invalid survey state for continuation")
                         return
 
-                else: # Original else block for non-survey commands
-                    logger.info(f"[{view.user_id}] - Processing as regular command: {view.cmd_or_step}")
-                    # Regular slash command
-                    webhook_payload = {
-                        "command": view.cmd_or_step,
-                        "status": "ok",
-                        "result": {"workload": value}
-                    }
-                    logger.debug(f"[{view.user_id}] - Preparing to send webhook for regular command. Payload: {webhook_payload}")
-                    logger.debug(f"[{view.user_id}] - Attempting to send webhook for command: {view.cmd_or_step}")
-                    success, data = await webhook_service.send_webhook(
-                        interaction,
-                        command=webhook_payload["command"],
-                        status=webhook_payload["status"],
-                        result=webhook_payload["result"]
-                    )
-                    logger.info(f"[{view.user_id}] - Webhook response for command: success={success}, data={data}")
-                    logger.info(f"[{view.user_id}] - Webhook response for command: success={success}, data={data}")
+                else: # If survey state is not found
+                    logger.warning(f"[{view.user_id}] - No active survey found for user in workload button callback. Treating as non-survey command or expired survey.")
+                    # Check if it was intended to be a survey step but the survey is missing
+                    if view.has_survey: # This indicates it was initiated as a survey step
+                         logger.error(f"[{view.user_id}] - Survey initiated but state not found in callback for step {view.cmd_or_step}.")
+                         # Inform the user that the survey might have expired
+                         try:
+                             # Use followup if interaction was deferred
+                             if interaction.response.is_done():
+                                 await interaction.followup.send(Strings.SURVEY_EXPIRED_OR_NOT_FOUND, ephemeral=True)
+                             else:
+                                 await interaction.response.send_message(Strings.SURVEY_EXPIRED_OR_NOT_FOUND, ephemeral=True)
+                         except Exception as e:
+                             logger.error(f"[{view.user_id}] - Failed to send survey expired message: {e}")
 
-                    if success and data and "output" in data:
-                        # Update command message with success
-                        if view.command_msg:
-                            logger.debug(f"[{view.user_id}] - Attempting to remove processing reaction from command message")
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            logger.debug(f"[{view.user_id}] - Attempting to edit command message with success output: {data['output']}")
-                            await view.command_msg.edit(content=data["output"])
-                            logger.info(f"[{view.user_id}] - Updated command message with success: {data['output']}")
+                         # Attempt to clean up the buttons message
+                         if view.buttons_msg:
+                             try:
+                                 await view.buttons_msg.delete()
+                             except Exception as e:
+                                 logger.warning(f"[{view.user_id}] - Failed to delete buttons message after expired survey message: {e}")
 
-                        # Delete buttons message
-                        if view.buttons_msg:
-                            logger.debug(f"[{view.user_id}] - Attempting to delete buttons message")
-                            await view.buttons_msg.delete()
-                            logger.info(f"[{view.user_id}] - Deleted buttons message")
-                    else:
-                        logger.error(f"Failed to send webhook for command: {view.cmd_or_step}")
-                        if view.command_msg:
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            error_msg = Strings.WORKLOAD_ERROR.format(
-                                hours=value,
-                                error=Strings.GENERAL_ERROR
-                            )
-                            await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction(Strings.ERROR)
-                        if view.buttons_msg:
-                            await view.buttons_msg.delete()
+                    else: # Original else block for non-survey commands
+                        logger.info(f"[{view.user_id}] - Processing as regular command: {view.cmd_or_step}")
+                        # Regular slash command
+                        webhook_payload = {
+                            "command": view.cmd_or_step,
+                            "status": "ok",
+                            "result": {"workload": value}
+                        }
+                        logger.debug(f"[{view.user_id}] - Preparing to send webhook for regular command. Payload: {webhook_payload}")
+                        logger.debug(f"[{view.user_id}] - Attempting to send webhook for command: {view.cmd_or_step}")
+                        success, data = await webhook_service.send_webhook(
+                            interaction,
+                            command=webhook_payload["command"],
+                            status=webhook_payload["status"],
+                            result=webhook_payload["result"]
+                        )
+                        logger.info(f"[{view.user_id}] - Webhook response for command: success={success}, data={data}")
+                        logger.info(f"[{view.user_id}] - Webhook response for command: success={success}, data={data}")
+
+                        if success and data and "output" in data:
+                            # Update command message with success
+                            if view.command_msg:
+                                logger.debug(f"[{view.user_id}] - Attempting to remove processing reaction from command message")
+                                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                                logger.debug(f"[{view.user_id}] - Attempting to edit command message with success output: {data['output']}")
+                                await view.command_msg.edit(content=data["output"])
+                                logger.info(f"[{view.user_id}] - Updated command message with success: {data['output']}")
+
+                            # Delete buttons message
+                            if view.buttons_msg:
+                                logger.debug(f"[{view.user_id}] - Attempting to delete buttons message")
+                                await view.buttons_msg.delete()
+                                logger.info(f"[{view.user_id}] - Deleted buttons message")
+                        else:
+                            logger.error(f"Failed to send webhook for command: {view.cmd_or_step}")
+                            if view.command_msg:
+                                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                                error_msg = Strings.WORKLOAD_ERROR.format(
+                                    hours=value,
+                                    error=Strings.GENERAL_ERROR
+                                )
+                                await view.command_msg.edit(content=error_msg)
+                                await view.command_msg.add_reaction(Strings.ERROR)
+                            if view.buttons_msg:
+                                await view.buttons_msg.delete()
                             await view.buttons_msg.delete()
 
             except Exception as e:
