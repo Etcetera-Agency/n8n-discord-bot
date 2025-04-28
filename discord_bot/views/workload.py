@@ -27,6 +27,8 @@ class WorkloadButton(discord.ui.Button):
         self.cmd_or_step = cmd_or_step
 
     async def callback(self, interaction: discord.Interaction):
+        # Log entry into the callback immediately
+        logger.info(f"WorkloadButton.callback entered. Interaction ID: {interaction.id}, Custom ID: {self.custom_id}")
         from config import Strings # Import Strings locally
         """Handle button press with complete validation"""
         # Detailed interaction validation
@@ -120,6 +122,8 @@ class WorkloadButton(discord.ui.Button):
                     value = int(self.label)
                 logger.info(f"Parsed value: {value} from label: {self.label}")
 
+                # Log right before the survey check
+                logger.info(f"Checking view.has_survey. Value: {view.has_survey}. Interaction ID: {interaction.id}")
                 if view.has_survey:
                     logger.info(f"Processing as survey step for user {view.user_id}")
                     # Dynamic survey flow
