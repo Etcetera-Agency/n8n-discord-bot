@@ -1,4 +1,4 @@
-import discord
+import discord # type: ignore
 import datetime
 import pytz
 from enum import Enum, auto

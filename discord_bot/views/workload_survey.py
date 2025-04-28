@@ -145,17 +145,19 @@ class WorkloadButton(discord.ui.Button):
                     logger.info(f"Found survey for user {view.user_id}, current step: {state.current_step()}")
 
                     # Send webhook for survey step
-                    logger.debug(f"[{view.user_id}] - Attempting to send webhook for survey step: {view.cmd_or_step}")
+                    # Send webhook for survey step
+                    result_payload = { # Renamed to avoid confusion
+                        "stepName": view.cmd_or_step,
+                        "value": value
+                    }
+                    logger.info(f"[{view.user_id}] - Sending webhook for survey step: {view.cmd_or_step} with value: {value}")
                     success, data = await webhook_service.send_webhook(
                         interaction,
                         command="survey",
                         status="step",
-                        result={
-                            "stepName": view.cmd_or_step,
-                            "value": value
-                        }
+                        result=result_payload
                     )
-                    logger.info(f"[{view.user_id}] - Webhook response for survey step: success={success}, data={data}")
+                    logger.info(f"[{view.user_id}] - Webhook sending result for survey step: success={success}, data={data}")
 
                     logger.info(f"Webhook response for survey step: success={success}, data={data}")
 

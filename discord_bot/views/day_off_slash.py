@@ -1,4 +1,4 @@
-import discord
+import discord # type: ignore
 from typing import Optional, List
 import datetime
 from config import ViewType, logger, constants
