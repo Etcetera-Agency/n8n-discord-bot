@@ -508,7 +508,28 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 logger.info(f"[{interaction.user.id}] - New message with workload view sent. Message ID: {buttons_msg.id}")
                 workload_view.buttons_msg = buttons_msg # Store the message object reference on the view
 
-                # Now, clean up the original question message
+                # Disable the "Ввести" button on the original message
+                try:
+                    original_msg = await interaction.channel.fetch_message(survey.current_question_message_id)
+                    if original_msg and original_msg.components:
+                        # Assuming the "Ввести" button is the only component or the first one
+                        view_to_edit = discord.ui.View.from_message(original_msg)
+                        if view_to_edit and view_to_edit.children:
+                            for item in view_to_edit.children:
+                                if isinstance(item, discord.ui.Button):
+                                    item.disabled = True
+                            await original_msg.edit(view=view_to_edit)
+                            logger.info(f"[{interaction.user.id}] - Disabled 'Ввести' button on message {original_msg.id}")
+                        else:
+                             logger.warning(f"[{interaction.user.id}] - Could not find view or children on original message {original_msg.id} to disable button.")
+                    else:
+                        logger.warning(f"[{interaction.user.id}] - Could not fetch original message {survey.current_question_message_id} or it has no components.")
+                except discord.NotFound:
+                    logger.warning(f"[{interaction.user.id}] - Original message {survey.current_question_message_id} not found when trying to disable button.")
+                except Exception as e:
+                    logger.error(f"[{interaction.user.id}] - Error disabling 'Ввести' button on original message {survey.current_question_message_id}: {e}", exc_info=True)
+
+
                 # Removed cleanup for workload steps as per user request
                 # logger.info(f"[{interaction.user.id}] - DEBUG: About to call cleanup_survey_message for original question message ID: {survey.current_question_message_id}")
                 # await cleanup_survey_message(interaction, survey)

@@ -166,12 +166,14 @@ class WorkloadButton_survey(discord.ui.Button):
                         "value": value
                     }
                     logger.info(f"[{view.user_id}] - Sending webhook for survey step: {view.cmd_or_step} with value: {value}")
+                    logger.debug(f"[{view.user_id}] - Attempting webhook_service.send_webhook...") # Added log before webhook call
                     success, data = await webhook_service.send_webhook(
                         interaction,
                         command="survey",
                         status="step",
                         result=result_payload
                     )
+                    logger.debug(f"[{view.user_id}] - webhook_service.send_webhook completed.") # Added log after successful webhook call
                     logger.info(f"[{view.user_id}] - Webhook sending result for survey step: success={success}, data={data}")
 
                     logger.info(f"Webhook response for survey step: success={success}, data={data}")
@@ -316,7 +318,7 @@ class WorkloadButton_survey(discord.ui.Button):
                                         logger.debug("Buttons message already deleted")
 
             except Exception as e:
-                logger.error(f"Error in workload button: {e}")
+                logger.error(f"[{view.user_id}] - Error in workload button callback: {e}", exc_info=True) # Modified log to include user_id and exc_info
                 if view.command_msg:
                     await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                     value = 0 if self.label == "Нічого немає" else self.label
@@ -328,7 +330,7 @@ class WorkloadButton_survey(discord.ui.Button):
                     await view.command_msg.add_reaction(Strings.ERROR)
                 if view.buttons_msg:
                     await view.buttons_msg.delete()
-                logger.error(f"Failed to send error response in workload callback: {e}")
+                logger.error(f"[{view.user_id}] - Failed to send error response in workload callback: {e}") # Modified log to include user_id
 
 def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None, has_survey: bool = False) -> WorkloadView_survey:
     """Create workload view for regular commands only"""
