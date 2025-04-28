@@ -154,9 +154,11 @@ class WorkloadButton_survey(discord.ui.Button):
                     # The redundant check 'if not state:' is removed as it's covered by the outer 'if state:'
                     # Temporarily send ephemeral message for debugging
                     try:
+                        logger.debug(f"[{view.user_id}] - Attempting to send debug ephemeral message.") # Added log
                         await interaction.followup.send("Debug: Survey state found.", ephemeral=True)
+                        logger.debug(f"[{view.user_id}] - Debug ephemeral message sent successfully.") # Added log
                     except Exception as e:
-                        logger.error(f"[{view.user_id}] - Failed to send debug message (survey found): {e}")
+                        logger.error(f"[{view.user_id}] - Failed to send debug message (survey found): {e}", exc_info=True) # Added exc_info
 
                     logger.info(f"Found survey for user {view.user_id}, current step: {state.current_step()}")
 
@@ -243,9 +245,11 @@ class WorkloadButton_survey(discord.ui.Button):
                     logger.warning(f"[{view.user_id}] - No active survey state found for user in workload button callback. Treating as non-survey command or expired survey.")
                     # Temporarily send ephemeral message for debugging
                     try:
+                        logger.debug(f"[{view.user_id}] - Attempting to send debug ephemeral message (survey not found).") # Added log
                         await interaction.followup.send("Debug: Survey state NOT found.", ephemeral=True)
+                        logger.debug(f"[{view.user_id}] - Debug ephemeral message (survey not found) sent successfully.") # Added log
                     except Exception as e:
-                        logger.error(f"[{view.user_id}] - Failed to send debug message (survey not found): {e}")
+                        logger.error(f"[{view.user_id}] - Failed to send debug message (survey not found): {e}", exc_info=True) # Added exc_info
 
                     # Check if it was intended to be a survey step but the survey is missing
                     if view.has_survey: # This indicates it was initiated as a survey step
