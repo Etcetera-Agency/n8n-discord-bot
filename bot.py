@@ -318,7 +318,7 @@ async def on_message(message: discord.Message):
                 user_id = parts[1]
                 channel_id = parts[2]
                 steps = parts[3:]
-                await handle_start_daily_survey(bot, user_id, channel_id, steps)
+                await handle_start_daily_survey(bot, channel_id, user_id, steps)
 
         # Any other general message handling that should happen for non-mention messages would go here.
         # Currently, no other general message handling is needed based on the original code structure.
