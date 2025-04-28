@@ -509,10 +509,9 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 workload_view.buttons_msg = buttons_msg # Store the message object reference on the view
 
                 # Now, clean up the original question message
-                # Removed cleanup for workload steps as per user request
-                # logger.info(f"[{interaction.user.id}] - DEBUG: About to call cleanup_survey_message for original question message ID: {survey.current_question_message_id}")
-                # await cleanup_survey_message(interaction, survey)
-                # logger.info(f"[{interaction.user.id}] - cleanup_survey_message called for original message {survey.current_question_message_id}")
+                logger.info(f"[{interaction.user.id}] - DEBUG: About to call cleanup_survey_message for original question message ID: {survey.current_question_message_id}")
+                await cleanup_survey_message(interaction, survey)
+                logger.info(f"[{interaction.user.id}] - cleanup_survey_message called for original message {survey.current_question_message_id}")
 
                 # The WorkloadView callback should handle deleting the buttons message after a selection is made.
 

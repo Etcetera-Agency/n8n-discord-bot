@@ -15,6 +15,7 @@ class WorkloadView_survey(discord.ui.View):
         self.has_survey = has_survey
         self.command_msg = None  # Reference to the command message
         self.buttons_msg = None  # Reference to the buttons message
+        logger.debug(f"[{self.user_id}] - WorkloadView_survey initialized. command_msg: {self.command_msg}, buttons_msg: {self.buttons_msg}") # Added log
         
     async def on_timeout(self):
         logger.warning(f"WorkloadView_survey timed out for user {self.user_id}")
@@ -208,8 +209,10 @@ class WorkloadButton_survey(discord.ui.Button):
                         logger.info(f"[{view.user_id}] - Updated command message with response")
 
                     # Delete buttons message
+                    # Delete buttons message
                     logger.info(f"[{view.user_id}] - Checking if view.buttons_msg exists for deletion. Value: {view.buttons_msg}")
                     if view.buttons_msg:
+                        logger.debug(f"[{view.user_id}] - Type of view.buttons_msg: {type(view.buttons_msg)}") # Added log
                         try:
                             logger.info(f"[{view.user_id}] - Attempting to delete buttons message ID: {view.buttons_msg.id}")
                             await view.buttons_msg.delete()
@@ -222,7 +225,6 @@ class WorkloadButton_survey(discord.ui.Button):
                             logger.error(f"[{view.user_id}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')}: {delete_error}", exc_info=True)
                     else:
                         logger.warning(f"[{view.user_id}] - view.buttons_msg is None or False, cannot delete.")
-
                     # Log survey state before continuation
                     logger.info(f"Survey state before continuation - current step: {state.current_step()}, results: {state.results}")
 
@@ -232,6 +234,8 @@ class WorkloadButton_survey(discord.ui.Button):
                     if not state or not state.user_id:
                         logger.error("Invalid survey state for continuation")
                         return
+
+                    logger.info(f"[{view.user_id}] - Webhook successful, checking for survey continuation logic.") # Added log
 
                 else: # If survey state is not found
                     logger.warning(f"[{view.user_id}] - No active survey state found for user in workload button callback. Treating as non-survey command or expired survey.")
