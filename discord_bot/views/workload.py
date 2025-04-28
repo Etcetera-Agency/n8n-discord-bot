@@ -188,10 +188,20 @@ class WorkloadButton(discord.ui.Button):
                         logger.info(f"[{view.user_id}] - Updated command message with response")
 
                     # Delete buttons message
+                    logger.info(f"[{view.user_id}] - Checking if view.buttons_msg exists for deletion. Value: {view.buttons_msg}")
                     if view.buttons_msg:
-                        logger.debug(f"[{view.user_id}] - Attempting to delete buttons message")
-                        await view.buttons_msg.delete()
-                        logger.info(f"[{view.user_id}] - Deleted buttons message")
+                        try:
+                            logger.info(f"[{view.user_id}] - Attempting to delete buttons message ID: {view.buttons_msg.id}")
+                            await view.buttons_msg.delete()
+                            logger.info(f"[{view.user_id}] - Successfully deleted buttons message ID: {view.buttons_msg.id}")
+                            view.buttons_msg = None # Clear reference after deletion
+                        except discord.NotFound:
+                            logger.warning(f"[{view.user_id}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found.")
+                            view.buttons_msg = None # Clear reference if not found
+                        except Exception as delete_error:
+                            logger.error(f"[{view.user_id}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')}: {delete_error}", exc_info=True)
+                    else:
+                        logger.warning(f"[{view.user_id}] - view.buttons_msg is None or False, cannot delete.")
 
                     # Log survey state before continuation
                     logger.info(f"Survey state before continuation - current step: {state.current_step()}, results: {state.results}")
