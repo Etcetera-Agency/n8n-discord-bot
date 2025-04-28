@@ -13,6 +13,7 @@ class WebServer:
     async def start_survey_http(self, request):
         """Handle HTTP requests to start surveys"""
         try:
+            logger.info("Received request to /start_survey")
             # Verify authorization
             auth_header = request.headers.get("Authorization")
             expected_header = f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"
@@ -22,6 +23,7 @@ class WebServer:
 
             # Parse JSON payload
             data = await request.json()
+            logger.info(f"Parsed JSON payload: {data}")
             user_id = data.get("userId")
             channel_id = data.get("channelId")
 
@@ -71,7 +73,9 @@ class WebServer:
                 channel = await self.bot.fetch_channel(channel_id)
                 view = discord.ui.View(timeout=None)
                 view.add_item(StartSurveyButton(user_id, str(channel_id)))
+                logger.info(f"Attempting to send greeting message to channel {channel_id} for user {user_id}")
                 await channel.send(f"<@{user_id}> {Strings.SURVEY_GREETING}", view=view)
+                logger.info("Greeting message sent successfully")
                 return web.json_response({"status": "Greeting message sent"})
             except Exception as e:
                 logger.error(f"Failed to send button: {str(e)}")
