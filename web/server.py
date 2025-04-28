@@ -54,6 +54,7 @@ class WebServer:
                 async def callback(self, interaction: discord.Interaction):
                     await interaction.response.defer()
                     try:
+                        logger.info("Attempting to import handle_start_daily_survey")
                         from bot.commands.survey import handle_start_daily_survey
                         # Pass both IDs explicitly
                         await handle_start_daily_survey(
