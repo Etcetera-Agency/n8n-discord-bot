@@ -161,13 +161,13 @@ class WorkloadButton_survey(discord.ui.Button):
                     logger.debug(f"[{view.user_id}] - Entered survey state processing block.") # Added log
                     # Dynamic survey flow
                     # The redundant check 'if not state:' is removed as it's covered by the outer 'if state:'
-                    # Temporarily send ephemeral message for debugging
-                    try:
-                        logger.debug(f"[{view.user_id}] - Attempting to send debug ephemeral message.") # Added log
-                        await interaction.followup.send("Debug: Survey state found.", ephemeral=True)
-                        logger.debug(f"[{view.user_id}] - Debug ephemeral message sent successfully.") # Added log
-                    except Exception as e:
-                        logger.error(f"[{view.user_id}] - Failed to send debug message (survey found): {e}", exc_info=True) # Added exc_info
+                    # Removed temporary debug ephemeral message
+                    # try:
+                    #     logger.debug(f"[{view.user_id}] - Attempting to send debug ephemeral message.") # Added log
+                    #     await interaction.followup.send("Debug: Survey state found.", ephemeral=True)
+                    #     logger.debug(f"[{view.user_id}] - Debug ephemeral message sent successfully.") # Added log
+                    # except Exception as e:
+                    #     logger.error(f"[{view.user_id}] - Failed to send debug message (survey found): {e}", exc_info=True) # Added exc_info
 
                     logger.info(f"Found survey for user {view.user_id}, current step: {state.current_step()}")
 
@@ -176,6 +176,37 @@ class WorkloadButton_survey(discord.ui.Button):
                         "stepName": view.cmd_or_step,
                         "value": value
                     }
+                    logger.info(f"[{view.user_id}] - Sending webhook for survey step: {view.cmd_or_step} with value: {value}")
+                    logger.debug(f"[{view.user_id}] - Attempting webhook_service.send_webhook...") # Added log before webhook call
+                    success, data = await webhook_service.send_webhook(
+                        interaction,
+                        command="survey",
+                        status="step",
+                        result=result_payload
+                    )
+                    logger.debug(f"[{view.user_id}] - webhook_service.send_webhook completed.") # Added log after successful webhook call
+                    logger.info(f"[{view.user_id}] - Webhook sending result for survey step: success={success}, data={data}")
+
+                    logger.info(f"Webhook response for survey step: success={success}, data={data}")
+
+                    # Delete buttons message FIRST as per user request
+                    logger.info(f"[{view.user_id}] - Attempting to delete buttons message before sending webhook.") # Added log
+                    if view.buttons_msg:
+                        logger.debug(f"[{view.user_id}] - Type of view.buttons_msg: {type(view.buttons_msg)}") # Added log
+                        try:
+                            logger.info(f"[{view.user_id}] - Attempting to delete buttons message ID: {view.buttons_msg.id}")
+                            await view.buttons_msg.delete()
+                            logger.info(f"[{view.user_id}] - Successfully deleted buttons message ID: {view.buttons_msg.id}")
+                            view.buttons_msg = None # Clear reference after deletion
+                        except discord.NotFound:
+                            logger.warning(f"[{view.user_id}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found.")
+                            view.buttons_msg = None # Clear reference if not found
+                        except Exception as delete_error:
+                            logger.error(f"[{view.user_id}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')}: {delete_error}", exc_info=True)
+                    else:
+                        logger.warning(f"[{view.user_id}] - view.buttons_msg is None or False, cannot delete.")
+
+                    # Now send the webhook
                     logger.info(f"[{view.user_id}] - Sending webhook for survey step: {view.cmd_or_step} with value: {value}")
                     logger.debug(f"[{view.user_id}] - Attempting webhook_service.send_webhook...") # Added log before webhook call
                     success, data = await webhook_service.send_webhook(
@@ -199,8 +230,7 @@ class WorkloadButton_survey(discord.ui.Button):
                             )
                             await view.command_msg.edit(content=error_msg)
                             await view.command_msg.add_reaction(Strings.ERROR)
-                        if view.buttons_msg:
-                            await view.buttons_msg.delete()
+                        # The buttons message is already attempted to be deleted above
                         return
 
                     # Update survey state
@@ -221,23 +251,6 @@ class WorkloadButton_survey(discord.ui.Button):
                             await view.command_msg.edit(content=f"Дякую! Навантаження: {value} годин записано.")
                         logger.info(f"[{view.user_id}] - Updated command message with response")
 
-                    # Delete buttons message
-                    # Delete buttons message
-                    logger.info(f"[{view.user_id}] - Checking if view.buttons_msg exists for deletion. Value: {view.buttons_msg}")
-                    if view.buttons_msg:
-                        logger.debug(f"[{view.user_id}] - Type of view.buttons_msg: {type(view.buttons_msg)}") # Added log
-                        try:
-                            logger.info(f"[{view.user_id}] - Attempting to delete buttons message ID: {view.buttons_msg.id}")
-                            await view.buttons_msg.delete()
-                            logger.info(f"[{view.user_id}] - Successfully deleted buttons message ID: {view.buttons_msg.id}")
-                            view.buttons_msg = None # Clear reference after deletion
-                        except discord.NotFound:
-                            logger.warning(f"[{view.user_id}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found.")
-                            view.buttons_msg = None # Clear reference if not found
-                        except Exception as delete_error:
-                            logger.error(f"[{view.user_id}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')}: {delete_error}", exc_info=True)
-                    else:
-                        logger.warning(f"[{view.user_id}] - view.buttons_msg is None or False, cannot delete.")
                     # Log survey state before continuation
                     logger.info(f"Survey state before continuation - current step: {state.current_step()}, results: {state.results}")
 
@@ -252,13 +265,13 @@ class WorkloadButton_survey(discord.ui.Button):
 
                 else: # If survey state is not found
                     logger.warning(f"[{view.user_id}] - No active survey state found for user in workload button callback. Treating as non-survey command or expired survey.")
-                    # Temporarily send ephemeral message for debugging
-                    try:
-                        logger.debug(f"[{view.user_id}] - Attempting to send debug ephemeral message (survey not found).") # Added log
-                        await interaction.followup.send("Debug: Survey state NOT found.", ephemeral=True)
-                        logger.debug(f"[{view.user_id}] - Debug ephemeral message (survey not found) sent successfully.") # Added log
-                    except Exception as e:
-                        logger.error(f"[{view.user_id}] - Failed to send debug message (survey not found): {e}", exc_info=True) # Added exc_info
+                    # Removed temporary debug ephemeral message
+                    # try:
+                    #     logger.debug(f"[{view.user_id}] - Attempting to send debug ephemeral message (survey not found).") # Added log
+                    #     await interaction.followup.send("Debug: Survey state NOT found.", ephemeral=True)
+                    #     logger.debug(f"[{view.user_id}] - Debug ephemeral message (survey not found) sent successfully.") # Added log
+                    # except Exception as e:
+                    #     logger.error(f"[{view.user_id}] - Failed to send debug message (survey not found): {e}", exc_info=True) # Added exc_info
 
                     # Check if it was intended to be a survey step but the survey is missing
                     if view.has_survey: # This indicates it was initiated as a survey step
