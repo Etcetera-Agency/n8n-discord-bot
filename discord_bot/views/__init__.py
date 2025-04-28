@@ -1,6 +1,6 @@
 # Simplified imports for command-only views
-from .workload import WorkloadView, WorkloadButton
-from .day_off import DayOffView, DayOffButton
+from .workload_slash import WorkloadView, WorkloadButton # Import from slash-specific workload
+from .day_off_slash import DayOffView, DayOffButton # Import from slash-specific day_off
 from .factory import create_view
 
 __all__ = [
