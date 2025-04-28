@@ -126,7 +126,7 @@ class WorkloadButton_survey(discord.ui.Button):
                     await view.command_msg.add_reaction(Strings.PROCESSING)
                     logger.info(f"[{view.user_id}] - Added processing reaction to command message {view.command_msg.id}")
                 except Exception as e:
-                    logger.error(f"[{view.user_id}] - Error adding processing reaction to command message {view.command_msg.id}: {e}")
+                    logger.error(f"[{view.user_id}] - Error adding processing reaction to command message {getattr(view.command_msg, 'id', 'N/A')}: {e}", exc_info=True) # Added exc_info and safe access
 
             try:
                 # Set value based on button label and convert to integer
