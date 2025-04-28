@@ -1,3 +1,5 @@
+import logging
+logger = logging.getLogger(__name__)
 import discord
 from typing import Optional, Dict, Any
 from services import session_manager
@@ -34,9 +36,9 @@ class BaseView(discord.ui.View):
         """Disable all items in the view."""
         for item in self.children:
             item.disabled = True
-    
     async def on_timeout(self) -> None:
         """Handle view timeout."""
+        logger.debug(f"on_timeout called for {self.cmd_or_step}, has_survey: {self.has_survey}")
         from services import survey_manager
         
         if self.has_survey:
@@ -47,4 +49,4 @@ class BaseView(discord.ui.View):
                 await handle_survey_incomplete(self.user_id)
                 
         self.disable_all_items()
-        self.stop() 
+        self.stop()
