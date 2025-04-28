@@ -353,5 +353,3 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
         raise # Re-raise the exception after logging
     
     return view
-logger.debug(f"[{view.user_id}] - Before sending new message: view.command_msg={view.command_msg}, view.buttons_msg={view.buttons_msg}")
-logger.debug(f"[{view.user_id}] - After sending new message: view.command_msg={view.command_msg}, view.buttons_msg={view.buttons_msg}")
