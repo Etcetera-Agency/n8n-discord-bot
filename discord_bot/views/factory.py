@@ -1,8 +1,10 @@
 from typing import Optional, Union
 import discord
 from config import ViewType, logger, Strings
-from .workload import create_workload_view
-from .day_off import create_day_off_view
+from .workload_slash import create_workload_view # Use slash-specific workload view
+from .day_off_slash import create_day_off_view # Use slash-specific day_off view
+from .base import BaseView # Import from original base
+from .generic import GenericSelect # Import from original generic
 
 class WorkloadTodayModal(discord.ui.Modal):
     def __init__(self, survey, step_name):

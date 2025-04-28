@@ -5,7 +5,7 @@ from config import ViewType, logger, Strings, Config, constants # Added constant
 from services import survey_manager, webhook_service
 from services.survey import SurveyFlow # Added import
 # Removed factory import
-from discord_bot.views.workload import create_workload_view # Added import
+from discord_bot.views.workload_survey import create_workload_view # Use survey-specific view
 from bot import bot # Import the bot instance from the root bot.py
 
 # ==================================
@@ -450,6 +450,25 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
             # No defer needed here, we will edit the original response directly.
 
             logger.info(f"Button callback triggered for step: {step_name}") # Added log
+
+            # Defer interaction *before* doing potentially slow work (creating view)
+            try:
+                # Check if already responded to prevent errors
+                if not interaction.response.is_done():
+                    await interaction.response.defer(ephemeral=False) # Defer publicly
+                    logger.info(f"Interaction deferred for step: {step_name}")
+                else:
+                    logger.warning(f"Interaction already responded/deferred for step: {step_name}")
+            except Exception as defer_error:
+                 logger.error(f"Error deferring interaction for step {step_name}: {defer_error}", exc_info=True)
+                 # Attempt to notify user if possible, then return
+                 try:
+                     # Use followup since we might have deferred successfully before error
+                     await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=True)
+                 except:
+                     pass
+                 return
+
             # Verify user matches survey user
             if str(interaction.user.id) != str(survey.user_id):
                 await interaction.response.send_message(Strings.SURVEY_NOT_FOR_YOU, ephemeral=True)
@@ -512,7 +531,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
             elif step_name == "dayoff_nextweek":
                 logger.info(f"Button callback for dayoff_nextweek survey step: {step_name}. Sending button view.")
                 # Create and send the day off view
-                from bot.views.day_off import create_day_off_view # Import here to avoid circular dependency
+                from discord_bot.views.day_off_survey import create_day_off_view # Use survey-specific view
                 day_off_view = create_day_off_view(step_name, str(interaction.user.id), has_survey=True)
                 # Need to store message references on the view for the callback to use
                 day_off_view.command_msg = survey.current_question_message_id # Pass the ID of the initial question message

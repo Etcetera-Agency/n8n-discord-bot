@@ -449,10 +449,8 @@ class DayOffView(discord.ui.View):
         self.has_survey = has_survey
         self.selected_days = []
         self.selected_dates = []
-        self.weekday_map = {
-            "Понеділок": 0, "Вівторок": 1, "Середа": 2, "Четвер": 3, 
-            "П'ятниця": 4, "Субота": 5, "Неділя": 6
-        }
+        # Use the map from constants
+        self.weekday_map = constants.WEEKDAY_MAP
         self.command_msg = None  # Reference to the command message
         self.buttons_msg = None  # Reference to the buttons message
 
