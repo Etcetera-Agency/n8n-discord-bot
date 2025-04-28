@@ -489,24 +489,8 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 )
                 logger.info(f"interaction.followup.send successful. Message ID: {buttons_msg.id}")
                 workload_view.buttons_msg = buttons_msg # Store the message object
-
-                # Clean up the original single button message
-                if survey.current_question_message_id:
-                    try:
-                        logger.info(f"Attempting to delete original message ID: {survey.current_question_message_id}")
-                        original_msg = await interaction.channel.fetch_message(survey.current_question_message_id)
-                        await original_msg.delete()
-                        logger.info(f"Successfully deleted original message ID: {survey.current_question_message_id}")
-                        survey.current_question_message_id = None # Clear ID after deletion
-                    except discord.NotFound:
-                        logger.warning(f"Original survey question message {survey.current_question_message_id} not found for deletion after sending workload view.")
-                        survey.current_question_message_id = None
-                    except discord.Forbidden:
-                        logger.error(f"Bot lacks permissions to delete original survey question message {survey.current_question_message_id}")
-                        survey.current_question_message_id = None
-                    except Exception as e_cleanup:
-                        logger.error(f"Error deleting original survey question message: {e_cleanup}")
-                        survey.current_question_message_id = None
+                # Removed the cleanup of the original message here.
+                # The WorkloadView callback should handle deleting the buttons message.
 
             elif step_name == "connects_thisweek":
                 try:
@@ -555,22 +539,8 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                     ephemeral=False # Make the button message visible to others
                 )
                 day_off_view.buttons_msg = buttons_msg # Store the message object
-
-                # Clean up the original single button message
-                if survey.current_question_message_id:
-                    try:
-                        original_msg = await interaction.channel.fetch_message(survey.current_question_message_id)
-                        await original_msg.delete()
-                        survey.current_question_message_id = None # Clear ID after deletion
-                    except discord.NotFound:
-                        logger.warning(f"Original survey question message {survey.current_question_message_id} not found for deletion after sending day off view.")
-                        survey.current_question_message_id = None
-                    except discord.Forbidden:
-                        logger.error(f"Bot lacks permissions to delete original survey question message {survey.current_question_message_id}")
-                        survey.current_question_message_id = None
-                    except Exception as e_cleanup:
-                        logger.error(f"Error deleting original survey question message: {e_cleanup}")
-                        survey.current_question_message_id = None
+                # Removed the cleanup of the original message here.
+                # The DayOffView callback should handle deleting the buttons message.
 
             else:
                 logger.error(f"Button callback triggered for unknown survey step: {step_name}")
