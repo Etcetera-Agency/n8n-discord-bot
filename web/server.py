@@ -57,9 +57,7 @@ class WebServer:
                         logger.info("Attempting to import handle_start_daily_survey")
                         from discord_bot.commands.survey import handle_start_daily_survey
                         # Pass both IDs explicitly
-                        logger.info(f"Calling handle_start_daily_survey with args: client={interaction.client}, user_id={self.user_id}, channel_id={self.channel_id}, session_id={self.session_id}")
                         await handle_start_daily_survey(
-                            interaction.client,
                             user_id=self.user_id,
                             channel_id=self.channel_id,
                             session_id=self.session_id  # Pass combined session ID
