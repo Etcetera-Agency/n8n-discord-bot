@@ -191,10 +191,18 @@ async def cleanup_survey_message(interaction: discord.Interaction, survey: Surve
     Attempts to disable the button on the original message and then delete it.
     Handles potential errors like message not found or missing permissions gracefully.
     """
+    logger.debug(f"[{survey.user_id if survey else 'N/A'}] - cleanup_survey_message called for message ID: {survey.current_question_message_id if survey else 'N/A'}")
+    """Helper function to clean up the survey question message after modal submission.
+    Attempts to disable the button on the original message and then delete it.
+    Handles potential errors like message not found or missing permissions gracefully.
+    """
     if not survey.current_question_message_id:
+        logger.debug(f"[{survey.user_id if survey else 'N/A'}] - cleanup_survey_message: No message ID to clean up.")
         return # Added missing return
     try:
+        logger.debug(f"[{survey.user_id if survey else 'N/A'}] - cleanup_survey_message: Fetching message {survey.current_question_message_id}")
         original_msg = await interaction.channel.fetch_message(survey.current_question_message_id)
+        logger.debug(f"[{survey.user_id if survey else 'N/A'}] - cleanup_survey_message: Message fetched successfully.")
         # Attempt to disable button (best effort)
         try:
             view = discord.ui.View.from_message(original_msg)
@@ -499,7 +507,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 workload_view.buttons_msg = buttons_msg # Store the message object reference on the view
 
                 # Now, clean up the original question message
-                logger.info(f"[{interaction.user.id}] - Attempting to clean up original question message ID: {survey.current_question_message_id}")
+                logger.info(f"[{interaction.user.id}] - DEBUG: About to call cleanup_survey_message for original question message ID: {survey.current_question_message_id}")
                 await cleanup_survey_message(interaction, survey)
                 logger.info(f"[{interaction.user.id}] - cleanup_survey_message called for original message {survey.current_question_message_id}")
 
