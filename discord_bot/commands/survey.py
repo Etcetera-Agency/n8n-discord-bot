@@ -312,7 +312,9 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: s
         "channelId": channel_id
     }
     headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
+    logger.info(f"Attempting check_channel webhook call for channel {channel_id} with payload: {payload}")
     success, data = await webhook_service.send_webhook_with_retry(None, payload, headers)
+    logger.info(f"check_channel webhook response: success={success}, data={data}")
     
     if not success or str(data.get("output", "false")).lower() != "true":
         logger.warning(f"Channel {channel_id} not registered for surveys")
