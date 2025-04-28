@@ -356,6 +356,7 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: s
         # Check if channel is registered via webhook
         payload = { "command": "check_channel", "channelId": channel_id }
         headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
+        logger.info(f"Attempting SECOND check_channel webhook call for channel {channel_id} with payload: {payload}") # Added log
         success, data = await webhook_service.send_webhook_with_retry(None, payload, headers)
 
         if not success or str(data.get("output", "false")).lower() != "true":
