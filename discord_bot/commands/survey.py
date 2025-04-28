@@ -186,6 +186,7 @@ class ConnectsModal(discord.ui.Modal):
 # ==================================
 
 async def cleanup_survey_message(interaction: discord.Interaction, survey: SurveyFlow):
+    logger.debug(f"[{survey.user_id if survey else 'N/A'}] - cleanup_survey_message called for message ID: {survey.current_question_message_id if survey else 'N/A'}")
     """Helper function to clean up the survey question message after modal submission.
     Attempts to disable the button on the original message and then delete it.
     Handles potential errors like message not found or missing permissions gracefully.

@@ -1,7 +1,8 @@
 import discord
 from typing import Optional
 from config import logger, Strings, constants # Added Strings, constants
-from services import webhook_service, survey_manager # Added webhook_service, survey_manager
+from services import webhook_service, survey_manager
+from discord_bot.commands.survey import cleanup_survey_message, SurveyFlow # Import cleanup_survey_message and SurveyFlow
 
 class WorkloadView_survey(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
@@ -353,3 +354,5 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
         raise # Re-raise the exception after logging
     
     return view
+logger.debug(f"[{view.user_id}] - Before edit_original_response: view.command_msg={view.command_msg}, view.buttons_msg={view.buttons_msg}")
+logger.debug(f"[{view.user_id}] - After edit_original_response: view.command_msg={view.command_msg}, view.buttons_msg={view.buttons_msg}")
