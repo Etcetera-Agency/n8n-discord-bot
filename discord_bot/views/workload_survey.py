@@ -144,8 +144,16 @@ class WorkloadButton_survey(discord.ui.Button):
                 # Log right before the survey check
                 logger.info(f"[{view.user_id}] - Checking view.has_survey in callback. Value: {view.has_survey}. Interaction ID: {interaction.id}")
                 # Check if a survey exists for this user
-                state = survey_manager.get_survey(view.user_id)
-                
+                try:
+                    logger.debug(f"[{view.user_id}] - Attempting to get survey state for user {view.user_id}.") # Added log
+                    state = survey_manager.get_survey(view.user_id)
+                    logger.debug(f"[{view.user_id}] - survey_manager.get_survey returned: {state}.") # Added log
+                except Exception as e:
+                    logger.error(f"[{view.user_id}] - Error getting survey state: {e}", exc_info=True) # Added error handling
+                    # If getting survey state fails, we cannot proceed with the survey flow.
+                    # Log the error and return.
+                    return
+
                 # Removed log: logger.info(f"[{view.user_id}] - Result of survey_manager.get_survey in callback: {state}. Interaction ID: {interaction.id}")
 
                 if state: # Proceed if a survey state is found
