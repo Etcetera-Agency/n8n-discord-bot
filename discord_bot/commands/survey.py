@@ -494,7 +494,8 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 workload_view = create_workload_view(step_name, str(interaction.user.id), has_survey=True)
                 logger.info(f"Workload view created: {workload_view}")
                 # Need to store message references on the view for the callback to use
-                workload_view.command_msg = survey.current_question_message_id # Pass the ID of the initial question message
+                # Pass the actual message object, not just the ID
+                workload_view.command_msg = survey.current_message
                 workload_view.buttons_msg = None # This view *is* the buttons message, will be set after sending
 
                 # Send the workload button view
@@ -601,6 +602,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
         logger.info(f"Attempting to send question for step {step_name} to channel ID={channel.id}, Name={channel.name} for user {user_id}") # Added log
         question_msg = await channel.send(question_text, view=view)
         survey.current_question_message_id = question_msg.id # Store message ID for cleanup
+        survey.current_message = question_msg # Store the message object
         logger.info(f"Sent question for step {step_name} (msg ID: {question_msg.id}) for user {user_id}")
     except Exception as e:
         logger.error(f"Error in ask_dynamic_step for step {step_name}: {str(e)}", exc_info=True)
