@@ -447,20 +447,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
 
         async def button_callback(interaction: discord.Interaction):
             """Callback for the 'Ввести' button."""
-            # Defer immediately to keep interaction valid
-            try:
-                await interaction.response.defer(ephemeral=False) # Defer publicly
-                logger.info(f"Interaction deferred for step: {step_name}")
-            except discord.errors.InteractionResponded:
-                 logger.warning(f"Interaction already responded/deferred for step: {step_name}")
-            except Exception as defer_error:
-                 logger.error(f"Error deferring interaction for step {step_name}: {defer_error}", exc_info=True)
-                 # Attempt to notify user if possible, then return
-                 try:
-                     await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=True)
-                 except:
-                     pass
-                 return
+            # No defer needed here, we will edit the original response directly.
 
             logger.info(f"Button callback triggered for step: {step_name}") # Added log
             # Verify user matches survey user
@@ -479,16 +466,16 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 workload_view.buttons_msg = None # This view *is* the buttons message, will be set after sending
 
                 # Send the workload button view
-                # Since the interaction is now deferred, use followup.send
-                logger.info("Attempting interaction.followup.send with workload view...")
-                # Removed the extra try/except block here as the defer should fix the root cause
-                buttons_msg = await interaction.followup.send(
-                    Strings.SELECT_HOURS, # Or appropriate string
-                    view=workload_view,
-                    ephemeral=False # Make the button message visible to others
+                # Edit the original interaction response to show the workload view
+                logger.info("Attempting interaction.edit_original_response with workload view...")
+                await interaction.edit_original_response(
+                    content=Strings.SELECT_HOURS, # Set new content
+                    view=workload_view # Add the new view with hour buttons
                 )
-                logger.info(f"interaction.followup.send successful. Message ID: {buttons_msg.id}")
-                workload_view.buttons_msg = buttons_msg # Store the message object
+                # Get the message object after editing to store its reference if needed later
+                buttons_msg = await interaction.original_response()
+                logger.info(f"interaction.edit_original_response successful. Message ID: {buttons_msg.id}")
+                workload_view.buttons_msg = buttons_msg # Store the message object reference on the view
                 # Removed the cleanup of the original message here.
                 # The WorkloadView callback should handle deleting the buttons message.
 
