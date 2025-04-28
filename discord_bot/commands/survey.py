@@ -352,321 +352,327 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: s
     # The step ordering code is not needed and has been removed.
 
     # --- Start New Survey Flow ---
-    try:
-        # Check if channel is registered via webhook
-        payload = { "command": "check_channel", "channelId": channel_id }
-        headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
-        logger.info(f"Attempting SECOND check_channel webhook call for channel {channel_id} with payload: {payload}") # Added log
-        success, data = await webhook_service.send_webhook_with_retry(None, payload, headers)
+        # Check if channel is registered
+    payload = {
+        "command": "check_channel",
+        "channelId": channel_id
+    }
+    headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
+    logger.info(f"Attempting check_channel webhook call for channel {channel_id} with payload: {payload}")
+    success, data = await webhook_service.send_webhook_with_retry(None, payload, headers)
+    logger.info(f"check_channel webhook response: success={success}, data={data}")
 
-        if not success or str(data.get("output", "false")).lower() != "true":
-            logger.warning(f"Channel {channel_id} not registered for surveys via webhook check.")
-            # Optionally send a message to the user/channel?
-            return
+    if not success or str(data.get("output", "false")).lower() != "true":
+        logger.warning(f"Channel {channel_id} not registered for surveys")
+        return
 
-        # Get steps from n8n response
-        n8n_steps = data.get("steps", [])
-        if not n8n_steps:
-            logger.info(f"No survey steps provided by n8n for channel {channel_id}. Sending complete message.")
-            channel = await bot.fetch_channel(int(channel_id))
-            if channel: await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
-            return
+    # Check channel response data
+    steps = data.get("steps", [])
+    channel = await bot.fetch_channel(channel_id)
 
-        # Filter and order steps based on SURVEY_FLOW constant
-        final_steps = [step for step in constants.SURVEY_FLOW if step in n8n_steps]
+    if not channel:
+        logger.warning(f"Channel {channel_id} not found")
+        return
 
-        if not final_steps:
-            logger.info(f"No *required* survey steps found for channel {channel_id} after filtering {n8n_steps}.")
-            channel = await bot.fetch_channel(int(channel_id))
-            if channel: await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
-            return
+    # Handle cases based on received data
+    if steps:
+        # Steps provided - proceed with survey
+        pass
+    else:
+        # No steps provided - send completion message
+        await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
+        logger.info(f"No survey steps provided for channel {channel_id}, survey complete")
+        return
 
-        logger.info(f"n8n_steps: {n8n_steps}, final_steps: {final_steps}")
-        logger.info(f"Starting new survey for user {user_id} in channel {channel_id} with steps: {final_steps}")
+    logger.info(f"Starting survey with steps: {steps}")
 
-        # Create the survey object
-        survey = survey_manager.create_survey(user_id, channel_id, final_steps, session_id) # Pass session_id
+    # The step ordering code is not needed and has been removed.
 
-        # Ask the first step
-        first_step = survey.current_step()
-        if first_step:
-            channel = await bot.fetch_channel(int(channel_id))
-            if channel:
-                logger.info(f"Fetched channel for survey: ID={channel.id}, Name={channel.name}") # Added log
-                await ask_dynamic_step(channel, survey, first_step)
-            else:
-                logger.error(f"Could not fetch channel {channel_id} to ask first survey step.")
-                survey_manager.remove_survey(user_id) # Clean up unusable survey
+    # Filter and order steps based on SURVEY_FLOW constant
+    final_steps = [step for step in constants.SURVEY_FLOW if step in steps]
+
+    if not final_steps:
+        logger.info(f"No *required* survey steps found for channel {channel_id} after filtering {steps}.")
+        channel = await bot.fetch_channel(int(channel_id))
+        if channel: await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
+        return
+
+    logger.info(f"n8n_steps: {steps}, final_steps: {final_steps}")
+    logger.info(f"Starting new survey for user {user_id} in channel {channel_id} with steps: {final_steps}")
+
+    # Create the survey object
+    survey = survey_manager.create_survey(user_id, channel_id, final_steps, session_id) # Pass session_id
+
+    # Ask the first step
+    first_step = survey.current_step()
+    if first_step:
+        channel = await bot.fetch_channel(int(channel_id))
+        if channel:
+            logger.info(f"Fetched channel for survey: ID={channel.id}, Name={channel.name}") # Added log
+            await ask_dynamic_step(channel, survey, first_step)
         else:
-            # Should not happen if final_steps is not empty, but handle defensively
-            logger.error(f"Survey created for user {user_id} but no first step available. Steps: {final_steps}")
-            channel = await bot.fetch_channel(int(channel_id))
-            if channel: await channel.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}: No steps found.")
-            survey_manager.remove_survey(user_id)
-
-    except Exception as e:
-        logger.error(f"Error in handle_start_daily_survey: {e}")
-        # Try to send an error message to the channel
-        survey = None
-        try:
-            channel = await bot.fetch_channel(int(channel_id))
-            await channel.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}: {str(e)}")
-        except:
-            logger.error(f"Could not send error message to channel {channel_id}")
-
-async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, step_name: str) -> None: # Type hint updated
-    """Asks a single step of the survey.
-    Sends a message with the step question and a 'Ввести' button.
-    The button's callback triggers the appropriate survey-specific modal.
-    """
-    # Validate inputs
-    if not channel or not survey or not step_name:
-        logger.error(f"Invalid ask_dynamic_step params - channel: {channel}, survey: {survey}, step: {step_name}")
-        return
-
-    user_id = survey.user_id
-    logger.info(f"Asking step {step_name} for user {user_id} in channel {channel.id}")
-
-    # Validate survey state
-    if not survey.user_id or not survey.channel_id:
-        logger.error(f"Invalid survey state - user_id: {survey.user_id}, channel_id: {survey.channel_id}")
-        return
+            logger.error(f"Could not fetch channel {channel_id} to ask first survey step.")
+            survey_manager.remove_survey(user_id) # Clean up unusable survey
+    else:
+        # Should not happen if final_steps is not empty, but handle defensively
+        logger.error(f"Survey created for user {user_id} but no first step available. Steps: {final_steps}")
+        channel = await bot.fetch_channel(int(channel_id))
+        if channel: await channel.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}: No steps found.")
+        survey_manager.remove_survey(user_id)
     
-    try:
-        # Get standardized question text for each step from Strings
-        step_questions = {
-            "workload_today": Strings.WORKLOAD_TODAY,
-            "workload_nextweek": Strings.WORKLOAD_NEXTWEEK,
-            "connects_thisweek": Strings.CONNECTS,
-            "dayoff_nextweek": Strings.DAY_OFF_NEXTWEEK
-        }
-        question_text = step_questions.get(step_name)
-
-        if not question_text:
-             logger.error(f"No question text found for survey step: {step_name}")
-             await channel.send(f"<@{user_id}> {Strings.STEP_ERROR}: Configuration error.")
-             # Consider removing survey or stopping flow here
-             return
-
-        question_text = f"<@{user_id}> {question_text}" # Prepend user mention
-
-        # Create the "Ввести" button
-        button = discord.ui.Button(
-            label=Strings.SURVEY_INPUT_BUTTON_LABEL, # "Ввести"
-            style=discord.ButtonStyle.primary,
-            custom_id=f"survey_step_{survey.session_id}_{step_name}" # Unique ID
-        )
-
-        async def button_callback(interaction: discord.Interaction):
-            """Callback for the 'Ввести' button."""
-            # No defer needed here, we will edit the original response directly.
-
-            logger.info(f"Button callback triggered for step: {step_name}") # Added log
-
-            # Defer interaction *before* doing potentially slow work (creating view)
-            try:
-                # Check if already responded to prevent errors
-                if not interaction.response.is_done():
-                    await interaction.response.defer(ephemeral=False) # Defer publicly
-                    logger.info(f"Interaction deferred for step: {step_name}")
-                else:
-                    logger.warning(f"Interaction already responded/deferred for step: {step_name}")
-            except Exception as defer_error:
-                 logger.error(f"Error deferring interaction for step {step_name}: {defer_error}", exc_info=True)
-                 # Attempt to notify user if possible, then return
-                 try:
-                     # Use followup since we might have deferred successfully before error
-                     await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=True)
-                 except:
-                     pass
+    async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, step_name: str) -> None: # Type hint updated
+        """Asks a single step of the survey.
+        Sends a message with the step question and a 'Ввести' button.
+        The button's callback triggers the appropriate survey-specific modal.
+        """
+        # Validate inputs
+        if not channel or not survey or not step_name:
+            logger.error(f"Invalid ask_dynamic_step params - channel: {channel}, survey: {survey}, step: {step_name}")
+            return
+    
+        user_id = survey.user_id
+        logger.info(f"Asking step {step_name} for user {user_id} in channel {channel.id}")
+    
+        # Validate survey state
+        if not survey.user_id or not survey.channel_id:
+            logger.error(f"Invalid survey state - user_id: {survey.user_id}, channel_id: {survey.channel_id}")
+            return
+    
+        try:
+            # Get standardized question text for each step from Strings
+            step_questions = {
+                "workload_today": Strings.WORKLOAD_TODAY,
+                "workload_nextweek": Strings.WORKLOAD_NEXTWEEK,
+                "connects_thisweek": Strings.CONNECTS,
+                "dayoff_nextweek": Strings.DAY_OFF_NEXTWEEK
+            }
+            question_text = step_questions.get(step_name)
+    
+            if not question_text:
+                 logger.error(f"No question text found for survey step: {step_name}")
+                 await channel.send(f"<@{user_id}> {Strings.STEP_ERROR}: Configuration error.")
+                 # Consider removing survey or stopping flow here
                  return
-
-            # Verify user matches survey user
-            if str(interaction.user.id) != str(survey.user_id):
-                await interaction.response.send_message(Strings.SURVEY_NOT_FOR_YOU, ephemeral=True)
-                return
-
-            # Identify the correct view or modal based on step_name
-            if step_name in ["workload_today", "workload_nextweek"]:
-                logger.info(f"Button callback for workload survey step: {step_name}. Creating workload view.")
-                # Create and send the multi-button workload view
-                workload_view = create_workload_view(step_name, str(interaction.user.id), has_survey=True)
-                logger.info(f"Workload view created: {workload_view}")
-                # Need to store message references on the view for the callback to use
-                workload_view.command_msg = survey.current_question_message_id # Pass the ID of the initial question message
-                workload_view.buttons_msg = None # This view *is* the buttons message, will be set after sending
-
-                # Send the workload button view
-                # Instead of editing the original message, send a new message with the workload view
-                logger.info(f"[{interaction.user.id}] - Attempting to send new message with workload view...")
-                buttons_msg = await interaction.followup.send(
-                    content=Strings.SELECT_HOURS, # Content for the new message
-                    view=workload_view, # Add the new view with hour buttons
-                    ephemeral=False # Make the button message visible to others
-                )
-                logger.info(f"[{interaction.user.id}] - New message with workload view sent. Message ID: {buttons_msg.id}")
-                workload_view.buttons_msg = buttons_msg # Store the message object reference on the view
-
-                # Now, clean up the original question message
-                # Removed cleanup for workload steps as per user request
-                # logger.info(f"[{interaction.user.id}] - DEBUG: About to call cleanup_survey_message for original question message ID: {survey.current_question_message_id}")
-                # await cleanup_survey_message(interaction, survey)
-                # logger.info(f"[{interaction.user.id}] - cleanup_survey_message called for original message {survey.current_question_message_id}")
-
-                # The WorkloadView callback should handle deleting the buttons message after a selection is made.
-
-            elif step_name == "connects_thisweek":
-                try:
-                    logger.info(f"Button callback for connects_thisweek survey step: {step_name}")
-                    
-                    # Verify interaction hasn't been responded to
-                    if interaction.response.is_done():
-                        logger.error("Interaction already responded to")
-                        return
-                    
-                    # Create and send modal
-                    logger.info("Creating ConnectsModal instance")
-                    modal_to_send = ConnectsModal(survey=survey, step_name=step_name)
-                    logger.info("Sending ConnectsModal")
-                    await interaction.response.send_modal(modal_to_send)
-                    logger.info("ConnectsModal sent successfully")
-                    
-                except discord.errors.InteractionResponded:
-                    logger.error("Interaction already responded to when trying to send modal")
-                    return
-                except Exception as e:
-                    logger.error(f"Error in connects_thisweek button callback: {e}", exc_info=True)
-                    try:
-                        if not interaction.response.is_done():
-                            await interaction.response.send_message(
-                                Strings.GENERAL_ERROR,
-                                ephemeral=True
-                            )
-                    except:
-                        pass
-
-            elif step_name == "dayoff_nextweek":
-                logger.info(f"Button callback for dayoff_nextweek survey step: {step_name}. Sending button view.")
-                # Create and send the day off view
-                from discord_bot.views.day_off_survey import create_day_off_view # Use survey-specific view
-                day_off_view = create_day_off_view(step_name, str(interaction.user.id), has_survey=True)
-                # Need to store message references on the view for the callback to use
-                day_off_view.command_msg = survey.current_question_message_id # Pass the ID of the initial question message
-                day_off_view.buttons_msg = None # This view *is* the buttons message, will be set after sending
-
-                # Send the day off button view
-                # Since the initial interaction was deferred in ask_dynamic_step, use followup.send
-                buttons_msg = await interaction.followup.send(
-                    Strings.DAY_OFF_NEXTWEEK,
-                    view=day_off_view,
-                    ephemeral=False # Make the button message visible to others
-                )
-                day_off_view.buttons_msg = buttons_msg # Store the message object
-                # Removed the cleanup of the original message here.
-                # The DayOffView callback should handle deleting the buttons message.
-
-            else:
-                logger.error(f"Button callback triggered for unknown survey step: {step_name}")
-                await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=True)
-                return
-
-        # Assign callback and create view
-        button.callback = button_callback
-        view = discord.ui.View(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"]) # Use timeout from constants
-        view.add_item(button)
-
-        # Send the question message with the button
-        logger.info(f"Attempting to send question for step {step_name} to channel ID={channel.id}, Name={channel.name} for user {user_id}") # Added log
-        question_msg = await channel.send(question_text, view=view)
-        survey.current_question_message_id = question_msg.id # Store message ID for cleanup
-        logger.info(f"Sent question for step {step_name} (msg ID: {question_msg.id}) for user {user_id}")
-    except Exception as e:
-        logger.error(f"Error in ask_dynamic_step for step {step_name}: {str(e)}", exc_info=True)
-        try:
-            await channel.send(f"<@{user_id}> {Strings.STEP_ERROR}: {str(e)}")
-        except Exception as send_error:
-            logger.error(f"Failed to send error message: {send_error}")
-        
-        # Only continue survey if it was a recoverable error
-        if not isinstance(e, (AttributeError, ValueError)):
-            try:
-                survey.next_step()
-                await continue_survey(channel, survey)
-            except Exception as e2:
-                logger.error(f"Error continuing survey after step failure: {e2}")
-
-async def continue_survey(channel: discord.TextChannel, survey: SurveyFlow) -> None: # Type hint updated
-    """Advances the survey to the next step or finishes it if all steps are done.
-    Called after a modal for a step is successfully submitted.
-    """
-    try:
-        # Keep previous messages intact, only proceed to next step
-        next_step = survey.current_step()
-        if next_step:
-            await ask_dynamic_step(channel, survey, next_step)
-        else:
-            await finish_survey(channel, survey)
-            
-    except Exception as e:
-        logger.error(f"Error continuing survey: {e}")
-        try:
-            await channel.send(f"<@{survey.user_id}> Помилка при переході між кроками: {str(e)}")
-        except Exception as e2:
-            logger.error(f"Error sending error message to channel: {e2}")
-
-
-async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> None: # Type hint updated
-    """Finalizes a completed survey.
-    Sends the collected results in a 'complete' status webhook to n8n
-    and cleans up the survey session.
-    """
-    if not survey.is_done():
-        return
-        
-    try:
-        # Validate completion data
-        if not survey or not survey.user_id or not survey.channel_id:
-            raise ValueError("Invalid survey completion data")
-            
-        payload = {
-            "command": "survey",
-            "status": "end",
-            "message": "",
-            "result": {
-                "stepName": list(survey.results.keys())[-1] if survey.results else "",
-                "value": list(survey.results.values())[-1] if survey.results else ""
-            },
-            "userId": str(survey.user_id),
-            "channelId": str(survey.channel_id),
-            "sessionId": str(getattr(survey, 'session_id', ''))
-        }
-        
-        # Send completion webhook directly
-        success, response = await webhook_service.send_webhook_with_retry(
-            channel,
-            payload,
-            {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
-        )
-        logger.info(f"End webhook response: success={success}, response={response}")
-        # Show n8n output to user if present
-        if response:
-            try:
-                await channel.send(str(response))
-            except Exception as e:
-                logger.warning(f"Failed to send n8n end response to user: {e}")
-
-        if not success:
-            raise Exception(f"Completion webhook failed: {response}")
-            
-        logger.info(f"Survey completed for user {survey.user_id} with results: {survey.results}")
-        
-    except Exception as e:
-        logger.error(f"Error completing survey: {str(e)}")
-        try:
-            await channel.send(
-                f"<@{survey.user_id}> Помилка при завершенні: {str(e)}"
+    
+            question_text = f"<@{user_id}> {question_text}" # Prepend user mention
+    
+            # Create the "Ввести" button
+            button = discord.ui.Button(
+                label=Strings.SURVEY_INPUT_BUTTON_LABEL, # "Ввести"
+                style=discord.ButtonStyle.primary,
+                custom_id=f"survey_step_{survey.session_id}_{step_name}" # Unique ID
             )
-        except Exception as send_error:
-            logger.error(f"Failed to send completion error: {send_error}")
-    finally:
-        survey_manager.remove_survey(survey.user_id) # Remove by user_id
+    
+            async def button_callback(interaction: discord.Interaction):
+                """Callback for the 'Ввести' button."""
+                # No defer needed here, we will edit the original response directly.
+    
+                logger.info(f"Button callback triggered for step: {step_name}") # Added log
+    
+                # Defer interaction *before* doing potentially slow work (creating view)
+                try:
+                    # Check if already responded to prevent errors
+                    if not interaction.response.is_done():
+                        await interaction.response.defer(ephemeral=False) # Defer publicly
+                        logger.info(f"Interaction deferred for step: {step_name}")
+                    else:
+                        logger.warning(f"Interaction already responded/deferred for step: {step_name}")
+                except Exception as defer_error:
+                     logger.error(f"Error deferring interaction for step {step_name}: {defer_error}", exc_info=True)
+                     # Attempt to notify user if possible, then return
+                     try:
+                         # Use followup since we might have deferred successfully before error
+                         await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=True)
+                     except:
+                         pass
+                     return
+    
+                # Verify user matches survey user
+                if str(interaction.user.id) != str(survey.user_id):
+                    await interaction.response.send_message(Strings.SURVEY_NOT_FOR_YOU, ephemeral=True)
+                    return
+    
+                # Identify the correct view or modal based on step_name
+                if step_name in ["workload_today", "workload_nextweek"]:
+                    logger.info(f"Button callback for workload survey step: {step_name}. Creating workload view.")
+                    # Create and send the multi-button workload view
+                    workload_view = create_workload_view(step_name, str(interaction.user.id), has_survey=True)
+                    logger.info(f"Workload view created: {workload_view}")
+                    # Need to store message references on the view for the callback to use
+                    workload_view.command_msg = survey.current_question_message_id # Pass the ID of the initial question message
+                    workload_view.buttons_msg = None # This view *is* the buttons message, will be set after sending
+    
+                    # Send the workload button view
+                    # Instead of editing the original message, send a new message with the workload view
+                    logger.info(f"[{interaction.user.id}] - Attempting to send new message with workload view...")
+                    buttons_msg = await interaction.followup.send(
+                        content=Strings.SELECT_HOURS, # Content for the new message
+                        view=workload_view, # Add the new view with hour buttons
+                        ephemeral=False # Make the button message visible to others
+                    )
+                    logger.info(f"[{interaction.user.id}] - New message with workload view sent. Message ID: {buttons_msg.id}")
+                    workload_view.buttons_msg = buttons_msg # Store the message object reference on the view
+    
+                    # Now, clean up the original question message
+                    # Removed cleanup for workload steps as per user request
+                    # logger.info(f"[{interaction.user.id}] - DEBUG: About to call cleanup_survey_message for original question message ID: {survey.current_question_message_id}")
+                    # await cleanup_survey_message(interaction, survey)
+                    # logger.info(f"[{interaction.user.id}] - cleanup_survey_message called for original message {survey.current_question_message_id}")
+    
+                    # The WorkloadView callback should handle deleting the buttons message after a selection is made.
+    
+                elif step_name == "connects_thisweek":
+                    try:
+                        logger.info(f"Button callback for connects_thisweek survey step: {step_name}")
+    
+                        # Verify interaction hasn't been responded to
+                        if interaction.response.is_done():
+                            logger.error("Interaction already responded to")
+                            return
+    
+                        # Create and send modal
+                        logger.info("Creating ConnectsModal instance")
+                        modal_to_send = ConnectsModal(survey=survey, step_name=step_name)
+                        logger.info("Sending ConnectsModal")
+                        await interaction.response.send_modal(modal_to_send)
+                        logger.info("ConnectsModal sent successfully")
+    
+                    except discord.errors.InteractionResponded:
+                        logger.error("Interaction already responded to when trying to send modal")
+                        return
+                    except Exception as e:
+                        logger.error(f"Error in connects_thisweek button callback: {e}", exc_info=True)
+                        try:
+                            if not interaction.response.is_done():
+                                await interaction.response.send_message(
+                                    Strings.GENERAL_ERROR,
+                                    ephemeral=True
+                                )
+                        except:
+                            pass
+    
+                elif step_name == "dayoff_nextweek":
+                    logger.info(f"Button callback for dayoff_nextweek survey step: {step_name}. Sending button view.")
+                    # Create and send the day off view
+                    from discord_bot.views.day_off_survey import create_day_off_view # Use survey-specific view
+                    day_off_view = create_day_off_view(step_name, str(interaction.user.id), has_survey=True)
+                    # Need to store message references on the view for the callback to use
+                    day_off_view.command_msg = survey.current_question_message_id # Pass the ID of the initial question message
+                    day_off_view.buttons_msg = None # This view *is* the buttons message, will be set after sending
+    
+                    # Send the day off button view
+                    # Since the initial interaction was deferred in ask_dynamic_step, use followup.send
+                    buttons_msg = await interaction.followup.send(
+                        Strings.DAY_OFF_NEXTWEEK,
+                        view=day_off_view,
+                        ephemeral=False # Make the button message visible to others
+                    )
+                    day_off_view.buttons_msg = buttons_msg # Store the message object
+                    # Removed the cleanup of the original message here.
+                    # The DayOffView callback should handle deleting the buttons message.
+    
+                else:
+                    logger.error(f"Button callback triggered for unknown survey step: {step_name}")
+                    await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=True)
+                    return
+    
+            # Assign callback and create view
+            button.callback = button_callback
+            view = discord.ui.View(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"]) # Use timeout from constants
+            view.add_item(button)
+    
+            # Send the question message with the button
+            logger.info(f"Attempting to send question for step {step_name} to channel ID={channel.id}, Name={channel.name} for user {user_id}") # Added log
+            question_msg = await channel.send(question_text, view=view)
+            survey.current_question_message_id = question_msg.id # Store message ID for cleanup
+            logger.info(f"Sent question for step {step_name} (msg ID: {question_msg.id}) for user {user_id}")
+        except Exception as e:
+            logger.error(f"Error in ask_dynamic_step for step {step_name}: {str(e)}", exc_info=True)
+            try:
+                await channel.send(f"<@{user_id}> {Strings.STEP_ERROR}: {str(e)}")
+            except Exception as send_error:
+                logger.error(f"Failed to send error message: {send_error}")
+    
+            # Only continue survey if it was a recoverable error
+            if not isinstance(e, (AttributeError, ValueError)):
+                try:
+                    survey.next_step()
+                    await continue_survey(channel, survey)
+                except Exception as e2:
+                    logger.error(f"Error continuing survey after step failure: {e2}")
+    
+    async def continue_survey(channel: discord.TextChannel, survey: SurveyFlow) -> None: # Type hint updated
+        """Advances the survey to the next step or finishes it if all steps are done.
+        Called after a modal for a step is successfully submitted.
+        """
+        try:
+            # Keep previous messages intact, only proceed to next step
+            next_step = survey.current_step()
+            if next_step:
+                await ask_dynamic_step(channel, survey, next_step)
+            else:
+                await finish_survey(channel, survey)
+    
+        except Exception as e:
+            logger.error(f"Error continuing survey: {e}")
+            try:
+                await channel.send(f"<@{survey.user_id}> Помилка при переході між кроками: {str(e)}")
+            except Exception as e2:
+                logger.error(f"Error sending error message to channel: {e2}")
+    
+    
+    async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> None: # Type hint updated
+        """Finalizes a completed survey.
+        Sends the collected results in a 'complete' status webhook to n8n
+        and cleans up the survey session.
+        """
+        if not survey.is_done():
+            return
+    
+        try:
+            # Validate completion data
+            if not survey or not survey.user_id or not survey.channel_id:
+                raise ValueError("Invalid survey completion data")
+    
+            payload = {
+                "command": "survey",
+                "status": "end",
+                "message": "",
+                "result": {
+                    "stepName": list(survey.results.keys())[-1] if survey.results else "",
+                    "value": list(survey.results.values())[-1] if survey.results else ""
+                },
+                "userId": str(survey.user_id),
+                "channelId": str(survey.channel_id),
+                "sessionId": str(getattr(survey, 'session_id', ''))
+            }
+    
+            # Send completion webhook directly
+            success, response = await webhook_service.send_webhook_with_retry(
+                channel,
+                payload,
+                {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
+            )
+            logger.info(f"End webhook response: success={success}, response={response}")
+            # Show n8n output to user if present
+            if response:
+                try:
+                    await channel.send(str(response))
+                except Exception as e:
+                    logger.warning(f"Failed to send n8n end response to user: {e}")
+    
+            if not success:
+                raise Exception(f"Completion webhook failed: {response}")
+    
+            logger.info(f"Survey completed for user {survey.user_id} with results: {survey.results}")
+    
+        except Exception as e:
+            logger.error(f"Error completing survey: {str(e)}")
+            try:
+                await channel.send(
+                    f"<@{survey.user_id}> Помилка при завершенні: {str(e)}"
+                )
+            except Exception as send_error:
+                logger.error(f"Failed to send completion error: {send_error}")
+        finally:
+            survey_manager.remove_survey(survey.user_id) # Remove by user_id
