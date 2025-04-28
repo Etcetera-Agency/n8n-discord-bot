@@ -371,6 +371,7 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: s
             if channel: await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
             return
 
+        logger.info(f"n8n_steps: {n8n_steps}, final_steps: {final_steps}")
         logger.info(f"Starting new survey for user {user_id} in channel {channel_id} with steps: {final_steps}")
 
         # Create the survey object
