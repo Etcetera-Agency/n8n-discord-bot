@@ -190,8 +190,8 @@ class DeclineButton_slash(discord.ui.Button):
             # Immediately respond to interaction
             try:
                 logger.debug(f"[{interaction.user.id}] - Attempting to defer interaction response for DeclineButton_slash")
-                await interaction.response.defer(ephemeral=False, thinking=True)
-                logger.debug(f"[{interaction.user.id}] - Interaction deferred with thinking state for DeclineButton_slash")
+                await interaction.response.defer(ephemeral=False)
+                logger.debug(f"[{interaction.user.id}] - Interaction deferred for DeclineButton_slash")
             except Exception as e:
                 logger.error(f"Failed to defer interaction: {e}")
                 return

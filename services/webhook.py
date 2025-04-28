@@ -240,12 +240,12 @@ class WebhookService:
             # user_id, author, timestamp would be None unless explicitly passed
 
         if not user_id and not isinstance(target, discord.TextChannel):
-             logger.warning(f"send_webhook called without user_id for target type {type(target)}")
+             logger.warning(f"send_webhook called without user_id for target type {type(target)}. Target: {target}") # Added target to log
              # Decide how to handle: raise error, use default, or proceed without user_id
              # For now, let's proceed but log a warning. build_payload will raise error if user_id is required.
 
         if not channel_id:
-             logger.warning(f"send_webhook called without channel_id for target type {type(target)}")
+             logger.warning(f"send_webhook called without channel_id for target type {type(target)}. Target: {target}") # Added target to log
              # Decide how to handle: raise error, use default, or proceed without channel_id
              # For now, let's proceed but log a warning. build_payload will raise error if channel_id is required.
 
