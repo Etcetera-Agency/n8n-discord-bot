@@ -141,7 +141,6 @@ class WorkloadButton(discord.ui.Button):
                     except Exception as e:
                         logger.error(f"[{view.user_id}] - Failed to send debug message (survey found): {e}")
 
-
                     logger.info(f"Found survey for user {view.user_id}, current step: {state.current_step()}")
 
                     # Send webhook for survey step
@@ -220,6 +219,12 @@ class WorkloadButton(discord.ui.Button):
 
                 else: # If survey state is not found
                     logger.warning(f"[{view.user_id}] - No active survey state found for user in workload button callback. Treating as non-survey command or expired survey.")
+                    # Temporarily send ephemeral message for debugging
+                    try:
+                        await interaction.followup.send("Debug: Survey state NOT found.", ephemeral=True)
+                    except Exception as e:
+                        logger.error(f"[{view.user_id}] - Failed to send debug message (survey not found): {e}")
+
                     # Check if it was intended to be a survey step but the survey is missing
                     if view.has_survey: # This indicates it was initiated as a survey step
                          logger.error(f"[{view.user_id}] - Survey initiated but state not found in callback for step {view.cmd_or_step}.")
@@ -283,6 +288,9 @@ class WorkloadButton(discord.ui.Button):
                                 )
                                 await view.command_msg.edit(content=error_msg)
                                 await view.command_msg.add_reaction(Strings.ERROR)
+                            if view.buttons_msg:
+                                await view.buttons_msg.delete()
+                            await view.buttons_msg.delete()
                             if view.buttons_msg:
                                 await view.buttons_msg.delete()
                             await view.buttons_msg.delete()
