@@ -55,7 +55,7 @@ class WebServer:
                     await interaction.response.defer()
                     try:
                         logger.info("Attempting to import handle_start_daily_survey")
-                        from bot.commands.survey import handle_start_daily_survey
+                        from discord_bot.commands.survey import handle_start_daily_survey
                         # Pass both IDs explicitly
                         await handle_start_daily_survey(
                             interaction.client,
