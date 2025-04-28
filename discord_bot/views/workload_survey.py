@@ -124,17 +124,22 @@ class WorkloadButton(discord.ui.Button):
 
                 # Log right before the survey check
                 logger.info(f"[{view.user_id}] - Checking view.has_survey in callback. Value: {view.has_survey}. Interaction ID: {interaction.id}")
-                if view.has_survey:
+                # Check if a survey exists for this user
+                state = survey_manager.get_survey(view.user_id)
+                
+                logger.info(f"[{view.user_id}] - Checking for active survey in callback. Found: {state is not None}. Interaction ID: {interaction.id}")
+
+                if state: # Proceed if a survey state is found
                     logger.info(f"[{view.user_id}] - Processing as survey step for user {view.user_id}")
                     # Dynamic survey flow
-                    state = survey_manager.get_survey(view.user_id)
-                    if not state:
-                        logger.error(f"Survey not found for user {view.user_id}")
+                    if not state: # This check is now redundant but kept for safety
+                        logger.error(f"Survey state unexpectedly None for user {view.user_id}")
+                        # Handle error - perhaps send a message to the user
                         if view.command_msg:
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                             error_msg = Strings.WORKLOAD_ERROR.format(
                                 hours="Вибір навантаження",
-                                error=Strings.NOT_YOUR_SURVEY
+                                error=Strings.NOT_YOUR_SURVEY # Or a more generic error
                             )
                             await view.command_msg.edit(content=error_msg)
                             await view.command_msg.add_reaction(Strings.ERROR)
@@ -145,8 +150,7 @@ class WorkloadButton(discord.ui.Button):
                     logger.info(f"Found survey for user {view.user_id}, current step: {state.current_step()}")
 
                     # Send webhook for survey step
-                    # Send webhook for survey step
-                    result_payload = { # Renamed to avoid confusion
+                    result_payload = {
                         "stepName": view.cmd_or_step,
                         "value": value
                     }
@@ -219,7 +223,7 @@ class WorkloadButton(discord.ui.Button):
                         logger.error("Invalid survey state for continuation")
                         return
 
-                else:
+                else: # Original else block for non-survey commands
                     logger.info(f"[{view.user_id}] - Processing as regular command: {view.cmd_or_step}")
                     # Regular slash command
                     webhook_payload = {
@@ -263,6 +267,7 @@ class WorkloadButton(discord.ui.Button):
                             await view.command_msg.edit(content=error_msg)
                             await view.command_msg.add_reaction(Strings.ERROR)
                         if view.buttons_msg:
+                            await view.buttons_msg.delete()
                             await view.buttons_msg.delete()
 
             except Exception as e:
