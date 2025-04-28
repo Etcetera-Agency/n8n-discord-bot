@@ -316,9 +316,9 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: s
         "channelId": channel_id
     }
     headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
-    logger.info(f"Attempting check_channel webhook call for channel {channel_id} with payload: {payload}")
+    logger.info(f"First check_channel call for channel {channel_id} with payload: {payload}")
     success, data = await webhook_service.send_webhook_with_retry(None, payload, headers)
-    logger.info(f"check_channel webhook response: success={success}, data={data}")
+    logger.info(f"First check_channel webhook response: success={success}, data={data}")
     
     if not success or str(data.get("output", "false")).lower() != "true":
         logger.warning(f"Channel {channel_id} not registered for surveys")
@@ -347,42 +347,8 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: s
     # The step ordering code is not needed and has been removed.
 
     # --- Start New Survey Flow ---
-        # Check if channel is registered
-    payload = {
-        "command": "check_channel",
-        "channelId": channel_id
-    }
-    headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
-    logger.info(f"Attempting check_channel webhook call for channel {channel_id} with payload: {payload}")
-    success, data = await webhook_service.send_webhook_with_retry(None, payload, headers)
-    logger.info(f"check_channel webhook response: success={success}, data={data}")
-
-    if not success or str(data.get("output", "false")).lower() != "true":
-        logger.warning(f"Channel {channel_id} not registered for surveys")
-        return
-
-    # Check channel response data
-    steps = data.get("steps", [])
-    channel = await bot.fetch_channel(channel_id)
-
-    if not channel:
-        logger.warning(f"Channel {channel_id} not found")
-        return
-
-    # Handle cases based on received data
-    if steps:
-        # Steps provided - proceed with survey
-        pass
-    else:
-        # No steps provided - send completion message
-        await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
-        logger.info(f"No survey steps provided for channel {channel_id}, survey complete")
-        return
-
-    logger.info(f"Starting survey with steps: {steps}")
-
-    # The step ordering code is not needed and has been removed.
-
+        # --- Start New Survey Flow ---
+    
     # Filter and order steps based on SURVEY_FLOW constant
     final_steps = [step for step in constants.SURVEY_FLOW if step in steps]
 
@@ -414,7 +380,6 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: s
         channel = await bot.fetch_channel(int(channel_id))
         if channel: await channel.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}: No steps found.")
         survey_manager.remove_survey(user_id)
-    
 async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, step_name: str) -> None: # Type hint updated
     """Asks a single step of the survey.
     Sends a message with the step question and a 'Ввести' button.

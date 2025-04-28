@@ -213,7 +213,6 @@ async def on_close():
 async def on_message(message: discord.Message):
     # Ignore messages from the bot itself
     if message.author == bot.user:
-        logger.info("Ignoring message from bot user")
         return
     # Handle messages where the bot is mentioned
     if bot.user in message.mentions:
