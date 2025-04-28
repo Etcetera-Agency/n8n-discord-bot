@@ -383,6 +383,7 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: s
         if first_step:
             channel = await bot.fetch_channel(int(channel_id))
             if channel:
+                logger.info(f"Fetched channel for survey: ID={channel.id}, Name={channel.name}") # Added log
                 await ask_dynamic_step(channel, survey, first_step)
             else:
                 logger.error(f"Could not fetch channel {channel_id} to ask first survey step.")
@@ -565,6 +566,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
         view.add_item(button)
 
         # Send the question message with the button
+        logger.info(f"Attempting to send question for step {step_name} to channel ID={channel.id}, Name={channel.name} for user {user_id}") # Added log
         question_msg = await channel.send(question_text, view=view)
         survey.current_question_message_id = question_msg.id # Store message ID for cleanup
         logger.info(f"Sent question for step {step_name} (msg ID: {question_msg.id}) for user {user_id}")
