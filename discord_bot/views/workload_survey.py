@@ -123,9 +123,9 @@ class WorkloadButton(discord.ui.Button):
                 logger.info(f"Parsed value: {value} from label: {self.label}")
 
                 # Log right before the survey check
-                logger.info(f"Checking view.has_survey. Value: {view.has_survey}. Interaction ID: {interaction.id}")
+                logger.info(f"[{view.user_id}] - Checking view.has_survey in callback. Value: {view.has_survey}. Interaction ID: {interaction.id}")
                 if view.has_survey:
-                    logger.info(f"Processing as survey step for user {view.user_id}")
+                    logger.info(f"[{view.user_id}] - Processing as survey step for user {view.user_id}")
                     # Dynamic survey flow
                     state = survey_manager.get_survey(view.user_id)
                     if not state:
@@ -297,7 +297,6 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
     # Add all workload options as buttons, including "Нічого немає"
     try:
         for hour in WORKLOAD_OPTIONS:
-            print(f"[{user_id}] - Inside workload options loop for hour: {hour}")
             custom_id = f"workload_button_{hour}_{cmd}_{user_id}"
             button = WorkloadButton(label=hour, custom_id=custom_id, cmd_or_step=cmd) # Pass cmd to button
             logger.debug(f"[{user_id}] - Adding button with label: {hour}, custom_id: {custom_id}")
