@@ -33,29 +33,45 @@ class WorkloadButton(discord.ui.Button):
         logger.info(f"WorkloadButton.callback entered. Interaction ID: {interaction.id}, Custom ID: {self.custom_id}")
         from config import Strings # Import Strings locally
         """Handle button press with complete validation"""
+        # Log entry with full interaction details
+        logger.info(f"WorkloadButton callback started - interaction: {interaction.id}, user: {getattr(interaction, 'user', None)}, bot: {getattr(interaction.client, 'user', None)}")
+
         # Detailed interaction validation
         if not interaction:
             logger.error("Null interaction received in callback")
             return
 
-        required_attrs = ['response', 'user', 'channel', 'client']
-        missing_attrs = [attr for attr in required_attrs
-                        if not hasattr(interaction, attr)]
-
-        if missing_attrs:
-            logger.error(f"Invalid interaction - missing: {missing_attrs}")
-            return
-
         try:
-            # Validate view and survey state
-            if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView):
-                logger.error("Invalid view in button callback")
-                return
+            # Skip validation for bot's own messages
+            if getattr(interaction.user, 'bot', False) and str(interaction.user.id) == str(interaction.client.user.id):
+                logger.info("Processing bot's own interaction - skipping strict validation")
+                view = self.view
+                if not view or not isinstance(view, WorkloadView):
+                    logger.error("Invalid view for bot interaction")
+                    return
+            else:
+                # Normal user validation
+                required_attrs = ['response', 'user', 'channel', 'client']
+                missing_attrs = [attr for attr in required_attrs
+                                if not hasattr(interaction, attr)]
 
-            view = self.view
-            if not hasattr(view, 'user_id') or not view.user_id:
-                logger.error("Invalid view - missing user_id")
-                return
+                if missing_attrs:
+                    logger.error(f"Invalid interaction - missing: {missing_attrs}")
+                    return
+
+                # Validate view and survey state
+                if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView):
+                    logger.error("Invalid view in button callback")
+                    return
+
+                view = self.view
+                if not hasattr(view, 'user_id') or not view.user_id:
+                    logger.error("Invalid view - missing user_id")
+                    return
+
+        except Exception as e:
+            logger.error(f"Error in WorkloadButton callback: {str(e)}")
+            return
 
             # Defer response to prevent timeout
             logger.debug(f"[{view.user_id}] - Attempting to defer interaction response")
@@ -289,11 +305,11 @@ class WorkloadButton(discord.ui.Button):
                                 await view.command_msg.edit(content=error_msg)
                                 await view.command_msg.add_reaction(Strings.ERROR)
                             if view.buttons_msg:
-                                await view.buttons_msg.delete()
-                            await view.buttons_msg.delete()
-                            if view.buttons_msg:
-                                await view.buttons_msg.delete()
-                            await view.buttons_msg.delete()
+                                if view.buttons_msg:
+                                    try:
+                                        await view.buttons_msg.delete()
+                                    except discord.NotFound:
+                                        logger.debug("Buttons message already deleted")
 
             except Exception as e:
                 logger.error(f"Error in workload button: {e}")
