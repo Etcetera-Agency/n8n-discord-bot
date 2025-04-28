@@ -150,6 +150,7 @@ class WorkloadButton_survey(discord.ui.Button):
 
                 if state: # Proceed if a survey state is found
                     logger.info(f"[{view.user_id}] - Processing as survey step for user {view.user_id}. Survey state found.") # Modified log
+                    logger.debug(f"[{view.user_id}] - Entered survey state processing block.") # Added log
                     # Dynamic survey flow
                     # The redundant check 'if not state:' is removed as it's covered by the outer 'if state:'
                     # Temporarily send ephemeral message for debugging
