@@ -7,7 +7,9 @@ class WorkloadView(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
     def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False):
         logger.debug(f"[{user_id}] - WorkloadView.__init__ called for cmd_or_step: {cmd_or_step}, has_survey: {has_survey}")
-        super().__init__(timeout=300)  # 5 minute timeout
+        # Use configured timeout from constants
+        super().__init__(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"])
+        logger.debug(f"[{user_id}] - WorkloadView initialized with timeout: {self.timeout}") # Added log
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
         self.has_survey = has_survey
@@ -127,12 +129,18 @@ class WorkloadButton(discord.ui.Button):
                 # Check if a survey exists for this user
                 state = survey_manager.get_survey(view.user_id)
                 
-                logger.info(f"[{view.user_id}] - Result of survey_manager.get_survey in callback: {state}. Interaction ID: {interaction.id}") # Added log
+                # Removed log: logger.info(f"[{view.user_id}] - Result of survey_manager.get_survey in callback: {state}. Interaction ID: {interaction.id}")
 
                 if state: # Proceed if a survey state is found
-                    logger.info(f"[{view.user_id}] - Processing as survey step for user {view.user_id}")
+                    logger.info(f"[{view.user_id}] - Processing as survey step for user {view.user_id}. Survey state found.") # Modified log
                     # Dynamic survey flow
                     # The redundant check 'if not state:' is removed as it's covered by the outer 'if state:'
+                    # Temporarily send ephemeral message for debugging
+                    try:
+                        await interaction.followup.send("Debug: Survey state found.", ephemeral=True)
+                    except Exception as e:
+                        logger.error(f"[{view.user_id}] - Failed to send debug message (survey found): {e}")
+
 
                     logger.info(f"Found survey for user {view.user_id}, current step: {state.current_step()}")
 
@@ -211,7 +219,7 @@ class WorkloadButton(discord.ui.Button):
                         return
 
                 else: # If survey state is not found
-                    logger.warning(f"[{view.user_id}] - No active survey found for user in workload button callback. Treating as non-survey command or expired survey.")
+                    logger.warning(f"[{view.user_id}] - No active survey state found for user in workload button callback. Treating as non-survey command or expired survey.")
                     # Check if it was intended to be a survey step but the survey is missing
                     if view.has_survey: # This indicates it was initiated as a survey step
                          logger.error(f"[{view.user_id}] - Survey initiated but state not found in callback for step {view.cmd_or_step}.")
