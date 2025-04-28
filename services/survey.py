@@ -15,8 +15,10 @@ class SurveyFlow:
         - session_id: Combined channel.user ID from initial request
         
         Raises:
-            ValueError: If any required ID is missing or invalid"""
+        ValueError: If any required ID is missing or invalid"""
+        logger.debug(f"[{user_id}] - SurveyFlow.__init__ called for user {user_id}, channel {channel_id}, session {session_id} with steps: {steps}") # Added log
         if not channel_id or not user_id or not session_id:
+            logger.error(f"[{user_id}] - Missing required IDs during SurveyFlow initialization.") # Added log
             raise ValueError("channel_id, user_id and session_id are required")
             
         self.user_id = user_id
@@ -29,7 +31,7 @@ class SurveyFlow:
         self.buttons_message: Optional[discord.Message] = None
         self.start_message: Optional[discord.Message] = None
         self.current_question_message_id: Optional[int] = None
-        logger.info(f"Created survey flow for user {user_id} with steps: {steps}")
+        logger.info(f"[{user_id}] - Created survey flow for user {user_id} with steps: {steps}") # Modified log
         
     async def cleanup(self) -> None:
         """
