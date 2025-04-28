@@ -1,16 +1,16 @@
 import discord
 from typing import Optional
 from config import logger, Strings, constants # Added Strings, constants
-from services import webhook_service, survey_manager # Added webhook_service, survey_manager
+from services import webhook_service # Removed survey_manager
 
 class WorkloadView(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
-    def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False):
-        logger.debug(f"[{user_id}] - WorkloadView.__init__ called for cmd_or_step: {cmd_or_step}, has_survey: {has_survey}")
+    def __init__(self, cmd_or_step: str, user_id: str): # Removed has_survey parameter
+        logger.debug(f"[{user_id}] - WorkloadView.__init__ called for cmd_or_step: {cmd_or_step}") # Removed has_survey from log
         super().__init__(timeout=300)  # 5 minute timeout
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
-        self.has_survey = has_survey
+        # Removed self.has_survey = has_survey
         self.command_msg = None  # Reference to the command message
         self.buttons_msg = None  # Reference to the buttons message
         
@@ -44,7 +44,7 @@ class WorkloadButton(discord.ui.Button):
             return
 
         try:
-            # Validate view and survey state
+            # Validate view
             if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView):
                 logger.error("Invalid view in button callback")
                 return
@@ -60,6 +60,20 @@ class WorkloadButton(discord.ui.Button):
                 await interaction.response.defer(ephemeral=False)
             logger.debug(f"[{view.user_id}] - Interaction response deferred")
 
+            # Delete buttons message immediately after user input
+            if view.buttons_msg:
+                logger.debug(f"[{view.user_id}] - Attempting to delete buttons message ID: {getattr(view.buttons_msg, 'id', 'N/A')} immediately after input.")
+                try:
+                    await view.buttons_msg.delete()
+                    logger.info(f"[{view.user_id}] - Successfully deleted buttons message ID: {getattr(view.buttons_msg, 'id', 'N/A')} immediately after input.")
+                    view.buttons_msg = None # Clear reference after deletion
+                except discord.NotFound:
+                    logger.warning(f"[{view.user_id}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found immediately after input.")
+                    view.buttons_msg = None # Clear reference if not found
+                except Exception as delete_error:
+                    logger.error(f"[{view.user_id}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')} immediately after input: {delete_error}", exc_info=True)
+
+
             logger.info(f"Processing workload selection for user {view.user_id}")
 
         except Exception as e:
@@ -72,8 +86,9 @@ class WorkloadButton(discord.ui.Button):
                 return
 
             view = self.view
-            if not interaction.response.is_done():
-                await interaction.response.defer(ephemeral=False)
+            # No need to defer again, already done at the beginning
+            # if not interaction.response.is_done():
+            #     await interaction.response.defer(ephemeral=False)
 
         except Exception as e:
             logger.error(f"Interaction handling failed: {e}")
@@ -87,15 +102,15 @@ class WorkloadButton(discord.ui.Button):
         logger.info(f"Processing WorkloadView callback - view user: {view.user_id}, interaction user: {interaction.user.id}")
 
         if isinstance(view, WorkloadView):
-            # First, acknowledge the interaction to prevent timeout
-            try:
-                logger.debug(f"[{view.user_id}] - Attempting to defer interaction response (second check)")
-                if not interaction.response.is_done():
-                    await interaction.response.defer(ephemeral=False)
-                logger.debug(f"[{view.user_id}] - Interaction response deferred (second check)")
-            except Exception as e:
-                logger.error(f"[{view.user_id}] - Interaction response error: {e}")
-                return
+            # First, acknowledge the interaction to prevent timeout - already done at the beginning
+            # try:
+            #     logger.debug(f"[{view.user_id}] - Attempting to defer interaction response (second check)")
+            #     if not interaction.response.is_done():
+            #         await interaction.response.defer(ephemeral=False)
+            #     logger.debug(f"[{view.user_id}] - Interaction response deferred (second check)")
+            # except Exception as e:
+            #     logger.error(f"[{view.user_id}] - Interaction response error: {e}")
+            #     return
 
             logger.info(f"Workload button clicked: {self.label} by user {view.user_id} for step {view.cmd_or_step}")
 
@@ -121,171 +136,47 @@ class WorkloadButton(discord.ui.Button):
                     value = int(self.label)
                 logger.info(f"Parsed value: {value} from label: {self.label}")
 
-                # Reverted: Removed log before survey check
-                if view.has_survey:
-                    logger.info(f"Processing as survey step for user {view.user_id}")
-                    # Dynamic survey flow
-                    state = survey_manager.get_survey(view.user_id)
-                    if not state:
-                        logger.error(f"Survey not found for user {view.user_id}")
-                        if view.command_msg:
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            error_msg = Strings.WORKLOAD_ERROR.format(
-                                hours="Вибір навантаження",
-                                error=Strings.NOT_YOUR_SURVEY
-                            )
-                            await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction(Strings.ERROR)
-                        if view.buttons_msg:
-                            logger.debug(f"[{view.user_id}] - Attempting to delete buttons message ID: {getattr(view.buttons_msg, 'id', 'N/A')} in survey block.")
-                            try:
-                                await view.buttons_msg.delete()
-                                logger.info(f"[{view.user_id}] - Successfully deleted buttons message ID: {getattr(view.buttons_msg, 'id', 'N/A')} in survey block.")
-                                view.buttons_msg = None # Clear reference after deletion
-                            except discord.NotFound:
-                                logger.warning(f"[{view.user_id}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found during survey cleanup.")
-                                view.buttons_msg = None # Clear reference if not found
-                            except Exception as delete_error:
-                                logger.error(f"[{view.user_id}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')} during survey cleanup: {delete_error}", exc_info=True)
-                        return
+                # Removed if view.has_survey: block and its content
 
-                    logger.info(f"Found survey for user {view.user_id}, current step: {state.current_step()}")
+                logger.info(f"[{view.user_id}] - Processing as regular command: {view.cmd_or_step}")
+                # Regular slash command
+                webhook_payload = {
+                    "command": view.cmd_or_step,
+                    "status": "ok",
+                    "result": {"workload": value}
+                }
+                logger.debug(f"[{view.user_id}] - Preparing to send webhook for regular command. Payload: {webhook_payload}")
+                logger.debug(f"[{view.user_id}] - Attempting to send webhook for command: {view.cmd_or_step}")
+                success, data = await webhook_service.send_webhook(
+                    interaction,
+                    command=webhook_payload["command"],
+                    status=webhook_payload["status"],
+                    result=webhook_payload["result"]
+                )
+                logger.info(f"[{view.user_id}] - Webhook response for command: success={success}, data={data}")
+                logger.info(f"[{view.user_id}] - Webhook response for command: success={success}, data={data}")
 
-                    # Send webhook for survey step
-                    logger.debug(f"[{view.user_id}] - Attempting to send webhook for survey step: {view.cmd_or_step}")
-                    success, data = await webhook_service.send_webhook(
-                        interaction,
-                        command="survey",
-                        status="step",
-                        result={
-                            "stepName": view.cmd_or_step,
-                            "value": value
-                        }
-                    )
-                    logger.info(f"[{view.user_id}] - Webhook response for survey step: success={success}, data={data}")
-
-                    logger.info(f"Webhook response for survey step: success={success}, data={data}")
-
-                    if not success:
-                        logger.error(f"Failed to send webhook for survey step: {view.cmd_or_step}")
-                        if view.command_msg:
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            error_msg = Strings.WORKLOAD_ERROR.format(
-                                hours=value,
-                                error=Strings.GENERAL_ERROR
-                            )
-                            await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction(Strings.ERROR)
-                        if view.buttons_msg:
-                            logger.debug(f"[{view.user_id}] - Attempting to delete buttons message ID: {getattr(view.buttons_msg, 'id', 'N/A')} during survey error cleanup.")
-                            try:
-                                await view.buttons_msg.delete()
-                            except discord.NotFound:
-                                logger.warning(f"[{view.user_id}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found during survey error cleanup.")
-                            except Exception as delete_error:
-                                logger.error(f"[{view.user_id}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')} during survey error cleanup: {delete_error}", exc_info=True)
-                        return
-
-                    # Update survey state
-                    state.results[view.cmd_or_step] = value
-                    logger.info(f"Updated survey results: {state.results}")
-
-                    # Update command message with response
+                if success and data and "output" in data:
+                    # Update command message with success
                     if view.command_msg:
-                        # Clear all reactions except ❌
-                        for reaction in view.command_msg.reactions:
-                            if str(reaction.emoji) != "❌":
-                                await reaction.remove(interaction.client.user)
-                        if "output" in data and data["output"].strip():
-                            logger.debug(f"[{view.user_id}] - Attempting to edit command message with output: {data['output']}")
-                            await view.command_msg.edit(content=data["output"])
-                        else:
-                            logger.debug(f"[{view.user_id}] - Attempting to edit command message with default success message")
-                            await view.command_msg.edit(content=f"Дякую! Навантаження: {value} годин записано.")
-                        logger.info(f"[{view.user_id}] - Updated command message with response")
+                        logger.debug(f"[{view.user_id}] - Attempting to remove processing reaction from command message")
+                        await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                        logger.debug(f"[{view.user_id}] - Attempting to edit command message with success output: {data['output']}")
+                        await view.command_msg.edit(content=data["output"])
+                        logger.info(f"[{view.user_id}] - Updated command message with success: {data['output']}")
 
-                    # Reverted: Simplified deletion logic for survey case (though this file is for slash)
-                    if view.buttons_msg:
-                        logger.debug(f"[{view.user_id}] - Attempting to delete buttons message ID: {getattr(view.buttons_msg, 'id', 'N/A')} in survey success cleanup.")
-                        try:
-                            await view.buttons_msg.delete()
-                            logger.info(f"[{view.user_id}] - Successfully deleted buttons message ID: {getattr(view.buttons_msg, 'id', 'N/A')} in survey success cleanup.")
-                            view.buttons_msg = None # Clear reference after deletion
-                        except discord.NotFound:
-                            logger.warning(f"[{view.user_id}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found during survey success cleanup.")
-                            view.buttons_msg = None # Clear reference if not found
-                        except Exception as delete_error:
-                            logger.error(f"[{view.user_id}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')} during survey success cleanup: {delete_error}", exc_info=True)
-
-
-                    # Reverted: Removed survey state log
-                    logger.info(f"Survey state before continuation - current step: {state.current_step()}, results: {state.results}")
-
-                    # Let n8n handle the survey continuation through webhook response
-                    # Don't advance the step here, as it will be handled by the webhook service
-                    # But verify we have a valid state for continuation
-                    if not state or not state.user_id:
-                        logger.error("Invalid survey state for continuation")
-                        return
-
+                    # Deletion handled at the beginning
                 else:
-                    logger.info(f"[{view.user_id}] - Processing as regular command: {view.cmd_or_step}")
-                    # Regular slash command
-                    webhook_payload = {
-                        "command": view.cmd_or_step,
-                        "status": "ok",
-                        "result": {"workload": value}
-                    }
-                    logger.debug(f"[{view.user_id}] - Preparing to send webhook for regular command. Payload: {webhook_payload}")
-                    logger.debug(f"[{view.user_id}] - Attempting to send webhook for command: {view.cmd_or_step}")
-                    success, data = await webhook_service.send_webhook(
-                        interaction,
-                        command=webhook_payload["command"],
-                        status=webhook_payload["status"],
-                        result=webhook_payload["result"]
-                    )
-                    logger.info(f"[{view.user_id}] - Webhook response for command: success={success}, data={data}")
-                    logger.info(f"[{view.user_id}] - Webhook response for command: success={success}, data={data}")
-
-                    if success and data and "output" in data:
-                        # Update command message with success
-                        if view.command_msg:
-                            logger.debug(f"[{view.user_id}] - Attempting to remove processing reaction from command message")
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            logger.debug(f"[{view.user_id}] - Attempting to edit command message with success output: {data['output']}")
-                            await view.command_msg.edit(content=data["output"])
-                            logger.info(f"[{view.user_id}] - Updated command message with success: {data['output']}")
-
-                        # Delete buttons message (Original simple version for slash commands)
-                        if view.buttons_msg:
-                            logger.debug(f"[{view.user_id}] - Attempting to delete buttons message ID: {getattr(view.buttons_msg, 'id', 'N/A')} in success block.")
-                            try:
-                                await view.buttons_msg.delete()
-                                logger.info(f"[{view.user_id}] - Successfully deleted buttons message ID: {getattr(view.buttons_msg, 'id', 'N/A')} in success block.")
-                                view.buttons_msg = None # Clear reference after deletion
-                            except discord.NotFound:
-                                logger.warning(f"[{view.user_id}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found during success cleanup.")
-                                view.buttons_msg = None # Clear reference if not found
-                            except Exception as delete_error:
-                                logger.error(f"[{view.user_id}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')} during success cleanup: {delete_error}", exc_info=True)
-                    else:
-                        logger.error(f"Failed to send webhook for command: {view.cmd_or_step}")
-                        if view.command_msg:
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            error_msg = Strings.WORKLOAD_ERROR.format(
-                                hours=value,
-                                error=Strings.GENERAL_ERROR
-                            )
-                            await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction(Strings.ERROR)
-                        if view.buttons_msg:
-                            logger.debug(f"[{view.user_id}] - Attempting to delete buttons message ID: {getattr(view.buttons_msg, 'id', 'N/A')} during error cleanup.")
-                            try:
-                                await view.buttons_msg.delete()
-                            except discord.NotFound:
-                                logger.warning(f"[{view.user_id}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found during error cleanup.")
-                            except Exception as delete_error:
-                                logger.error(f"[{view.user_id}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')} during error cleanup: {delete_error}", exc_info=True)
+                    logger.error(f"Failed to send webhook for command: {view.cmd_or_step}")
+                    if view.command_msg:
+                        await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                        error_msg = Strings.WORKLOAD_ERROR.format(
+                            hours=value,
+                            error=Strings.GENERAL_ERROR
+                        )
+                        await view.command_msg.edit(content=error_msg)
+                        await view.command_msg.add_reaction(Strings.ERROR)
+                    # Deletion handled at the beginning
 
             except Exception as e:
                 logger.error(f"Error in workload button: {e}", exc_info=True) # Added exc_info=True
@@ -312,24 +203,15 @@ class WorkloadButton(discord.ui.Button):
                 else: # Added else block for error handling when command_msg is not available
                    logger.debug(f"[{getattr(view, 'user_id', 'N/A')}] - No command message available to update in error handler.")
 
-                if view.buttons_msg:
-                   logger.debug(f"[{getattr(view, 'user_id', 'N/A')}] - Attempting to delete buttons message ID: {getattr(view.buttons_msg, 'id', 'N/A')} in main error handler.")
-                   try:
-                       await view.buttons_msg.delete()
-                       logger.info(f"[{getattr(view, 'user_id', 'N/A')}] - Successfully deleted buttons message ID: {getattr(view.buttons_msg, 'id', 'N/A')} in main error handler.")
-                       view.buttons_msg = None # Clear reference after deletion
-                   except discord.NotFound:
-                       logger.warning(f"[{getattr(view, 'user_id', 'N/A')}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found in main error handler.")
-                       view.buttons_msg = None # Clear reference if not found
-                   except Exception as delete_error:
-                       logger.error(f"[{getattr(view, 'user_id', 'N/A')}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')} in main error handler: {delete_error}", exc_info=True)
+                # Deletion handled at the beginning
 
-def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None, has_survey: bool = False) -> WorkloadView:
+
+def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None) -> WorkloadView: # Removed has_survey parameter
     """Create workload view for regular commands only"""
     print(f"[{user_id}] - create_workload_view function entered")
-    logger.debug(f"[{user_id}] - create_workload_view called with cmd: {cmd}, user_id: {user_id}, has_survey: {has_survey}")
+    logger.debug(f"[{user_id}] - create_workload_view called with cmd: {cmd}, user_id: {user_id}") # Removed has_survey from log
     try:
-        view = WorkloadView(cmd, user_id, has_survey=has_survey)
+        view = WorkloadView(cmd, user_id) # Removed has_survey argument
         logger.debug(f"[{user_id}] - WorkloadView instantiated successfully")
     except Exception as e:
         logger.error(f"[{user_id}] - Error instantiating WorkloadView: {e}")
