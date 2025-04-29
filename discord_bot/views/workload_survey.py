@@ -204,6 +204,8 @@ class WorkloadButton_survey(discord.ui.Button):
                     logger.info(f"[{view.user_id}] - Webhook sending result for survey step: success={success}, data={data}")
 
                     logger.info(f"Webhook response for survey step: success={success}, data={data}")
+                    state.next_step()
+                    await continue_survey(interaction.channel, state)
 
                     if not success:
                         logger.error(f"Failed to send webhook for survey step: {view.cmd_or_step}")
