@@ -457,7 +457,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
             if step_name in ["workload_today", "workload_nextweek"]:
                 logger.info(f"Button callback for workload survey step: {step_name}. Creating workload view.")
                 # Create and send the multi-button workload view
-                workload_view = create_workload_view(step_name, str(interaction.user.id), has_survey=True)
+                workload_view = create_workload_view(step_name, str(interaction.user.id), has_survey=True, continue_survey_func=continue_survey)
                 logger.info(f"Workload view created: {workload_view}")
                 # Need to store message references on the view for the callback to use
                 # Pass the actual message object, not just the ID

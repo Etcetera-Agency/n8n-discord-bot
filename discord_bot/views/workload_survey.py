@@ -1,4 +1,3 @@
-from discord_bot.commands.survey import continue_survey
 import discord
 from typing import Optional
 from config import logger, Strings, constants # Added Strings, constants
@@ -6,8 +5,9 @@ from services import webhook_service, survey_manager
 
 class WorkloadView_survey(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
-    def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False):
+    def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None):
         logger.debug(f"[{user_id}] - WorkloadView_survey.__init__ called for cmd_or_step: {cmd_or_step}, has_survey: {has_survey}")
+        self.continue_survey_func = continue_survey_func # Add this line
         # Use configured timeout from constants
         super().__init__(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"])
         logger.debug(f"[{user_id}] - WorkloadView_survey initialized with timeout: {self.timeout}") # Added log
@@ -22,13 +22,14 @@ class WorkloadView_survey(discord.ui.View):
         logger.warning(f"WorkloadView_survey timed out for user {self.user_id}")
 
 class WorkloadButton_survey(discord.ui.Button):
-    def __init__(self, *, label: str, custom_id: str, cmd_or_step: str):
+    def __init__(self, *, label: str, custom_id: str, cmd_or_step: str, continue_survey_func=None):
         super().__init__(
             style=discord.ButtonStyle.secondary,
             label=label,
             custom_id=custom_id
         )
         self.cmd_or_step = cmd_or_step
+        self.continue_survey_func = continue_survey_func # Add this line
 
     async def callback(self, interaction: discord.Interaction):
         # Log entry into the callback immediately
@@ -206,7 +207,7 @@ class WorkloadButton_survey(discord.ui.Button):
 
                     logger.info(f"Webhook response for survey step: success={success}, data={data}")
                     state.next_step()
-                    await continue_survey(interaction.channel, state)
+                    await self.continue_survey_func(interaction.channel, state)
 
                     if not success:
                         logger.error(f"Failed to send webhook for survey step: {view.cmd_or_step}")
@@ -353,12 +354,12 @@ class WorkloadButton_survey(discord.ui.Button):
                     await view.buttons_msg.delete()
                 logger.error(f"[{view.user_id}] - Failed to send error response in workload callback: {e}") # Modified log to include user_id
 
-def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None, has_survey: bool = False) -> WorkloadView_survey:
+def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None, has_survey: bool = False, continue_survey_func=None) -> WorkloadView_survey:
     """Create workload view for regular commands only"""
     print(f"[{user_id}] - create_workload_view function entered")
     logger.debug(f"[{user_id}] - create_workload_view called with cmd: {cmd}, user_id: {user_id}, has_survey: {has_survey}")
     try:
-        view = WorkloadView_survey(cmd, user_id, has_survey=has_survey)
+        view = WorkloadView_survey(cmd, user_id, has_survey=has_survey, continue_survey_func=continue_survey_func)
         logger.debug(f"[{user_id}] - WorkloadView_survey instantiated successfully")
     except Exception as e:
         logger.error(f"[{user_id}] - Error instantiating WorkloadView_survey: {e}")
@@ -371,7 +372,7 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
     try:
         for hour in WORKLOAD_OPTIONS:
             custom_id = f"workload_button_{hour}_{cmd}_{user_id}"
-            button = WorkloadButton_survey(label=hour, custom_id=custom_id, cmd_or_step=cmd) # Pass cmd to button
+            button = WorkloadButton_survey(label=hour, custom_id=custom_id, cmd_or_step=cmd, continue_survey_func=view.continue_survey_func) # Pass the function
             logger.debug(f"[{user_id}] - Adding button with label: {hour}, custom_id: {custom_id}")
             view.add_item(button)
         logger.debug(f"[{user_id}] - Finished adding workload buttons")
