@@ -16,7 +16,7 @@ class WorkloadView_survey(discord.ui.View):
         self.command_msg = None  # Reference to the command message
         self.buttons_msg = None  # Reference to the buttons message
         logger.debug(f"[{self.user_id}] - WorkloadView_survey initialized. command_msg: {self.command_msg}, buttons_msg: {self.buttons_msg}") # Added log
-        
+
     async def on_timeout(self):
         logger.warning(f"WorkloadView_survey timed out for user {self.user_id}")
 
@@ -156,6 +156,23 @@ class WorkloadButton_survey(discord.ui.Button):
 
                 # Removed log: logger.info(f"[{view.user_id}] - Result of survey_manager.get_survey in callback: {state}. Interaction ID: {interaction.id}")
 
+                # Delete buttons message FIRST as per user request
+                logger.info(f"[{view.user_id}] - Attempting to delete buttons message before sending webhook.") # Added log
+                if view.buttons_msg:
+                    logger.debug(f"[{view.user_id}] - Type of view.buttons_msg: {type(view.buttons_msg)}") # Added log
+                    try:
+                        logger.info(f"[{view.user_id}] - Attempting to delete buttons message ID: {view.buttons_msg.id}")
+                        await view.buttons_msg.delete()
+                        logger.info(f"[{view.user_id}] - Successfully deleted buttons message ID: {view.buttons_msg.id}")
+                        view.buttons_msg = None # Clear reference after deletion
+                    except discord.NotFound:
+                        logger.warning(f"[{view.user_id}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found.")
+                        view.buttons_msg = None # Clear reference if not found
+                    except Exception as delete_error:
+                        logger.error(f"[{view.user_id}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')}: {delete_error}", exc_info=True)
+                else:
+                    logger.warning(f"[{view.user_id}] - view.buttons_msg is None or False, cannot delete.")
+
                 if state: # Proceed if a survey state is found
                     logger.info(f"[{view.user_id}] - Processing as survey step for user {view.user_id}. Survey state found.") # Modified log
                     logger.debug(f"[{view.user_id}] - Entered survey state processing block.") # Added log
@@ -168,7 +185,6 @@ class WorkloadButton_survey(discord.ui.Button):
                     #     logger.debug(f"[{view.user_id}] - Debug ephemeral message sent successfully.") # Added log
                     # except Exception as e:
                     #     logger.error(f"[{view.user_id}] - Failed to send debug message (survey found): {e}", exc_info=True) # Added exc_info
-
                     logger.info(f"Found survey for user {view.user_id}, current step: {state.current_step()}")
 
                     # Send webhook for survey step
@@ -176,37 +192,6 @@ class WorkloadButton_survey(discord.ui.Button):
                         "stepName": view.cmd_or_step,
                         "value": value
                     }
-                    logger.info(f"[{view.user_id}] - Sending webhook for survey step: {view.cmd_or_step} with value: {value}")
-                    logger.debug(f"[{view.user_id}] - Attempting webhook_service.send_webhook...") # Added log before webhook call
-                    success, data = await webhook_service.send_webhook(
-                        interaction,
-                        command="survey",
-                        status="step",
-                        result=result_payload
-                    )
-                    logger.debug(f"[{view.user_id}] - webhook_service.send_webhook completed.") # Added log after successful webhook call
-                    logger.info(f"[{view.user_id}] - Webhook sending result for survey step: success={success}, data={data}")
-
-                    logger.info(f"Webhook response for survey step: success={success}, data={data}")
-
-                    # Delete buttons message FIRST as per user request
-                    logger.info(f"[{view.user_id}] - Attempting to delete buttons message before sending webhook.") # Added log
-                    if view.buttons_msg:
-                        logger.debug(f"[{view.user_id}] - Type of view.buttons_msg: {type(view.buttons_msg)}") # Added log
-                        try:
-                            logger.info(f"[{view.user_id}] - Attempting to delete buttons message ID: {view.buttons_msg.id}")
-                            await view.buttons_msg.delete()
-                            logger.info(f"[{view.user_id}] - Successfully deleted buttons message ID: {view.buttons_msg.id}")
-                            view.buttons_msg = None # Clear reference after deletion
-                        except discord.NotFound:
-                            logger.warning(f"[{view.user_id}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found.")
-                            view.buttons_msg = None # Clear reference if not found
-                        except Exception as delete_error:
-                            logger.error(f"[{view.user_id}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')}: {delete_error}", exc_info=True)
-                    else:
-                        logger.warning(f"[{view.user_id}] - view.buttons_msg is None or False, cannot delete.")
-
-                    # Now send the webhook
                     logger.info(f"[{view.user_id}] - Sending webhook for survey step: {view.cmd_or_step} with value: {value}")
                     logger.debug(f"[{view.user_id}] - Attempting webhook_service.send_webhook...") # Added log before webhook call
                     success, data = await webhook_service.send_webhook(
@@ -302,6 +287,13 @@ class WorkloadButton_survey(discord.ui.Button):
                             "result": {"workload": value}
                         }
                         logger.debug(f"[{view.user_id}] - Preparing to send webhook for regular command. Payload: {webhook_payload}")
+
+                        # Delete buttons message FIRST as per user request
+                        if view.buttons_msg:
+                            logger.debug(f"[{view.user_id}] - Attempting to delete buttons message")
+                            await view.buttons_msg.delete()
+                            logger.info(f"[{view.user_id}] - Deleted buttons message")
+
                         logger.debug(f"[{view.user_id}] - Attempting to send webhook for command: {view.cmd_or_step}")
                         success, data = await webhook_service.send_webhook(
                             interaction,
@@ -368,7 +360,7 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
     except Exception as e:
         logger.error(f"[{user_id}] - Error instantiating WorkloadView_survey: {e}")
         raise # Re-raise the exception after logging
-    
+
     logger.debug(f"[{user_id}] - Before importing WORKLOAD_OPTIONS")
     from config.constants import WORKLOAD_OPTIONS
     logger.debug(f"[{user_id}] - After importing WORKLOAD_OPTIONS. WORKLOAD_OPTIONS: {WORKLOAD_OPTIONS}")
@@ -383,5 +375,5 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
     except Exception as e:
         logger.error(f"[{user_id}] - Error adding workload buttons: {e}")
         raise # Re-raise the exception after logging
-    
+
     return view
