@@ -18,20 +18,20 @@ class ConnectsModal(discord.ui.Modal):
         """Initializes the ConnectsModal."""
         try:
             logger.info(f"Initializing ConnectsModal for user {survey.user_id} step {step_name}")
-            
+
             # Verify required survey properties
             if not survey.user_id or not survey.channel_id:
                 raise ValueError("Survey missing required properties")
-            
+
             # Initialize modal with title
             title = Strings.CONNECTS_MODAL
             super().__init__(title=title, timeout=300)
             logger.info("Modal base initialized")
-            
+
             # Store survey data
             self.survey = survey
             self.step_name = step_name
-            
+
             # Create and configure text input
             logger.info("Creating TextInput field")
             self.connects_input = discord.ui.TextInput(
@@ -42,13 +42,13 @@ class ConnectsModal(discord.ui.Modal):
                 required=True,
                 style=discord.TextStyle.short
             )
-            
+
             # Add input to modal
             logger.info("Adding TextInput to modal")
             self.add_item(self.connects_input)
-            
+
             logger.info("ConnectsModal initialization complete")
-            
+
         except Exception as e:
             logger.error(f"Error initializing ConnectsModal: {e}", exc_info=True)
             raise
@@ -57,7 +57,7 @@ class ConnectsModal(discord.ui.Modal):
         """Handles the modal submission for the connects step."""
         logger.info("DEBUG: Entered ConnectsModal.on_submit")
         logger.info("Starting ConnectsModal submission handling")
-        
+
         async def send_error(message: str):
             """Helper to send error response"""
             try:
@@ -71,13 +71,13 @@ class ConnectsModal(discord.ui.Modal):
         try:
             user_input = self.connects_input.value.strip()
             logger.info(f"Received connects input: {user_input}")
-            
+
             # Validate input is a number and in reasonable range
             if not user_input.isdigit():
                 logger.warning(f"Invalid connects input (non-digit): {user_input}")
                 await send_error(Strings.NUMBER_REQUIRED)
                 return
-                
+
             connects = int(user_input)
             if connects < 0 or connects > 999:
                 logger.warning(f"Invalid connects range: {connects}")
@@ -94,7 +94,7 @@ class ConnectsModal(discord.ui.Modal):
                 logger.warning(f"Wrong user for connects modal: {interaction.user.id} vs {self.survey.user_id}")
                 await send_error(Strings.NOT_YOUR_SURVEY)
                 return
-                
+
             if str(interaction.channel.id) != str(self.survey.channel_id):
                 logger.warning(f"Wrong channel for connects modal: {interaction.channel.id} vs {self.survey.channel_id}")
                 await send_error(Strings.WRONG_CHANNEL)
@@ -109,7 +109,7 @@ class ConnectsModal(discord.ui.Modal):
                 logger.error(f"Error storing connects result: {e}")
                 await send_error(Strings.GENERAL_ERROR)
                 return
-            
+
             logger.info("Cleaning up previous message")
             # Clean up previous message
             try:
@@ -117,12 +117,12 @@ class ConnectsModal(discord.ui.Modal):
             except Exception as e:
                 logger.warning(f"Error cleaning up survey message: {e}")
                 # Continue flow even if cleanup fails
-            
+
             logger.info("Sending confirmation message")
             # Confirm submission
             # Only defer the reply to show "Bot thinking" (loading state), do not send a message
             # Already handled above if not interaction.response.is_done()
-            
+
             logger.info("Advancing survey")
             # Advance survey
             try:
@@ -267,20 +267,20 @@ async def handle_survey_incomplete(session_id: str) -> None:
     if not channel:
         logger.warning(f"Channel {survey.channel_id} could not be found for incomplete survey session {session_id}")
         return
-    
+
     incomplete = survey.incomplete_steps()
     # Validate IDs before webhook call
     if not survey.user_id or not survey.channel_id or not survey.session_id:
         logger.error(f"Missing required IDs for incomplete survey - user: {survey.user_id}, channel: {survey.channel_id}")
         return
-        
+
     await webhook_service.send_webhook(
         channel,
         command="survey",
         status="incomplete",
         result={"incompleteSteps": incomplete}
     )
-    
+
     survey_manager.remove_survey(survey.user_id) # Remove by user_id
     logger.info(f"Survey for user {survey.user_id} (session {session_id}) timed out with incomplete steps: {incomplete}")
 
@@ -318,20 +318,22 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: s
     headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
     logger.info(f"First check_channel call for channel {channel_id} with payload: {payload}")
     success, data = await webhook_service.send_webhook_with_retry(None, payload, headers)
-    logger.info(f"First check_channel webhook response: success={success}, data={data}")
-    
+    logger.info(f"First check_channel webhook response: success={success}, raw_data={{data}}") # Log raw data
+
     if not success or str(data.get("output", "false")).lower() != "true":
+        logger.info(f"First check_channel webhook response: success={success}, raw_data={{data}}") # Log raw data
         logger.warning(f"Channel {channel_id} not registered for surveys")
         return
-    
+
     # Check channel response data
     steps = data.get("steps", [])
+    logger.info(f"Extracted steps from webhook data: {{steps}}") # Log extracted steps
     channel = await bot.fetch_channel(channel_id)
 
     if not channel:
         logger.warning(f"Channel {channel_id} not found")
         return
-        
+
     # Handle cases based on received data
     if steps:
         # Steps provided - proceed with survey
@@ -341,14 +343,14 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: s
         await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
         logger.info(f"No survey steps provided for channel {channel_id}, survey complete")
         return
-    
+
     logger.info(f"Starting survey with steps: {steps}")
 
     # The step ordering code is not needed and has been removed.
 
     # --- Start New Survey Flow ---
         # --- Start New Survey Flow ---
-    
+
     # Filter and order steps based on SURVEY_FLOW constant
     final_steps = [step for step in constants.SURVEY_FLOW if step in steps]
 
@@ -358,7 +360,6 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: s
         if channel: await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
         return
 
-    logger.info(f"n8n_steps: {steps}, final_steps: {final_steps}")
     logger.info(f"Starting new survey for user {user_id} in channel {channel_id} with steps: {final_steps}")
 
     # Create the survey object
@@ -589,6 +590,7 @@ async def continue_survey(channel: discord.TextChannel, survey: SurveyFlow) -> N
     Called after a modal for a step is successfully submitted.
     """
     try:
+        logger.info(f"[{survey.user_id}] - Entering continue_survey. Current index: {{survey.current_index}}, Total steps: {{len(survey.steps)}}") # Log state in continue_survey
         # Keep previous messages intact, only proceed to next step
         next_step = survey.current_step()
         if next_step:
@@ -609,6 +611,7 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> Non
     Sends the collected results in a 'complete' status webhook to n8n
     and cleans up the survey session.
     """
+    logger.info(f"[{survey.user_id}] - Entering finish_survey. is_done(): {{survey.is_done()}}, Current index: {{survey.current_index}}, Total steps: {{len(survey.steps)}}") # Log state in finish_survey
     if not survey.is_done():
         return
 
@@ -630,6 +633,7 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> Non
             "sessionId": str(getattr(survey, 'session_id', ''))
         }
 
+        logger.info(f"[{survey.user_id}] - Sending 'end' webhook for completed survey.") # Log before sending end webhook
         # Send completion webhook directly
         success, response = await webhook_service.send_webhook_with_retry(
             channel,
