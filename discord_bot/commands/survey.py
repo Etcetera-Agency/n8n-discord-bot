@@ -1,8 +1,10 @@
 import asyncio
 import discord
+import json # Added for Notion ToDo JSON parsing
 from typing import Optional, List, Any # Added Any
 from config import ViewType, logger, Strings, Config, constants # Added constants
 from services import survey_manager, webhook_service
+from services.notion_todos import Notion_todos # Added for Notion ToDo fetching
 from services.survey import SurveyFlow # Added import
 # Removed factory import
 from discord_bot.views.workload_survey import create_workload_view # Use survey-specific view
@@ -641,20 +643,58 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> Non
             {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
         )
         logger.info(f"End webhook response: success={success}, response={response}")
-        # Show n8n output to user if present
-        if response:
-            try:
-                await channel.send(str(response))
-            except Exception as e:
-                logger.warning(f"Failed to send n8n end response to user: {e}")
 
-        if not success:
-            raise Exception(f"Completion webhook failed: {response}")
+        # Process n8n response
+        if success and isinstance(response, dict):
+            # Send main output message if present
+            if output_msg := response.get("output"):
+                try:
+                    await channel.send(output_msg)
+                except Exception as e:
+                    logger.warning(f"Failed to send n8n output message to user: {e}")
 
-        logger.info(f"Survey completed for user {survey.user_id} with results: {survey.results}")
+            # Handle Notion ToDo fetching if URL is present
+            if notion_url := response.get("url"):
+                logger.info(f"[{survey.user_id}] - Notion URL found: {notion_url}. Attempting to fetch ToDos.")
+                try:
+                    notion_service = Notion_todos(todo_url=notion_url, days=14)
+                    # Assuming get_tasks_text is made async or runs in executor
+                    tasks_json_str = await notion_service.get_tasks_text()
+                    tasks_data = json.loads(tasks_json_str)
+
+                    if tasks_data.get("tasks_found"):
+                        await channel.send(tasks_data.get("text", "Error: Could not format Notion tasks."))
+                        logger.info(f"[{survey.user_id}] - Successfully sent Notion ToDos.")
+                    else:
+                         logger.info(f"[{survey.user_id}] - No Notion ToDos found or tasks_found was false.")
+                         # Optionally send a message if no tasks found, or just log it.
+                         # await channel.send("No relevant Notion tasks found.")
+
+                except (ValueError, ConnectionError, json.JSONDecodeError) as notion_e:
+                    logger.error(f"[{survey.user_id}] - Failed to fetch/process Notion tasks from URL {notion_url}: {notion_e}", exc_info=True)
+                    try:
+                        await channel.send("Дякую. /nЧудового дня!") # Send fallback message on Notion error
+                    except Exception as send_e:
+                         logger.error(f"Failed to send fallback message after Notion error: {send_e}")
+                except Exception as e: # Catch any other unexpected errors during Notion processing
+                    logger.error(f"[{survey.user_id}] - Unexpected error during Notion task fetching for URL {notion_url}: {e}", exc_info=True)
+                    try:
+                        await channel.send("Дякую. /nЧудового дня!") # Send fallback message
+                    except Exception as send_e:
+                         logger.error(f"Failed to send fallback message after unexpected Notion error: {send_e}")
+            else:
+                logger.info(f"[{survey.user_id}] - No Notion URL provided in n8n response.")
+
+        elif not success:
+            # Handle webhook failure
+             logger.error(f"[{survey.user_id}] - Completion webhook failed. Response: {response}")
+             # Keep existing error message logic below
+
+        logger.info(f"Survey completed processing for user {survey.user_id} with results: {survey.results}")
 
     except Exception as e:
-        logger.error(f"Error completing survey: {str(e)}")
+        # This catches errors *before* or *during* the webhook call, or if success is False and we re-raise
+        logger.error(f"Error completing survey for user {survey.user_id}: {str(e)}", exc_info=True) # Added user_id and exc_info
         try:
             await channel.send(
                 f"<@{survey.user_id}> Помилка при завершенні: {str(e)}"

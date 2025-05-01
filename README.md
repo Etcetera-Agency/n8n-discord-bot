@@ -43,39 +43,59 @@ The bot follows a clean separation of concerns:
 The bot has been refactored into a modular architecture:
 
 ```
+```
 project_structure/
 ├── main.py                  # Entry point
+├── bot.py                   # Bot setup and initialization (appears to be top-level now)
+├── captain-definition       # CapRover deployment definition
+├── DISCORD_AI_AGENT_PROMPT.md # Prompt template for AI Agent
+├── docker-compose.yml       # Docker Compose configuration
+├── Dockerfile               # Dockerfile for containerization
+├── ETCETERA_AI_AGENT_PROMPT.md # Another AI Agent prompt template
+├── n8n-workflow-survey-example.json # Example n8n survey workflow
+├── n8n-workflow.json        # Main n8n workflow
+├── payload_examples.txt     # Examples of payloads
+├── README.md                # Project README
+├── requirements.txt         # Python dependencies
+├── responses                # Directory for responses (purpose unclear from name alone)
+├── assets/                  # Static assets (images, etc.)
 ├── config/                  # Configuration and constants
 │   ├── __init__.py
 │   ├── config.py            # Environment variables and settings
 │   ├── constants.py         # Constant values
-│   └── logger.py            # Logging setup
-├── services/                # Core services
+│   ├── logger.py            # Logging setup
+│   └── strings.py           # String constants
+├── discord_bot/             # Discord bot components
 │   ├── __init__.py
-│   ├── session.py           # Session management
-│   ├── survey.py            # Survey flow management
-│   └── webhook.py           # n8n webhook communication
-├── bot/                     # Discord bot components
-│   ├── __init__.py
-│   ├── client.py            # Bot setup and initialization
+│   ├── client.py            # Discord bot client
+│   ├── surveyfix_tasks.md   # Survey related tasks/notes
+│   ├── surveyfix_tasks2.md  # Another survey related tasks/notes
 │   ├── commands/            # Command handlers
 │   │   ├── __init__.py
 │   │   ├── events.py        # Event handlers (messages, etc.)
 │   │   ├── prefix.py        # Prefix commands (!)
 │   │   ├── slash.py         # Slash commands (/)
 │   │   └── survey.py        # Survey-related commands
-│   └── views/               # UI components
+│   └── views/               # UI components for interactions (buttons, select menus)
 │       ├── __init__.py
 │       ├── base.py          # Base view class
-│       ├── day_off.py       # Day off selection view
+│       ├── day_off 2.py     # Day off selection view (duplicate?)
+│       ├── day_off_slash.py # Day off slash command view
+│       ├── day_off_survey.py # Day off survey view
 │       ├── factory.py       # View factory
 │       ├── generic.py       # Generic UI components
-│       └── workload.py      # Workload selection view
+│       ├── workload_slash.py # Workload slash command view
+│       └── workload_survey.py # Workload survey view
+├── services/                # Core services
+│   ├── __init__.py
+│   ├── notion_todos.py      # Notion ToDo integration
+│   ├── session.py           # Session management
+│   ├── survey.py            # Survey flow management
+│   └── webhook.py           # n8n webhook communication
 └── web/                     # Web server for external integrations
     ├── __init__.py
     └── server.py            # HTTP/HTTPS server
 ```
-
 ## Setup Instructions
 
 ### Prerequisites
@@ -108,6 +128,9 @@ N8N_WEBHOOK_URL=https://your-n8n-instance.com/webhook/your_webhook_endpoint
 
 # Webhook Auth Token (optional) - Token to authenticate requests to the n8n webhook
 WEBHOOK_AUTH_TOKEN=YOUR_WEBHOOK_AUTH_TOKEN
+
+# Notion API Token - Required for fetching ToDo tasks from Notion
+NOTION_TOKEN=YOUR_NOTION_TOKEN
 
 # Session TTL in seconds (optional, default: 86400 - 24 hours)
 SESSION_TTL=86400
@@ -506,9 +529,7 @@ When a user completes all steps in a survey:
   "channelId": "987654321098765432",
   "channelName": "general",
   "timestamp": 1620000000
-}
-}
-```
+
 
 #### 5. Slash Command
 
@@ -549,6 +570,8 @@ When a user executes the /connects_thisweek slash command:
   "channelId": "987654321098765432",
   "channelName": "general",
   "timestamp": 1620000000
+},
+  "url": "YOUR_NOTION_PAGE_URL"
 }
 ```
 ```
@@ -666,8 +689,24 @@ Response to cancel a survey due to an error or invalid input:
   "survey": "cancel"
 }
 ```
+#### 5. Survey Control - End (with Notion ToDo Fetching)
 
-Note that currently, the bot only processes the `output` and `survey` fields from n8n responses.
+Response when a survey is successfully completed, potentially triggering Notion ToDo fetching:
+
+```json
+{
+  "output": "Thank you for completing the survey!",
+  "survey": "end",
+  "url": "YOUR_NOTION_PAGE_URL" 
+}
+```
+
+When n8n includes `"survey": "end"` in the response:
+1. The bot sends the `output` message to the user in Discord.
+2. If the `url` field is also present, the bot uses this URL with the `services/Notion_todos.py` script to fetch unchecked ToDo tasks created within the last 14 days from the specified Notion page. 
+3. If tasks are found, they are sent as a separate message to the Discord channel. If fetching fails (e.g., invalid `NOTION_TOKEN` environment variable, API error), a fallback message ("Дякую. /nЧудового дня!") is sent instead.
+
+Note that currently, the bot processes the `output`, `survey`, and `url` fields from n8n responses.
 
 ## Contributing
 
