@@ -254,9 +254,16 @@ class SlashCommands:
                 
                 if success and data and "output" in data:
                     if message:
-                        await message.edit(content=data["output"])
-                    else:
-                        await interaction.followup.send(data["output"])
+                        output_content = data["output"]
+                        mention_message = " <@734125039955476501> зверніть увагу!"
+                        # Check if output is not empty and does not contain an error indicator
+                        if output_content and "Помилка" not in output_content and mention_message not in output_content:
+                            output_content += mention_message
+
+                        if message:
+                            await message.edit(content=output_content)
+                        else:
+                            await interaction.followup.send(output_content)
                 else:
                     error_msg = Strings.VACATION_ERROR.format(
                         start_day=start_day,

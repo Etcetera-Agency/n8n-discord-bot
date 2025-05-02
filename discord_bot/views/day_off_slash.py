@@ -146,7 +146,11 @@ class ConfirmButton_slash(discord.ui.Button):
                         await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                         if success and data and "output" in data:
                             logger.debug(f"[{interaction.user.id}] - Attempting to edit command message {view.command_msg.id} with output: {data['output']}")
-                            await view.command_msg.edit(content=data["output"])
+                            output_content = data["output"]
+                            mention_message = " <@734125039955476501> зверніть увагу!"
+                            if view.selected_days and mention_message not in output_content: # Check if any days were selected AND message is not already present
+                                output_content += mention_message
+                            await view.command_msg.edit(content=output_content)
                         else:
                             logger.warning(f"[{interaction.user.id}] - Webhook response indicates failure or no output. Editing command message {view.command_msg.id} with error.")
                             error_msg = Strings.DAYOFF_ERROR.format(

@@ -9,8 +9,8 @@
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
       "typeVersion": 1.3,
       "position": [
-        3920,
-        1480
+        4200,
+        760
       ],
       "id": "241e80f3-4989-4e07-b475-4428c778b6da",
       "name": "Postgres Chat Memory",
@@ -23,32 +23,410 @@
     },
     {
       "parameters": {
-        "promptType": "define",
-        "text": "=You are a personal assistant AI Agent designed to handle various tasks efficiently. Your primary role is to manage contacts, emails, and calendar events for the user. You have access to three tools to help you fulfill requests:\n\nTeam Directory: Use this when you need to look up contact information like an email address. You need to use this tool BEFORE sending an email or BEFORE getting emails.\n\nEmail Agent: Use this for handling all email-related actions, like sending messages, setting up replies, or forwarding emails.\n\nCalendar Agent: Use this for scheduling, updating, or managing calendar events.\n\nSend Slack Message: Use this to send a message in Slack.\n\nProjects_Agent: Use this tool to access our projects. We can update our projects of get information on our projects.\n\nWhen a task requires using one or more of these tools, make sure to identify which tool is most appropriate, pass along the relevant details, and execute the actions needed to complete the task. Your goal is to be proactive, precise, and organized in managing these resources to provide a smooth experience for the user.\n\nHere is the current time/date: {{ $now }}\nuserId : {{ $('Discord Webhook').item.json.body.userId }}\ndiscord_message : {{   $('Discord Webhook').item.json.body.message.replace(\"<@botid>\", \"\") }}\n\nYou are a calendar assistant. You have access to multiple tools to take any action within calendar. Here is the current date/time: {{ $now }}\n\nCreate Event:\nIf an end date isn't specified for the event, assume it will be 60 minutes long. Use this tool if there is no attendee specified.\n\nCreate Event with Attendee:\nIf an end date isn't specified for the event, assume it will be 60 minutes long. Use this tool WHEN AN ATTENDEE IS SPECIFIED.\n\nGet Events:\nUse this tool to get events from a certain day and summarize them. ",
+        "operation": "executeQuery",
+        "query": "DELETE FROM n8n_chat_histories \nWHERE created_at < NOW() - INTERVAL '7 days';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -240,
+        700
+      ],
+      "id": "cc6f0fb3-a89e-4357-ada3-2f71eba0d2c8",
+      "name": "delete older than 7 days",
+      "credentials": {
+        "postgres": {
+          "id": "11",
+          "name": "n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "01e5b4b3-d6eb-4ad6-9262-008ddc5fa5e4",
+          "mode": "list",
+          "cachedResultName": "Workload",
+          "cachedResultUrl": "https://www.notion.so/01e5b4b3d6eb4ad69262008ddc5fa5e4"
+        },
+        "title": "={{ $json.name }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Capacity|number",
+              "numberValue": "={{ Math.floor($if($json.days_off,$json.property_capacity - $json.days_off*$json.property_capacity/5, $json.property_capacity))}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        1120
+      ],
+      "id": "a4cbfb42-53c4-491e-9f5d-51d76fc5f3fa",
+      "name": "Notion add for this week",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "01e5b4b3-d6eb-4ad6-9262-008ddc5fa5e4",
+          "mode": "list",
+          "cachedResultName": "Workload",
+          "cachedResultUrl": "https://www.notion.so/01e5b4b3d6eb4ad69262008ddc5fa5e4"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Template|checkbox",
+              "condition": "equals",
+              "checkboxValue": true
+            },
+            {
+              "key": "out of team|checkbox",
+              "condition": "does_not_equal",
+              "checkboxValue": true
+            }
+          ]
+        },
         "options": {
-          "systemMessage": "=You are a Discord assistant that…\n[Provide instructions to the Discord AI Agent in Markdown or XML format, detailing how to use the available tools.]\n\n**Always include the author by mentioning them with the provided <@userId> in your answer**."
+          "sort": {
+            "sortValue": [
+              {
+                "key": "Name|title",
+                "direction": "ascending"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        100,
+        1120
+      ],
+      "id": "edb72f8e-e737-4926-9b0a-16ab9f275c2e",
+      "name": "Notion get tempate",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "name",
+              "field2": "name"
+            }
+          ]
+        },
+        "outputDataFrom": "input2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        340,
+        1020
+      ],
+      "id": "bb8f6d5a-da63-4479-9437-a9c783c7bf14",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7113e573-923e-4c57-8d78-8cd94a7bddfa",
+          "mode": "list",
+          "cachedResultName": "Team Directory",
+          "cachedResultUrl": "https://www.notion.so/7113e573923e4c578d788cd94a7bddfa"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "out of Team now|checkbox",
+              "condition": "does_not_equal",
+              "checkboxValue": true
+            }
+          ]
+        },
+        "options": {
+          "sort": {
+            "sortValue": [
+              {
+                "key": "Name|title",
+                "direction": "ascending"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        60,
+        940
+      ],
+      "id": "b0442368-40e0-4533-9ff2-c10958ce167d",
+      "name": "Notion get TD",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "etcetera.kiev.ua_q1bfpjas0rj3e59cv32v05t6bs@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Etcetera Agency"
+        },
+        "returnAll": true,
+        "options": {
+          "timeMin": "={{ new Date(new Date().setUTCHours(0, 0, 0, 0) - ((new Date().getUTCDay() === 0 ? 6 : new Date().getUTCDay() - 1) * 86400000)).toISOString() }}",
+          "timeMax": "={{ new Date(new Date().setUTCHours(23, 59, 59, 999) + ((7 - new Date().getUTCDay()) * 86400000)).toISOString() }}",
+          "singleEvents": true,
+          "fields": "items(summary, start, end)",
+          "query": "vacation",
+          "timeZone": {
+            "__rl": true,
+            "value": "Europe/Kyiv",
+            "mode": "list",
+            "cachedResultName": "Europe/Kyiv"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.2,
+      "position": [
+        -80,
+        1280
+      ],
+      "id": "ec71d73d-7c61-4e2a-a125-2a0766b57de4",
+      "name": "Google Calendar1",
+      "executeOnce": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "10",
+          "name": "Safonov gCal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "etcetera.kiev.ua_q1bfpjas0rj3e59cv32v05t6bs@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Etcetera Agency"
+        },
+        "returnAll": true,
+        "options": {
+          "timeMin": "={{ new Date(new Date().setUTCHours(0, 0, 0, 0) - ((new Date().getUTCDay() === 0 ? 6 : new Date().getUTCDay() - 1) * 86400000)).toISOString() }}",
+          "timeMax": "={{ new Date(new Date().setUTCHours(23, 59, 59, 999) + ((7 - new Date().getUTCDay()) * 86400000)).toISOString() }}",
+          "singleEvents": true,
+          "fields": "items(summary, start, end)",
+          "query": "day-off",
+          "timeZone": {
+            "__rl": true,
+            "value": "Europe/Kiev",
+            "mode": "list",
+            "cachedResultName": "Europe/Kiev"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.2,
+      "position": [
+        -80,
+        1460
+      ],
+      "id": "1d03ddaf-69bb-4b9b-83e0-393d17b24dcd",
+      "name": "Google Calendar2",
+      "executeOnce": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "10",
+          "name": "Safonov gCal"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        400,
+        1320
+      ],
+      "id": "5cff8a28-b565-450d-8e0c-942ffc05cf81",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "294bec7f-2293-45e2-9c28-f14f3df5466d",
+              "name": "name",
+              "value": "={{ $json.summary.substring(10) }}",
+              "type": "string"
+            },
+            {
+              "id": "e82f369f-e7f7-480c-ae58-d88de39bc1d7",
+              "name": "days_off",
+              "value": "={{ \n  (() => {\n    const eventStart = new Date($json[\"start\"][\"dateTime\"] || $json[\"start\"][\"date\"]);\n    const eventEnd = new Date($json[\"end\"][\"dateTime\"] || $json[\"end\"][\"date\"]);\n\n    // Get Monday 00:00 of this week\n    const today = new Date();\n    const weekStart = new Date(today.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1)));\n    weekStart.setHours(0, 0, 0, 0);\n\n    // Get Sunday 23:59 of this week\n    const weekEnd = new Date(weekStart);\n    weekEnd.setDate(weekStart.getDate() + 6);\n    weekEnd.setHours(23, 59, 59, 999);\n\n    // Adjust event start and end to fit within this week\n    const effectiveStart = eventStart < weekStart ? weekStart : eventStart;\n    const effectiveEnd = eventEnd > weekEnd ? weekEnd : eventEnd;\n\n    // Calculate days within this week\n    return Math.max(0, Math.ceil((effectiveEnd - effectiveStart) / (1000 * 60 * 60 * 24)));\n  })()\n}}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        140,
+        1280
+      ],
+      "id": "3366d255-7c88-4c3a-b955-69f70bcdeb16",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "be58fc59-4425-4637-bc2e-59d6863b3142",
+              "name": "name",
+              "value": "={{ $json.summary.substring(9) }}",
+              "type": "string"
+            },
+            {
+              "id": "1b32ff0a-0655-4754-b9b9-a0a2aed85713",
+              "name": "days_off",
+              "value": 1,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        140,
+        1460
+      ],
+      "id": "0ec411b7-01d5-44a5-8241-881ddaa59176",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "name",
+              "field2": "name"
+            }
+          ]
+        },
+        "joinMode": "keepEverything",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        640,
+        1120
+      ],
+      "id": "9ac5cdc9-2d02-48e6-9010-806cc7e42f42",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        1060
+      ],
+      "id": "d88e4400-3e78-4d4b-ad92-b0c203b3ed26",
+      "name": "Schedule Trigger",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=current time/date: {{ $now }}\nday today: {{ ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date($today).getDay()] }}\nuser_ID/discord_ID : {{ $json.user.discord_id }}\nrequest.command : {{ $json.request.command }}\nrequest.status : {{ $json.request.status }}\nrequest.result : {{ JSON.stringify($json.request.result) }}\nuser.name : {{ $json.user.name }}\nuser.todo_page_url : {{ $json.user.to_do }}\n\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=<AgentInstructions>\n\n  <Role>\n    <Name>Discord AI Agent</Name>\n    <Description>\n      Discord-n8n AI assistant handling commands and surveys for the Etcetera workflow. \n      Processes requests, uses tools for get info/write to notion or calender interactionaly, use Survey_step_status tool if described in instruction, and returns JSON responses. \n      Primary responsibilities:\n      1. Update workloads, connects, and manage time-off.\n      2. Track ToDos, remind of incomplete tasks.\n      3. Always respond in Ukrainian.\n      4. Maintain valid JSON format (critical) and not empty.\n    </Description>\n  </Role>\n\n  <Tools>\n    - Send_connects_to_db (name|String, connects|Number)\n    - Get_Workload_DB_by_name (name|string)\n    - Get_Profile_stats_DB_by_name (name|string)\n\t- Write_plan_hours_to_Workload_DB (url|string, hours|number)\n    - Write_connects_to_Profile_stats_DB (url|string, hours|number)\n    - Write_capacity_to_Profile_stats_DB { url|string, capacity|number}\n    - Survey_step_status (step_name|string, status|boolean)\n    - Create Day-off or Vacation (summary|string, startday|string, endday|string)\n    - Notion get Page (url|string)\n    \n    \n  </Tools>\n\n  <Instructions>\n\n    <Responce Instruction>      \n      ## 🔄 Response Guidelines\n      - 📋 **Core**: Keep responses concise, acknowledge updates, express gratitude, confirm actions.\n      - 🇺🇦 **Lang**: Always respond in Ukrainian.\n      - 📝 **Templates**:\n         - **Workload**: \"Записав! \\nЗаплановане навантаження у [день тиждня]: [hours] год. \\nВ щоденнику з понеділка по [вчора]: [user.fact] год.\\nКапасіті на цей тиждень: [user.capasity] год.\"\n         - **Workload**: \"Записав! \\nЗаплановане навантаження у понеділок: [hours] год. \\nКапасіті: [user.capasity] год.\"\n         **Workload**: \"Записав! \\nЗаплановане навантаження на наступний тиждень: [hours] год.\"\n         - **Connects**: \"Записав! Upwork connects: залишилось 15 на цьомуз тиждень.\"\n         - **Vacation**: \"Записав! Відпустка: 01.05.2025-15.05.2025 записана.\"\n         - **Day-off**: \"Вихідні: [Day1 of the week] [ DD.MM.YYYY], [Day2 of the week] [ DD.MM.YYYY] записані.\\nНе забудь попередити клієнтів. \"\n         - **Day-off**: \"Вихідний: [Day of the week] [ DD.MM.YYYY] записан. Не забудь попередити клієнтів.\"\n         - **Day-off w**: \"Записав! Не плануюєш вихідні.\"\n        - **Workload Nothing**: \"Дякую!\"\n         - **Survey**: \"Дякую! [підсумок]\\n\\nToDo:\\n1. [завдання1]\\n2. [завдання2]\"\n      \n      ## 📊 JSON Formats\n      - Any command: `{\"output\": \"Дякую! [деталі дії]\"}`  \n      - **Survey_step**: `{\"output\": \"Записав! [деталі кроку]\", \"survey\": \"continue\"}`  \n      - **Survey_end**: `{\"output\": \"Записав!\\n\\nЗверни увагу, що у тебе в ToDo є такі завдання, які було б чудово вже давно виконати:\\n1. [назва завдання 1]\\n2. [назва завдання 2]\"}`  \n      - **Error**: `{\"output\": \"Помилка: [проблема]. [деталі помилки].\"}`\n\n      ## 📥 Input Structure\n      - **Msg**: `{userId, username, channelId, message, command: null}`\n      - **Cmd**: `{userId, username, channelId, command, params: {k: v}}`\n      - **Survey_step**: `{userId, username, channelId, command, status: \"step\", step, value, survey_data}`\n      - **Survey_end**: `{userId, username, channelId, command, status: \"end\", result: {step: value}}`\n    </Responce Instruction>\n      \n\n<Command Handling Instruction>      \n         <Command> request.command is workload_*\n         0. Check day of the week today \nif Sat or Sun so just {output: \"Зрозумів!\" } and do not use any else tools or Do not Invoke \"Survey_step_status\" \nelse\n         1. Invoke \"Get_Workload_DB_by_name\" with { \"name\": user.Name }\n         2. extract page_url from json.response.[\"0\"].url and user.capasity from json.response.[\"0\"].capacity and user.fact from json.response.[\"0\"].fact\n         3. Invoke \"Use_Write_plan_hours_to_Workload_DB\" with {\"url\" : page_url,  \n\t\t- If request.command=workload_today -> day_field= \"Mon Plan\" if today=Monday, \"Tue Plan\" if today=Tuesday, \"Wed Plan\" if today=Wednesday, \"Thu Plan\" if today=Thusday, \"Fri Plan\" if today=Friday, \"hours\": hours value from request.result\n\t\t- If request.command=workload_nextweek -> day_field= \"Next week plan\" , \"hours\": hours value from request.result}\n\t 3. Use Survey_step_status tool with step_name=request.command and status = true\n         </Command>\n\n         <Command> request.command is connects_thisweek\n 1. Invoke \"Send_connects_to_db\" with { \"name\": user.name, \"connects\": request.result.connects } go to 2.\n 2. Invoke \"Get_Profile_stats_DB_by_name\" with {\"name\": user.name} \n 3. Invoke \"Survey_step_status\" with { \"step_name\":request.command, \"status\" = true }  \n 4. Extract `page_url` from Get_Profile_stats_DB_by_name `json.response[0].url` and Invoke \"Write_connects_to_Profile_stats_DB\" with { \"url\": page_url, \"connects\": request.result.connects }\n\t        \n         </Command>\n \n         <Command> request.command is day off_nextweek\n\t      0. extract from request.result days mentioned\n          if request.result has value \"Nothing\" -> Do not Invoke \"Survey_step_status\" and return [Day-off Nothing]  -> Invoke \"Survey_step_status\" with { \"step_name\":request.command, \"status\" = true }  \n          else  \n          1. Invoke \"Create Day-off or Vacation\" for each day mentioned with { starttime, endtime, \"summary\" : \"Day-off: [user.name]\"  }\n           - Use starttime as \"YYYY-MM-DD\" of the one day mentioned \n           - Use endtime as \"YYYY-MM-DD\" of the one day mentioned \n          2. Invoke \"Survey_step_status\" with { \"step_name\":request.command, \"status\" = true }\n             \n         </Command>\n\n <Command> request.command is day_off_thisweek\n\t      0. extract from request.result days mentioned\n          if request.result has value \"Nothing\" Do not Invoke \"Survey_step_status\" and return [Day-off Nothing]\n          else  \n          1. Invoke \"Create Day-off or Vacation\" for each day mentioned with { starttime, endtime, \"summary\" : \"Day-off: [user.name]\"  }\n           - Use starttime as \"YYYY-MM-DD\" of the one day mentioned \n           - Use endtime as \"YYYY-MM-DD\" of the one day mentioned \n          2. Invoke \"Get_Workload_DB_by_name\" with { \"name\": user.Name }\n          3. extract page_url from json.response.[\"0\"].url and user.capasity from json.response.[\"0\"].capacity\n          4. Invoke \"Write_capacity_to_Workload_DB\" with { \"url\": page_url, \"capacity\" : [user.capacity - user.capacity/5]} \n          5. Do not Invoke \"Survey_step_status\")\n         </Command>\n\n\n\n         <Command> request.command is vacation\n\t       0.extract from request.result start and end dates\n           1. Invoke \"Create Day-off or Vacation\" with { \"starttime\" : \"YYYY-MM-DD 00:00:00\" of the day mentioned as start_date, \"endtime\" \"YYYY-MM-DD 23:59:59\" of the day mentioned as end_date, \"summary\": \"Vacation: [user.name]\"\n\t   2. Use Survey_step_status tool with step_name=request.command and status = true\n\t   3. Do not Invoke \"Survey_step_status\"\n\n         </Command>   \n\n         <Command> request.command is survey\n        If result.status is \"incomplete\" -> (\n\t 1. Use Survey_step_status tool with step_name = request.result.step and status = false\n         2. Return [empty json]  )\n\n\tif request.status is \"step\" -> (\n         1. Use Command Handling Instruction from command with same naming as request.result.step\n         2. Return `{\"output\": \"Дякую! [деталі кроку]\", \"survey\": \"continue\"}` )\n\n\tif request.status is \"end\" -> (\n         1. Use Command Handling Instruction from command with same naming as step from result\n         2. Retrieve incomplete tasks with tool Notion get Page for url from user.todo_page_url and parse \n         3. Return final summary + tasks like `{\"output\": \"Дякую!\\n\\nЗверни увагу, що у тебе в ToDo є такі завдання, які було б чудово виконати:\\n1. [назва завдання 1]\\n2. [назва завдання 2]\"}`)\n         </Command> \n     </Command Handling Instruction>\n\n    </Instruction>\n\n  </Instructions>\n\n  <Goal>\n    <Primary>\n      Streamline scheduling, resource planning (workloads, connects, day-off, vacation), \n      and track tasks for the Discord user. Ensure efficient management of calendars, \n      workloads, and reminders, always returning responses in Ukrainian and in valid JSON.\n    </Primary>\n  </Goal>\n\n</AgentInstructions>",
+          "returnIntermediateSteps": false
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        4060,
-        1200
+        5420,
+        320
       ],
       "id": "c068d4c0-4a71-418f-b7eb-78573f3cb5dd",
-      "name": "Discord AI Agent"
+      "name": "Discord AI Agent",
+      "disabled": true
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={\n  \"output\": \"{{ $('Discord AI Agent').item.output }}\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        4900,
-        1200
+        6500,
+        1180
       ],
       "id": "fb956ff8-1f1b-4b94-8134-515e493a1f64",
       "name": "Respond to Webhook"
@@ -61,8 +439,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        4060,
-        1480
+        4340,
+        1440
       ],
       "id": "2fbed6cb-d332-4fdb-b41f-fc50fef91c11",
       "name": "Google Gemini Chat Model1",
@@ -142,14 +520,14 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "{\n  \"output\": \"Канал не зареєстровано. Будь ласка, зареєструйте його перед початком спілкування з ботом.\"\n}",
+        "responseBody": "{\n    \"output\": \"Some error\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
         3480,
-        1520
+        1440
       ],
       "id": "a874cb17-cc7e-450e-8aed-e8726af8dd8b",
       "name": "Respond not Registred"
@@ -177,8 +555,8 @@
       "type": "n8n-nodes-base.googleCalendarTool",
       "typeVersion": 1.1,
       "position": [
-        4500,
-        840
+        4680,
+        340
       ],
       "credentials": {
         "googleCalendarOAuth2Api": {
@@ -196,8 +574,8 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        4200,
-        760
+        4160,
+        260
       ],
       "typeVersion": 1,
       "id": "c8ebfd37-586d-4adb-83a5-87d4c565c987",
@@ -206,13 +584,13 @@
     {
       "parameters": {
         "content": "## Notion tools\n",
-        "height": 440,
-        "width": 540,
+        "height": 580,
+        "width": 360,
         "color": 6
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        3740,
+        4380,
         1700
       ],
       "typeVersion": 1,
@@ -254,59 +632,11 @@
       "type": "n8n-nodes-base.notionTool",
       "typeVersion": 2.2,
       "position": [
-        3820,
-        1780
+        4160,
+        2200
       ],
       "id": "5fc20baf-fbd1-49d5-ae54-5725715da38e",
       "name": "Get Team directory by channel",
-      "credentials": {
-        "notionApi": {
-          "id": "8",
-          "name": "Etcetera Bot"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "descriptionType": "manual",
-        "toolDescription": "=The Workload Database is a tool for monitoring and managing an individual’s work capacity on a weekly basis. It captures both the planned workload (what was scheduled) and the actual work completed (the “facts”) for each day of the week. This enables teams and managers to assess resource allocation, identify discrepancies between planned and actual performance, and flag areas needing attention. In addition, the database tracks overall capacity, booking details, and aggregates key metrics to support effective workload planning and optimization.\n\n⸻\n\nField Descriptions\n\n1. General Information\n\t•\tName (Title):\nThe primary identifier for each record, typically displaying the team mamber name(e.g., Alex Shibisty)..\n\t•\tDate (Created Time):\nIndicates when the workload record was created, marking the start of the tracking period.\n\t•\tUpdated (Last Edited Time):\nReflects the most recent update to the record.\n\n2. Capacity & Availability\n\t•\tCapacity (Number):\nRepresents the maximum workload capacity available for the individual (e.g., 16).\n\t•\tout of team (Checkbox):\nA flag indicating whether the individual is currently not part of the team, which may affect planning.\n\n3. Daily Workload & Booking Metrics\n\t•\tMon Plan, Tue Plan, Wed Plan, Thu Plan, Fri Plan (Number):\nCapture the planned workload from corresponding day till the end of the week annousnsed by the tean member.\n\t•\tMon Fact, Tue Fact, Wed Fact, Thu Fact, Fri Fact (Number):\nRecord the actual work completed (“facts”) on each day.\n\t•\tWeekend Fact (Number):\nUsed to log any work performed during the weekend.\n\t•\tNext week plan (Number):\nCaptures planned workload for the upcoming week to aid in forward planning.\n\n\n4. Aggregated & Derived Metrics\n\t•\tPlan (Formula - Number):\nA derived value that summarizes the total planned workload for the week.\n\t•\tTotal (Formula - Number):\nAggregates workload data (such as total tasks or hours) to provide an overall measure.\n\t•\tFact (Formula - Number):\nComputes the total actual work completed across the week by summing daily values.\n\t•\tNot used / Not used (number) (Formula - String/Number):\nFields that capture unused capacity.\n\t•\tNeed attention (Formula - Boolean):\nA flag (true/false) indicating if the current workload status requires managerial intervention.\n\n5. Additional Scheduling & Planning Metrics\n\t•\tWeek (Formula - Number)\nComputes the amount weeks passed from curren week helping to segment data into weekly intervals. e.g 0=this week, 1=last week, 2=two weeks ago\n\t•\tTemplate (Checkbox):\nIndicates whether this record is template wich shows the normal capasity hour numbers.\n\t",
-        "resource": "databasePage",
-        "operation": "getAll",
-        "databaseId": {
-          "__rl": true,
-          "value": "01e5b4b3-d6eb-4ad6-9262-008ddc5fa5e4",
-          "mode": "list",
-          "cachedResultName": "Workload",
-          "cachedResultUrl": "https://www.notion.so/01e5b4b3d6eb4ad69262008ddc5fa5e4"
-        },
-        "simple": false,
-        "filterType": "manual",
-        "matchType": "allFilters",
-        "filters": {
-          "conditions": [
-            {
-              "key": "Name|title",
-              "condition": "equals",
-              "titleValue": "={{ $fromAI(\"name\") }}"
-            },
-            {
-              "key": "Week|formula",
-              "condition": "equals",
-              "returnType": "number",
-              "numberValue": "={{ $fromAI(\"week\") }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.notionTool",
-      "typeVersion": 2.2,
-      "position": [
-        4160,
-        1780
-      ],
-      "id": "eb46b01c-a39b-457f-ac69-0a62e69acdaa",
-      "name": "Get Workload DB by name",
       "credentials": {
         "notionApi": {
           "id": "8",
@@ -332,59 +662,13 @@
       "type": "n8n-nodes-base.googleCalendarTool",
       "typeVersion": 1.1,
       "position": [
-        4240,
-        840
+        4420,
+        340
       ],
       "credentials": {
         "googleCalendarOAuth2Api": {
           "id": "10",
           "name": "Safonov gCal"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "descriptionType": "manual",
-        "toolDescription": "=Profile Stats Database \n\nThe Profile Stats Database is a performance tracking tool that aggregates key metrics for Upwork profiles over defined reporting periods. It monitors engagement indicators such as views, clicks, proposals, and invites while also evaluating response efficiency and specialized performance areas. This data is used to assess overall profile performance against established KPIs and to inform strategic adjustments.\n\nField Descriptions\n\n1. General & Time-Based Fields\n\t•\tName (Title)\nThe primary identifier for each record, typically displaying the team mamber name(e.g., Alex Shibisty).\n\t•\tCreated (Created Time)\nAutomatically records the timestamp when the record was created.\n\t•\tWeek (Formula - Number)\nComputes the amount weeks passed from curren week helping to segment data into weekly intervals. e.g 0=this week, 1=last week, 2=two weeks ago\n\t•\tPeriod (Formula - String)\nA calculated field that formats a date range (for example, “March 3 - March 9 2025”), defining the reporting period for the record.\n\n2. Engagement & Performance Metrics\n\t•\tProfile Views (Number)\nTotal count of profile views recorded during the reporting period.\n\t•\tClicks (Number)\nThe number of client's clicks registered on the upwork profile during the reporting period.\n\t•\tImpressions (Number)\nThe number of client's interactions registered on the upwork profile during the reporting period.\n\t•\tSent Proposals (Number)\nTotal proposals sent out from the profile during the reporting period.\n\t•\tViewed Proposals (Number)\nThe count of proposals that were actually viewed by clients during the reporting period.\n\t•\tConnects (Number)\nRecords the number of upwork connects available on infividual the upwork profile on start the reporting period.. \n\t•\tGeneral Pr Invites (Number)\nTotal number of general invitations received during the reporting period..",
-        "resource": "databasePage",
-        "operation": "getAll",
-        "databaseId": {
-          "__rl": true,
-          "value": "https://www.notion.so/etcetera/501c314abddb45bfb35d91a217d709d8?v=f22acd6b1b1f4697bdab81734f86301a&pvs=4",
-          "mode": "url"
-        },
-        "simple": false,
-        "filterType": "manual",
-        "matchType": "allFilters",
-        "filters": {
-          "conditions": [
-            {
-              "key": "Name|title",
-              "condition": "equals",
-              "titleValue": "={{ $fromAI(\"name\") }}"
-            },
-            {
-              "key": "Week|formula",
-              "condition": "equals",
-              "returnType": "number",
-              "numberValue": "={{ $fromAI(\"week\") }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.notionTool",
-      "typeVersion": 2.2,
-      "position": [
-        4000,
-        1780
-      ],
-      "id": "e4e290a3-d4e1-43df-a919-d79750cf1f88",
-      "name": "Get Profile stats DB by name",
-      "credentials": {
-        "notionApi": {
-          "id": "8",
-          "name": "Etcetera Bot"
         }
       }
     },
@@ -405,8 +689,8 @@
       "type": "n8n-nodes-base.googleCalendarTool",
       "typeVersion": 1.1,
       "position": [
-        4380,
-        840
+        4560,
+        340
       ],
       "credentials": {
         "googleCalendarOAuth2Api": {
@@ -417,8 +701,6 @@
     },
     {
       "parameters": {
-        "descriptionType": "manual",
-        "toolDescription": "Consume Google Calendar API to create Create Day-off or Vacation record with event name in format \"Vacation: teammember name\"",
         "calendar": {
           "__rl": true,
           "value": "etcetera.kiev.ua_q1bfpjas0rj3e59cv32v05t6bs@group.calendar.google.com",
@@ -430,7 +712,8 @@
         "useDefaultReminders": false,
         "additionalFields": {
           "allday": "yes",
-          "attendees": []
+          "attendees": [],
+          "summary": "={{ $fromAI(\"summary\", \"even summary\", string) }}"
         }
       },
       "id": "f21a42ed-36f7-45d4-bede-aaf70b2d84a0",
@@ -438,85 +721,13 @@
       "type": "n8n-nodes-base.googleCalendarTool",
       "typeVersion": 1.1,
       "position": [
-        4580,
-        1760
+        4840,
+        1840
       ],
       "credentials": {
         "googleCalendarOAuth2Api": {
           "id": "10",
           "name": "Safonov gCal"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "descriptionType": "manual",
-        "toolDescription": "Consume Notion API\n",
-        "resource": "databasePage",
-        "operation": "update",
-        "pageId": {
-          "__rl": true,
-          "value": "=https://www.notion.so/etcetera/Alex-Shibisty-1abc3573e5108043a5c4d70c6c9ddca2?pvs=4",
-          "mode": "url"
-        },
-        "propertiesUi": {
-          "propertyValues": [
-            {
-              "key": "Connects|number",
-              "numberValue": "={{ $fromAI(\"connects\",\"\",\"number\") }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.notionTool",
-      "typeVersion": 2.2,
-      "position": [
-        4000,
-        1960
-      ],
-      "id": "0ff5bd22-fb0a-4bf5-8b78-63d3a3d7c249",
-      "name": "Write connects to Profile stats DB",
-      "credentials": {
-        "notionApi": {
-          "id": "8",
-          "name": "Etcetera Bot"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "descriptionType": "manual",
-        "toolDescription": "Write plan hours announced by the user",
-        "resource": "databasePage",
-        "operation": "update",
-        "pageId": {
-          "__rl": true,
-          "value": "=https://www.notion.so/etcetera/Alex-Shibisty-7333e7f85cd14bf5b7d8cf53c2ec6fc0?pvs=4",
-          "mode": "url"
-        },
-        "propertiesUi": {
-          "propertyValues": [
-            {
-              "key": "={{ $fromAI(\"field\", \"lkjlkj\" ,\"string\", Fri Plan) }}|number",
-              "numberValue": "={{ $fromAI(\"hours\", \"lkjlkj\" ,\"number\", 0) }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.notionTool",
-      "typeVersion": 2.2,
-      "position": [
-        4160,
-        1960
-      ],
-      "id": "4dfea2b2-d02c-4c2e-ba8c-97b12b97edae",
-      "name": "Write plan hours to Workload DB",
-      "credentials": {
-        "notionApi": {
-          "id": "8",
-          "name": "Etcetera Bot"
         }
       }
     },
@@ -534,11 +745,12 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $json  }}",
+                    "id": "59172007-ca38-433e-ac5a-66dcdd25cc16",
+                    "leftValue": "={{ $json &&  $(  'Discord Webhook').item.json.body.command.includes(\"check_channel\")}}",
                     "rightValue": "",
                     "operator": {
-                      "type": "object",
-                      "operation": "notEmpty",
+                      "type": "boolean",
+                      "operation": "true",
                       "singleValue": true
                     }
                   }
@@ -546,7 +758,7 @@
                 "combinator": "and"
               },
               "renameOutput": true,
-              "outputKey": "all good"
+              "outputKey": "check_channel"
             },
             {
               "conditions": {
@@ -559,12 +771,11 @@
                 "conditions": [
                   {
                     "id": "bc2d2a65-260a-4393-aec7-63caf1d37a5c",
-                    "leftValue": "={{ $json && $(  'Discord Webhook').item.json.body.message.includes(\"!register\")}}",
-                    "rightValue": "",
+                    "leftValue": "={{ $('Discord Webhook').item.json.body.command }}",
+                    "rightValue": "register",
                     "operator": {
-                      "type": "boolean",
-                      "operation": "true",
-                      "singleValue": true
+                      "type": "string",
+                      "operation": "startsWith"
                     }
                   }
                 ],
@@ -584,12 +795,11 @@
                 "conditions": [
                   {
                     "id": "a0a8e7d1-d733-4d77-b1a9-c857115321b8",
-                    "leftValue": "={{ $json && $(  'Discord Webhook').item.json.body.message.includes(\"!unregister\")}}",
-                    "rightValue": "",
+                    "leftValue": "={{ $('Discord Webhook').item.json.body.command }}",
+                    "rightValue": "unregister",
                     "operator": {
-                      "type": "boolean",
-                      "operation": "true",
-                      "singleValue": true
+                      "type": "string",
+                      "operation": "startsWith"
                     }
                   }
                 ],
@@ -597,6 +807,31 @@
               },
               "renameOutput": true,
               "outputKey": "unregister"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json && !$(  'Discord Webhook').item.json.body.message.includes(\"register\") && !$(  'Discord Webhook').item.json.body.message.includes(\"unregister\")}}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "f7a6ec18-5367-4c24-a877-325fb69b5e07"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "all good"
             }
           ]
         },
@@ -630,7 +865,7 @@
             {
               "key": "Name|title",
               "condition": "contains",
-              "titleValue": "={{ $('Discord Webhook').item.json.body.message.substring(33) }}"
+              "titleValue": "={{ $('Discord Webhook').item.json.body.result.text }}"
             }
           ]
         },
@@ -639,17 +874,19 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        2860,
-        1680
+        2900,
+        2400
       ],
       "id": "3f803e54-8bbf-4a2d-81d1-fdcec9b7f4d8",
       "name": "Notion search TD",
+      "alwaysOutputData": true,
       "credentials": {
         "notionApi": {
           "id": "8",
           "name": "Etcetera Bot"
         }
-      }
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -677,8 +914,8 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        3280,
-        1680
+        3300,
+        2560
       ],
       "id": "8bd62cf0-006c-4acc-ba42-c52fcd4fc1ea",
       "name": "Notion add ID, Channel ID",
@@ -691,18 +928,60 @@
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={\n  \"output\": \"Канал зарєстровано. Дякую <@{{$('Discord Webhook').item.json.body.userId}}> \"\n}",
+        "respondWith": "allIncomingItems",
         "options": {}
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        3480,
-        1680
+        3900,
+        2400
       ],
       "id": "6c1f634e-ff4f-4ff6-abfe-82664c323f29",
       "name": "Respond  Registred"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "https://www.notion.so/01e5b4b3d6eb4ad69262008ddc5fa5e4",
+          "mode": "url"
+        },
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Name|title",
+              "condition": "contains",
+              "titleValue": "Safonov"
+            },
+            {
+              "key": "Week|formula",
+              "condition": "equals",
+              "returnType": "number",
+              "numberValue": 1
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        5740,
+        1860
+      ],
+      "id": "62ffd9d8-57aa-45ac-89f9-c822c98194ae",
+      "name": "Notion1",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
     },
     {
       "parameters": {
@@ -739,8 +1018,8 @@
       "type": "n8n-nodes-base.notionTool",
       "typeVersion": 2.2,
       "position": [
-        3820,
-        1960
+        4240,
+        2100
       ],
       "id": "f82d48e9-8eec-4065-b784-44b697bd6812",
       "name": "Update channel to Team directory",
@@ -766,9 +1045,9 @@
         "filters": {
           "conditions": [
             {
-              "key": "Name|title",
+              "key": "Discord channel ID|rich_text",
               "condition": "contains",
-              "titleValue": "={{ $('Discord Webhook').item.json.body.message.substring(33) }}"
+              "richTextValue": "={{ $('Discord Webhook').item.json.body.channelId }}"
             }
           ]
         },
@@ -777,11 +1056,12 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        2860,
+        3020,
         1860
       ],
       "id": "661272cd-def8-4102-af54-66829752d02d",
       "name": "Notion search TD1",
+      "alwaysOutputData": true,
       "credentials": {
         "notionApi": {
           "id": "8",
@@ -815,7 +1095,7 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        3280,
+        3480,
         1860
       ],
       "id": "f562e4c3-684e-4a1b-bcdf-2dd38cd38708",
@@ -829,14 +1109,13 @@
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={\n  \"output\": \"Канал більше не зарєстрований. Дякую <@{{$('Discord Webhook').item.json.body.userId}}> \"\n}",
+        "respondWith": "allIncomingItems",
         "options": {}
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        3480,
+        3860,
         1860
       ],
       "id": "7902b0eb-9293-4489-88c5-aecbe8a75f3a",
@@ -890,8 +1169,8 @@
       "type": "n8n-nodes-base.notionTool",
       "typeVersion": 2.2,
       "position": [
-        4060,
-        840
+        4240,
+        340
       ],
       "id": "5625d679-7bc5-4b33-9a50-8bd1b303d532",
       "name": "Get DB page",
@@ -917,8 +1196,8 @@
       "type": "n8n-nodes-base.notionTool",
       "typeVersion": 2.2,
       "position": [
-        3940,
-        840
+        4520,
+        680
       ],
       "id": "1acbd227-2518-4042-958f-52590a3226d0",
       "name": "Notion get Page",
@@ -969,8 +1248,8 @@
       "type": "n8n-nodes-base.notionTool",
       "typeVersion": 2.2,
       "position": [
-        3800,
-        840
+        3980,
+        340
       ],
       "id": "c0b068ca-9e64-4b32-9c35-ed1d71005af2",
       "name": "Get Team directory by Channel or name",
@@ -990,27 +1269,12 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        3980,
-        560
+        4160,
+        60
       ],
       "id": "95870139-5f48-4d7a-bc9e-893a5d9ae57b",
-      "name": "Etcetera AI Agent"
-    },
-    {
-      "parameters": {
-        "content": "## Calendar tools\n",
-        "height": 380,
-        "width": 500,
-        "color": 5
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        4320,
-        1700
-      ],
-      "typeVersion": 1,
-      "id": "4dd985cf-ece8-44cf-8a38-a2e9820cc1ec",
-      "name": "Sticky Note3"
+      "name": "Etcetera AI Agent",
+      "disabled": true
     },
     {
       "parameters": {
@@ -1021,8 +1285,8 @@
       "type": "n8n-nodes-base.notionTool",
       "typeVersion": 2.2,
       "position": [
-        3780,
-        1000
+        3960,
+        500
       ],
       "id": "4569c15e-bf10-4f59-a032-41598cf6b79c",
       "name": "Notion search page",
@@ -1050,8 +1314,8 @@
       "type": "n8n-nodes-base.notionTool",
       "typeVersion": 2.2,
       "position": [
-        3940,
-        1020
+        4120,
+        520
       ],
       "id": "f48cfe58-a8c5-484d-88fb-db9e3fa51fa6",
       "name": "Notion get pages from DB",
@@ -1064,6 +1328,290 @@
     },
     {
       "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Додавання незавершених кроків опитування для тестування\nINSERT INTO public.n8n_survey_steps_missed (session_id, step_name, completed) \nVALUES \n('1348252644866654228', 'workload_today', false),\n('1348252644866654228', 'workload_nextweek', false),\n('1348252644866654228', 'connects', false);\n\n-- Додавання завершених кроків для повноти тестування\nINSERT INTO public.n8n_survey_steps_missed (session_id, step_name, completed) \nVALUES \n('1348252644866654228', 'day_off_nextweek', true);\n\n-- Перевірка доданих даних\nSELECT * FROM public.n8n_survey_steps_missed \nWHERE session_id = '1348252644866654228';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        4940,
+        2360
+      ],
+      "id": "c6228cf2-26a3-4869-901b-a1d3bf59b103",
+      "name": "Postgres",
+      "credentials": {
+        "postgres": {
+          "id": "11",
+          "name": "n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 30 10,14 * * 1-5"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        1420,
+        1860
+      ],
+      "id": "bc6ee9ac-0154-462b-b162-b43f64a6cdf2",
+      "name": "Schedule Trigger1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "n8n_survey_steps_missed",
+          "mode": "list",
+          "cachedResultName": "n8n_survey_steps_missed"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "session_id",
+              "value": "={{ $('Discord Webhook').item.json.body.channelId }}"
+            },
+            {
+              "column": "completed",
+              "value": "False "
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3080,
+        1640
+      ],
+      "id": "261163cf-aab7-4218-9392-49c55f2d2d97",
+      "name": "Postgres get steps",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "11",
+          "name": "n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord-bot.etcetera.agency/start_survey",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "userId",
+              "value": "={{ $json.property_discord_id }}"
+            },
+            {
+              "name": "channelId",
+              "value": "={{ $json.property_discord_channel_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1900,
+        1880
+      ],
+      "id": "8fe0200c-2078-4cd8-9160-5de8b75ef789",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "4kBiCK8XaIcjZNAG",
+          "name": "zite"
+        },
+        "httpHeaderAuth": {
+          "id": "CumNb9VRPUmBMX0w",
+          "name": "Discord"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst dow = (now.getDay() + 6) % 7;                // Monday=0…Sunday=6\nconst startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow, 0, 0, 0, 0);\n\nconst names = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];\nconst today = names[now.getDay()];\nconst sched = {\n  Monday:    ['workload_today','workload_nextweek','connects_thisweek'],\n  Tuesday:   ['workload_today'],\n  Wednesday: ['workload_today'],\n  Thursday:  ['workload_today'],\n  Friday:    ['workload_today','day_off_nextweek'],\n  Saturday:  [],\n  Sunday:    []\n};\n\nconst items = $input.all() || [];\nconst todayStr = now.toDateString();\n\n// 1) Початкові кроки без тих, що completed=true і оновлені сьогодні\nlet steps = (sched[today] || []).filter(step => {\n  const rec = items.find(i => i.json.step_name === step);\n  return !(rec && rec.json.completed && new Date(rec.json.updated).toDateString() === todayStr);\n});\n\n// 2) Додати ті, що completed=false й оновлені цього тижня\nitems.forEach(({ json: { step_name, completed, updated } }) => {\n  const upd = new Date(updated);\n  if (!completed && upd >= startOfWeek && !steps.includes(step_name)) {\n    steps.push(step_name);\n  }\n});\n\nreturn [{ json: { output: true, steps: [...new Set(steps)] } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3260,
+        1640
+      ],
+      "id": "9a2ae4f1-80a1-47cb-82ac-d0f57bd08210",
+      "name": "Code"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        1420,
+        2160
+      ],
+      "id": "e16a9719-e3d1-45f2-9df1-f314ab67bf12",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1220,
+        2440
+      ],
+      "id": "c8862b8c-897d-41c6-9a98-6bd0cce5f5c2",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        4220,
+        1520
+      ],
+      "id": "ceb4f3d2-9f69-4c85-97d4-f6ff0c338926",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "66NKbM9sHQMwh3Gw",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "deepseek-r1-distill-llama-70b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        4040,
+        180
+      ],
+      "id": "7bf363fc-c9e1-400a-b914-e80fd5f73e2d",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "66NKbM9sHQMwh3Gw",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3480,
+        1640
+      ],
+      "id": "b9e831b4-9007-42a8-8938-bae953aa7c93",
+      "name": "Respond chanel found"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b749f50a-c1f4-4830-b473-79496804212e",
+              "name": "request.command",
+              "value": "={{ $('Discord Webhook').item.json.body.command }}",
+              "type": "string"
+            },
+            {
+              "id": "7d34dc3c-3bcf-4c5a-a141-3ef998187d22",
+              "name": "request.status",
+              "value": "={{ $('Discord Webhook').item.json.body.status }}",
+              "type": "string"
+            },
+            {
+              "id": "b2d3f18e-4b40-46b8-8c51-d47d9bc8afee",
+              "name": "request.result",
+              "value": "={{ $('Discord Webhook').item.json.body.result }}",
+              "type": "object"
+            },
+            {
+              "id": "4426836c-f6e7-4795-ae42-237afc2af563",
+              "name": "user.name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "fb5b3d8d-edee-4c3f-8a52-98adf962d2a9",
+              "name": "user.to_do",
+              "value": "={{ $json.property_to_do }}",
+              "type": "string"
+            },
+            {
+              "id": "e24377ad-06ea-482c-9437-7c5ba3fe084c",
+              "name": "user.discord_id",
+              "value": "={{ $('Discord Webhook').item.json.body.userId }}",
+              "type": "string"
+            },
+            {
+              "id": "0a577e79-6dce-4ea4-a27b-555db5d89e12",
+              "name": "user.discord_channel_id",
+              "value": "={{ $('Discord Webhook').item.json.body.channelId }}",
+              "type": "string"
+            },
+            {
+              "id": "9a16a053-7add-4740-951e-0ce4d3fc58ca",
+              "name": "time_date_now",
+              "value": "={{$now}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3780,
+        1220
+      ],
+      "id": "dd61f5c0-1906-4508-9598-de3ea3ea7000",
+      "name": "Set"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Update Survey step status in DB",
         "operation": "upsert",
         "schema": {
           "__rl": true,
@@ -1080,13 +1628,14 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "completed": "={{ $fromAI(\"completed\", \"true if completed, false if incompleted\") }}",
-            "id": 0,
+            "completed": "={{ $fromAI(\"completed\", \"true if completed, false if incompleted\", boolean) }}",
             "session_id": "={{ $('Discord Webhook').item.json.body.channelId }}",
-            "step_name": "={{ $fromAI(\"step_name\") }}"
+            "step_name": "={{ $fromAI(\"step_name\", \"Step name\", string) }}",
+            "updated": "={{ $now }}"
           },
           "matchingColumns": [
-            "id"
+            "session_id",
+            "step_name"
           ],
           "schema": [
             {
@@ -1097,7 +1646,7 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": true,
-              "removed": false
+              "removed": true
             },
             {
               "id": "session_id",
@@ -1106,7 +1655,8 @@
               "defaultMatch": false,
               "display": true,
               "type": "string",
-              "canBeUsedToMatch": true
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
               "id": "step_name",
@@ -1115,7 +1665,8 @@
               "defaultMatch": false,
               "display": true,
               "type": "string",
-              "canBeUsedToMatch": true
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
               "id": "completed",
@@ -1135,6 +1686,16 @@
               "type": "dateTime",
               "canBeUsedToMatch": false,
               "removed": true
+            },
+            {
+              "id": "updated",
+              "displayName": "updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -1145,17 +1706,902 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.5,
       "position": [
-        4980,
-        1700
+        4960,
+        1820
       ],
       "id": "fa44d1e2-bbea-4f8b-a30a-a1ed25da3a45",
-      "name": "insert survey step status",
+      "name": "Survey_step_status",
       "credentials": {
         "postgres": {
           "id": "11",
           "name": "n8n"
         }
       }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $fromAI(\"url\") }}",
+          "mode": "url"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Connects|number",
+              "numberValue": "={{ $fromAI('connects', `connects value`, 'number') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        4420,
+        1920
+      ],
+      "id": "0ff5bd22-fb0a-4bf5-8b78-63d3a3d7c249",
+      "name": "Write_connects_to_Profile_stats_DB",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+      "typeVersion": 1,
+      "position": [
+        4220,
+        1320
+      ],
+      "id": "7b0013c9-9a2e-4eaf-ae48-962ee2968767",
+      "name": "Mistral Cloud Chat Model",
+      "credentials": {
+        "mistralCloudApi": {
+          "id": "XGOGSbmAME8C4IOd",
+          "name": "Mistral Cloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://www.notion.so/01e5b4b3d6eb4ad69262008ddc5fa5e4",
+          "__regex": "(?:https|http)://www\\.notion\\.so/(?:[a-z0-9-]{2,}/)?(?:[a-zA-Z0-9-]{1,}-)?([0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12})"
+        },
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Name|title",
+              "condition": "contains",
+              "titleValue": "={{ $fromAI(\"name\") }}"
+            },
+            {
+              "key": "Week|formula",
+              "condition": "equals",
+              "returnType": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        4600,
+        1740
+      ],
+      "id": "eb46b01c-a39b-457f-ac69-0a62e69acdaa",
+      "name": "Get_Workload_DB_by_name",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Database_Page', `url from Get_Workload_DB_by_name`, 'string') }}",
+          "mode": "url"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "={{ $fromAI(\"day_field\", \"corresponding day plan \" ,string) }}|number",
+              "numberValue": "={{ $fromAI(\"hours\", \"hours to add\", number) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        4600,
+        1940
+      ],
+      "id": "4dfea2b2-d02c-4c2e-ba8c-97b12b97edae",
+      "name": "Write_plan_hours_to_Workload_DB",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $fromAI(\"url\") }}",
+          "mode": "url"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Capacity|number",
+              "numberValue": "={{$fromAI(\"capacity\", \"this week capacity\", number)}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        4600,
+        2120
+      ],
+      "id": "dc390f5e-e7ac-4efa-8e9e-4e4f59f6bc7b",
+      "name": "Write_capacity_to_Workload_DB",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7113e573-923e-4c57-8d78-8cd94a7bddfa",
+          "mode": "list",
+          "cachedResultName": "Team Directory",
+          "cachedResultUrl": "https://www.notion.so/7113e573923e4c578d788cd94a7bddfa"
+        },
+        "limit": 2,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Discord channel ID|rich_text",
+              "condition": "is_not_empty"
+            },
+            {
+              "key": "out of Team now|checkbox",
+              "condition": "equals"
+            },
+            {
+              "key": "Roles|multi_select",
+              "condition": "contains",
+              "multiSelectValue": "FL"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1660,
+        1880
+      ],
+      "id": "55fc26b6-3de1-4e59-9bf7-b081df0df4d0",
+      "name": "Notion get user",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "guildId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "channelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        1300
+      ],
+      "id": "ba6378df-e195-43fe-b0bb-54e48f97a852",
+      "name": "Discord",
+      "webhookId": "e6c9b2c0-2341-4bfb-8c59-7e10dde21b43",
+      "credentials": {
+        "discordBotApi": {
+          "id": "6R3T7EiqKTddrnOx",
+          "name": "Discord Bot account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const raw = item.json.output;\n  const topSurvey = item.json.survey;\n\n  // Helper to build the result, adding survey only if defined\n  const makeResult = (out, survey) => {\n    const res = { output: out };\n    if (survey !== undefined) {\n      res.survey = survey;\n    }\n    return res;\n  };\n\n  // 1) If it's already an object with its own `.output`, unwrap it:\n  if (raw && typeof raw === 'object' && raw.output !== undefined) {\n    let out = raw.output;\n    // flatten one-deep arrays of {output:…}\n    if (\n      Array.isArray(out) &&\n      out.length === 1 &&\n      out[0] &&\n      typeof out[0] === 'object' &&\n      out[0].output !== undefined\n    ) {\n      out = out[0].output;\n    }\n    return makeResult(out, raw.survey);\n  }\n\n  // 2) Otherwise coerce to string and strip any ```json…``` fences:\n  let inputStr = (typeof raw === 'string' ? raw : '').trim();\n  const fenceRx = /^`{1,3}json\\s*([\\s\\S]*?)\\s*`{1,3}$/;\n  const m = inputStr.match(fenceRx);\n  if (m) inputStr = m[1].trim();\n\n  // 3) Try JSON.parse, fallback to the raw string on failure:\n  try {\n    const parsed = JSON.parse(inputStr);\n\n    // If the parsed value is an object with .output, unwrap that too:\n    if (parsed && typeof parsed === 'object' && parsed.output !== undefined) {\n      let out = parsed.output;\n      if (\n        Array.isArray(out) &&\n        out.length === 1 &&\n        out[0] &&\n        typeof out[0] === 'object' &&\n        out[0].output !== undefined\n      ) {\n        out = out[0].output;\n      }\n      return makeResult(out, parsed.survey);\n    }\n\n    // Otherwise it's some other JSON (array, primitive, etc.)\n    return makeResult(parsed, parsed.survey);\n  } catch {\n    // Not valid JSON → return the plain string, no survey\n    return { output: inputStr };\n  }\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6240,
+        1180
+      ],
+      "id": "66b1f961-8bbf-4e68-a803-7f8fe84b1a77",
+      "name": "toJSON"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Send_connects_to_db",
+        "method": "POST",
+        "url": "https://tech.etcetera.kiev.ua:3978/api/set-db-connects",
+        "sendBody": true,
+        "parametersBody": {
+          "values": [
+            {
+              "name": "name"
+            },
+            {
+              "name": "connects"
+            }
+          ]
+        },
+        "optimizeResponse": true,
+        "responseType": "text",
+        "truncateResponse": true,
+        "maxLength": "={{ 2 }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        5100,
+        1740
+      ],
+      "id": "f0887f4b-a23e-4433-acce-2e4eae0cd58c",
+      "name": "Send_connects_to_db"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"output\": {\n      \"type\": \"string\",\n      \"minLength\": 5\n    },\n    \"survey\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\"output\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        5200,
+        1420
+      ],
+      "id": "9291bfa9-614e-4ae0-8052-e1e4037790cf",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e062c6f2-48b1-44d5-9269-73f5e7c4e011",
+                    "leftValue": "={{ ['1362662345737769101', '1348253056097189908', '1348274077978202153', '1348273069466189977'].includes($json.property_discord_channel_id.toString()) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Public Chanel"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9cd096eb-80b3-4b7b-b34f-278f55187db6",
+                    "leftValue": "={{ $json.property_discord_channel_id }}",
+                    "rightValue": "^\\d{19}$",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Already"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        3140,
+        2400
+      ],
+      "id": "e65b0341-e8e4-45e3-b2b5-647ded2a7e3a",
+      "name": "Check register"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b39c785d-46d4-41be-aaec-c8c76b2125b4",
+              "name": "output",
+              "value": "=Канал успішно зареєстровано на {{ $json.property_name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3520,
+        2560
+      ],
+      "id": "7e3b0ccc-d9fe-4d23-95d4-9d33a493b80c",
+      "name": "Register"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3cd471c0-84db-4f1b-8859-ee37a78c06df",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3240,
+        1860
+      ],
+      "id": "59dfb365-0e79-4124-ba60-65ae2cf44e64",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "615e8e59-28d6-4bdd-8521-4124b307bea6",
+              "name": "output",
+              "value": "Канал вже зареєстрований на когось іншого. ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3520,
+        2280
+      ],
+      "id": "7c165805-7810-4d3f-ac6e-5d460e7018b6",
+      "name": "already Registred"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "615e8e59-28d6-4bdd-8521-4124b307bea6",
+              "name": "output",
+              "value": "Вибачте, але цей канал не зареєстрований ні на кого. Тому не можу зняти його з реєстрації",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3540,
+        2040
+      ],
+      "id": "332093f3-17e8-43c5-bd83-6ac50f8aa8cb",
+      "name": "already NOT registered"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "615e8e59-28d6-4bdd-8521-4124b307bea6",
+              "name": "output",
+              "value": "Готово. Тепер цей канал не зареєстрований ні на кого. ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3660,
+        1840
+      ],
+      "id": "af28cfd1-6f57-4c52-923a-db0f1d15bb5e",
+      "name": "already NOT registered1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3d5e75a1-e977-4a91-9aa5-3f838cd17ec8",
+              "name": "output",
+              "value": "=Я ще не вмію вільно розмовляти. Використовуй слеш команди <@{{$('Discord Webhook').item.json.body.userId}}>",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4740,
+        60
+      ],
+      "id": "779e0252-336f-4099-bbc1-034ddb3529c3",
+      "name": "Bot reply"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM n8n_survey_steps_missed",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        5180,
+        2400
+      ],
+      "id": "85aec9ba-57f7-45a0-98e4-16cfceec1534",
+      "name": "delete all",
+      "credentials": {
+        "postgres": {
+          "id": "11",
+          "name": "n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord-bot.etcetera.agency/start_survey",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "userId",
+              "value": "={{ $json.property_discord_id }}"
+            },
+            {
+              "name": "channelId",
+              "value": "={{ $json.property_discord_channel_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1900,
+        2160
+      ],
+      "id": "8a2bdcab-4718-4a2c-ad69-c9cc6a654fca",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "4kBiCK8XaIcjZNAG",
+          "name": "zite"
+        },
+        "httpHeaderAuth": {
+          "id": "CumNb9VRPUmBMX0w",
+          "name": "Discord"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7113e573-923e-4c57-8d78-8cd94a7bddfa",
+          "mode": "list",
+          "cachedResultName": "Team Directory",
+          "cachedResultUrl": "https://www.notion.so/7113e573923e4c578d788cd94a7bddfa"
+        },
+        "limit": 2,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Discord channel ID|rich_text",
+              "condition": "is_not_empty"
+            },
+            {
+              "key": "out of Team now|checkbox",
+              "condition": "equals"
+            },
+            {
+              "key": "Name|title",
+              "condition": "contains",
+              "titleValue": "Safonov"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1660,
+        2160
+      ],
+      "id": "6844ae52-0ca3-4466-b3ae-69ae3886cb22",
+      "name": "Notion get user1",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "https://www.notion.so/etcetera/501c314abddb45bfb35d91a217d709d8?v=f22acd6b1b1f4697bdab81734f86301a&pvs=4",
+          "mode": "url"
+        },
+        "limit": 2,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Name|title",
+              "condition": "equals",
+              "titleValue": "Denys Safonov"
+            },
+            {
+              "key": "Week|formula",
+              "condition": "equals",
+              "returnType": "number",
+              "numberValue": 1
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        4200,
+        1780
+      ],
+      "id": "9f4f9f7f-e9ad-421e-bfa3-bd56682c554b",
+      "name": "Notion2",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Find in Profile Stats db record by name",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "501c314a-bddb-45bf-b35d-91a217d709d8",
+          "mode": "list",
+          "cachedResultName": "Profile stats",
+          "cachedResultUrl": "https://www.notion.so/501c314abddb45bfb35d91a217d709d8"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Name|title",
+              "condition": "contains",
+              "titleValue": "={{ $fromAI(\"name\") }}"
+            },
+            {
+              "key": "Week|formula",
+              "condition": "equals",
+              "returnType": "number",
+              "numberValue": 1
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        4420,
+        1760
+      ],
+      "id": "0d37d078-44a0-44ad-b350-a4d640839a17",
+      "name": "Get_Profile_stats_DB_by_name",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.n8n_survey_steps_missed \nWHERE session_id = '1348252644866654228';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        5000,
+        2620
+      ],
+      "id": "060dfb40-ca7d-4969-a68e-b55126b1f15c",
+      "name": "Postgres1",
+      "credentials": {
+        "postgres": {
+          "id": "11",
+          "name": "n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "n8n_survey_steps_missed",
+          "mode": "list",
+          "cachedResultName": "n8n_survey_steps_missed"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "session_id",
+              "value": "=1348252644866654228"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        5340,
+        2620
+      ],
+      "id": "b1a06d9b-778d-4ea3-bfb4-cc808d1233e9",
+      "name": "Postgres get steps1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "11",
+          "name": "n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "block",
+        "operation": "getAll",
+        "blockId": {
+          "__rl": true,
+          "value": "https://www.notion.so/473c33a2308d464bbe8ea86e1a926fc8",
+          "mode": "url"
+        },
+        "limit": 100,
+        "fetchNestedBlocks": true,
+        "simplifyOutput": false
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        5760,
+        2080
+      ],
+      "id": "362028aa-2c77-4603-8930-604354de0155",
+      "name": "Notion3",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        5980,
+        2080
+      ],
+      "id": "9fab6415-011e-41e0-ad84-59bcf7db6b9c",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "options": {
+          "prompt": "Instructions:\n--------------\n{instructions}\n--------------\nCompletion:\n--------------\n{completion}\n--------------\n\nAbove, the Completion did not satisfy the constraints given in the Instructions.\nError:\n--------------\n{error}\n--------------\n\nPlease try again. Please only respond with an answer that satisfies the constraints laid out in the Instructions:"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        5320,
+        1420
+      ],
+      "id": "70c365a5-f0c0-4bb6-9505-e5e03ed99d0c",
+      "name": "Auto-fixing Output Parser",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        5020,
+        1420
+      ],
+      "id": "116e7974-4206-47c7-9bae-7fb377549434",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "vnHxdCZ1hQ9Frchg",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=current time/date: {{ $now }}\nday today: {{ ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date($today).getDay()] }}\nuser_ID/discord_ID : {{ $json.user.discord_id }}\nrequest.command : {{ $json.request.command }}\nrequest.status : {{ $json.request.status }}\nrequest.result : {{ JSON.stringify($json.request.result) }}\nuser.name : {{ $json.user.name }}\nuser.todo_page_url : {{ $json.user.to_do }}\n",
+        "options": {
+          "systemMessage": "=<AgentInstructions>\n\n  <Role>\n    <Name>Discord AI Agent</Name>\n    <Description>\n      Discord-n8n AI assistant handling commands and surveys for the Etcetera workflow. \n      Processes requests, uses tools for get info/write to notion or calender interactionaly, use Survey_step_status tool if described in instruction, and returns JSON responses. \n      Primary responsibilities:\n      1. Update workloads, connects, and manage time-off.\n      2. Track ToDos, remind of incomplete tasks.\n      3. Always respond in Ukrainian.\n      4. Maintain valid JSON format (critical) and not empty.\n    </Description>\n  </Role>\n\n  <Tools>\n    - Send_connects_to_db (name|String, connects|Number)\n    - Get_Workload_DB_by_name (name|string)\n    - Get_Profile_stats_DB_by_name (name|string)\n\t- Write_plan_hours_to_Workload_DB (url|string, hours|number)\n    - Write_connects_to_Profile_stats_DB (url|string, connects|number)\n    - Write_capacity_to_Profile_stats_DB { url|string, capacity|number}\n    - Survey_step_status (step_name|string, status|boolean)\n    - Create Day-off or Vacation (summary|string, startday|string, endday|string)    \n    \n  </Tools>\n\n  <Instructions>\n\n    <Responce Instruction>      \n      ## 🔄 Response Guidelines\n      - 📋 **Core**: Keep responses concise, acknowledge updates, express gratitude, confirm actions.\n      - 🇺🇦 **Lang**: Always respond in Ukrainian.\n      - 📝 **Templates**:\n         - **Workload**: \"Записав! \\nЗаплановане навантаження у [день тиждня]: [hours] год. \\nВ щоденнику з понеділка до [day today]: [user.property_fact] год.\\nКапасіті на цей тиждень: [user.property_capasity] год.\"\n         - **Workload**: \"Записав! \\nЗаплановане навантаження у понеділок: [hours] год. \\nКапасіті: [user.capasity] год.\"\n         **Workload**: \"Записав! \\nЗаплановане навантаження на наступний тиждень: [hours] год.\"\n         - **Connects**: \"Записав! Upwork connects: залишилось [connects] на цьому тиждні.\"\n         - **Vacation**: \"Записав! Відпустка: 01.05.2025-15.05.2025 записана.\"\n         - **Day-off**: \"Вихідні: [Day1 of the week] [ DD.MM.YYYY], [Day2 of the week] [ DD.MM.YYYY] записані.\\nНе забудь попередити клієнтів. \"\n         - **Day-off**: \"Вихідний: [Day of the week] [ DD.MM.YYYY] записан. Не забудь попередити клієнтів.\"\n         - **Day-off w**: \"Записав! Не плануюєш вихідні.\"\n        - **Workload Nothing**: \"Дякую!\"\n         - **Survey**: \"Дякую! [підсумок]\\n\\nToDo:\\n1. [завдання1]\\n2. [завдання2]\"\n      \n      ## 📊 JSON Formats\n      - Any command: `{\"output\": \"Дякую! [деталі дії]\"}`  \n      - **Survey_step**: `{\"output\": \"Записав! [деталі кроку]\", \"survey\": \"continue\"}`  \n      - **Survey_end**: `\"{\"output\": \"Дякую! [деталі кроку]\\n\\nДо завтра!\"}`}`  \n      - **Error**: `{\"output\": \"Помилка: [проблема]. [деталі помилки].\"}`\n\n      ## 📥 Input Structure\n      - **Msg**: `{userId, username, channelId, message, command: null}`\n      - **Cmd**: `{userId, username, channelId, command, params: {k: v}}`\n      - **Survey_step**: `{userId, username, channelId, command, status: \"step\", step, value, survey_data}`\n      - **Survey_end**: `{userId, username, channelId, command, status: \"end\", result: {step: value}}`\n    </Responce Instruction>\n      \n\n<Command Handling Instruction>      \n         <Command> request.command is workload_*\n         0. Check day of the week today \nif Sat or Sun so just {output: \"Зрозумів!\" } and do not use any else tools or Do not Invoke \"Survey_step_status\" \nelse\n         1. Invoke \"Get_Workload_DB_by_name\" with { \"name\": user.Name }\n         2. extract 'responce.url' from json.response.[\"0\"].url and 'user.capasity' from json.response.[\"0\"].capacity and 'user.fact' from json.response.[\"0\"].fact\n         3. Invoke \"Use_Write_plan_hours_to_Workload_DB\" with {\"url\" : value responce.url,  \n\t\t- If request.command=workload_today -> day_field= \"Mon Plan\" if today=Monday, \"Tue Plan\" if today=Tuesday, \"Wed Plan\" if today=Wednesday, \"Thu Plan\" if today=Thusday, \"Fri Plan\" if today=Friday, \"hours\": hours value from request.result\n\t\t- If request.command=workload_nextweek -> day_field= \"Next week plan\" , \"hours\": hours value from request.result}\n\t 3. if  \"Use_Write_plan_hours_to_Workload_DB\" was successfull -> Invoke \"Survey_step_status\" tool with step_name=request.command and status = true\n         </Command>\n\n         <Command> request.command is connects_thisweek\n 1. Invoke \"Send_connects_to_db\" with { \"name\": user.name, \"connects\": request.result.connects }\n 2. Invoke \"Survey_step_status\" with { \"step_name\":request.command, \"status\" = true }  \n 3. Invoke \"Get_Profile_stats_DB_by_name\" with {\"name\": user.name} and Extract `responce.url` from json.response.[\"0\"].url if responce = [] return \"Skip step 4\"\n 4. Invoke \"Write_connects_to_Profile_stats_DB\" with { \"url\": responce.url, \"connects\": request.result.connects }\n\t        \n         </Command>\n \n         <Command> request.command is day off_nextweek\n\t      0. extract from request.result days mentioned\n          if request.result has value \"Nothing\" -> Do not Invoke \"Survey_step_status\" and return [Day-off Nothing]  -> Invoke \"Survey_step_status\" with { \"step_name\":request.command, \"status\" = true }  \n          else  \n          1. Invoke \"Create Day-off or Vacation\" for each day mentioned with { starttime, endtime, \"summary\" : \"Day-off: [user.name]\"  }\n           - Use starttime as \"YYYY-MM-DD\" of the one day mentioned \n           - Use endtime as \"YYYY-MM-DD\" of the one day mentioned \n          2. Invoke \"Survey_step_status\" with { \"step_name\":request.command, \"status\" = true }\n             \n         </Command>\n\n <Command> request.command is day_off_thisweek\n\t      0. extract from request.result days mentioned\n          if request.result has value \"Nothing\" Do not Invoke \"Survey_step_status\" and return [Day-off Nothing]\n          else  \n          1. Invoke \"Create Day-off or Vacation\" for each day mentioned with { starttime, endtime, \"summary\" : \"Day-off: [user.name]\"  }\n           - Use starttime as \"YYYY-MM-DD\" of the one day mentioned \n           - Use endtime as \"YYYY-MM-DD\" of the one day mentioned \n          2. Invoke \"Get_Workload_DB_by_name\" with { \"name\": user.Name }\n          3. extract responce.url from json.response.[\"0\"].url and user.capasity from json.response.[\"0\"].capacity\n          4. Invoke \"Write_capacity_to_Workload_DB\" with { \"url\": responce.url, \"capacity\" : [user.capacity - user.capacity/5]} \n          5. Do not Invoke \"Survey_step_status\")\n         </Command>\n\n\n\n         <Command> request.command is vacation\n\t       0.extract from request.result start and end dates\n           1. Invoke \"Create Day-off or Vacation\" with { \"starttime\" : \"YYYY-MM-DD 00:00:00\" of the day mentioned as start_date, \"endtime\" \"YYYY-MM-DD 23:59:59\" of the day mentioned as end_date, \"summary\": \"Vacation: [user.name]\"\n\t   2. Use Survey_step_status tool with step_name=request.command and status = true\n\t   3. Do not Invoke \"Survey_step_status\"\n\n         </Command>   \n\n         <Command> request.command is survey\n        If result.status is \"incomplete\" -> (\n\t 1. Invoke \"Survey_step_status\" tool with step_name = request.result.step and status = false\n         2. Return [empty json]  )\n\n\tif request.status: \"step\" \n         1. Use Command Handling Instruction for command with same naming as request.result.stepName\n         2. Return `{\"output\": \"Дякую! [деталі кроку]\", \"survey\": \"continue\"}` \n\n\tif request.status is \"end\" \n         1. Use Command Handling Instruction from command with same naming as step from result\n         2. Return final reply  `{\"output\": \"Дякую! [деталі кроку]\\n\\nДо завтра!\"}`\n         </Command> \n     </Command Handling Instruction>\n\n    </Instruction>\n\n  </Instructions>\n\n  <Goal>\n    <Primary>\n      Streamline scheduling, resource planning (workloads, connects, day-off, vacation), \n      and track tasks for the Discord user. Ensure efficient management of calendars, \n      workloads, and reminders, always returning responses in Ukrainian and in valid JSON.\n    </Primary>\n  </Goal>\n\n</AgentInstructions>",
+          "maxIterations": 10,
+          "returnIntermediateSteps": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        4440,
+        1220
+      ],
+      "id": "fcef244b-f277-4564-9dd0-d5d771a225b9",
+      "name": "AI Agent"
     }
   ],
   "connections": {
@@ -1163,13 +2609,133 @@
       "ai_memory": [
         [
           {
-            "node": "Discord AI Agent",
+            "node": "Etcetera AI Agent",
             "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion get tempate": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion get TD": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Notion add for this week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Notion get TD",
+            "type": "main",
             "index": 0
           },
           {
-            "node": "Etcetera AI Agent",
-            "type": "ai_memory",
+            "node": "Notion get tempate",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Calendar1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Calendar2",
+            "type": "main",
             "index": 0
           }
         ]
@@ -1177,29 +2743,12 @@
     },
     "Discord AI Agent": {
       "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Google Gemini Chat Model1": {
       "ai_languageModel": [
-        [
-          {
-            "node": "Discord AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          },
-          {
-            "node": "Etcetera AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Discord Webhook": {
@@ -1237,50 +2786,12 @@
     },
     "Get Team directory by channel": {
       "ai_tool": [
-        [
-          {
-            "node": "Discord AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Workload DB by name": {
-      "ai_tool": [
-        [
-          {
-            "node": "Discord AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          },
-          {
-            "node": "Etcetera AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Change event": {
       "ai_tool": [
         [
-          {
-            "node": "Etcetera AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Profile stats DB by name": {
-      "ai_tool": [
-        [
-          {
-            "node": "Discord AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          },
           {
             "node": "Etcetera AI Agent",
             "type": "ai_tool",
@@ -1304,34 +2815,12 @@
       "ai_tool": [
         [
           {
-            "node": "Discord AI Agent",
+            "node": "Etcetera AI Agent",
             "type": "ai_tool",
             "index": 0
           },
           {
-            "node": "Etcetera AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Write connects to Profile stats DB": {
-      "ai_tool": [
-        [
-          {
-            "node": "Discord AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Write plan hours to Workload DB": {
-      "ai_tool": [
-        [
-          {
-            "node": "Discord AI Agent",
+            "node": "AI Agent",
             "type": "ai_tool",
             "index": 0
           }
@@ -1342,7 +2831,7 @@
       "main": [
         [
           {
-            "node": "If mention",
+            "node": "Postgres get steps",
             "type": "main",
             "index": 0
           }
@@ -1363,6 +2852,13 @@
         ],
         [
           {
+            "node": "If mention",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Respond not Registred",
             "type": "main",
             "index": 0
@@ -1374,7 +2870,14 @@
       "main": [
         [
           {
-            "node": "Notion add ID, Channel ID",
+            "node": "Check register",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond  Registred",
             "type": "main",
             "index": 0
           }
@@ -1385,7 +2888,7 @@
       "main": [
         [
           {
-            "node": "Respond  Registred",
+            "node": "Register",
             "type": "main",
             "index": 0
           }
@@ -1394,20 +2897,14 @@
     },
     "Update channel to Team directory": {
       "ai_tool": [
-        [
-          {
-            "node": "Discord AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Notion search TD1": {
       "main": [
         [
           {
-            "node": "Notion add ID, Channel ID1",
+            "node": "If",
             "type": "main",
             "index": 0
           }
@@ -1418,7 +2915,7 @@
       "main": [
         [
           {
-            "node": "Respond  Registred1",
+            "node": "already NOT registered1",
             "type": "main",
             "index": 0
           }
@@ -1432,14 +2929,15 @@
             "node": "Etcetera AI Agent",
             "type": "main",
             "index": 0
-          },
+          }
+        ],
+        [
           {
-            "node": "Discord AI Agent",
+            "node": "Set",
             "type": "main",
             "index": 0
           }
-        ],
-        []
+        ]
       ]
     },
     "Get DB page": {
@@ -1484,7 +2982,7 @@
       "main": [
         [
           {
-            "node": "Respond to Webhook",
+            "node": "Bot reply",
             "type": "main",
             "index": 0
           }
@@ -1513,12 +3011,343 @@
         ]
       ]
     },
-    "insert survey step status": {
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Notion get user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres get steps": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Respond chanel found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Notion get user1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Etcetera AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Survey_step_status": {
       "ai_tool": [
         [
           {
-            "node": "Discord AI Agent",
+            "node": "AI Agent",
             "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write_connects_to_Profile_stats_DB": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral Cloud Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Get_Workload_DB_by_name": {
+      "ai_tool": [
+        [
+          {
+            "node": "Etcetera AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write_plan_hours_to_Workload_DB": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write_capacity_to_Workload_DB": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion get user": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "toJSON": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send_connects_to_db": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        []
+      ]
+    },
+    "Check register": {
+      "main": [
+        [
+          {
+            "node": "already Registred",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "already Registred",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notion add ID, Channel ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Register": {
+      "main": [
+        [
+          {
+            "node": "Respond  Registred",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Notion add ID, Channel ID1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "already NOT registered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "already Registred": {
+      "main": [
+        [
+          {
+            "node": "Respond  Registred",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "already NOT registered": {
+      "main": [
+        [
+          {
+            "node": "Respond  Registred1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "already NOT registered1": {
+      "main": [
+        [
+          {
+            "node": "Respond  Registred1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bot reply": {
+      "main": [
+        [
+          {
+            "node": "toJSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion get user1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get_Profile_stats_DB_by_name": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion3": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        []
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        []
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "toJSON",
+            "type": "main",
             "index": 0
           }
         ]
@@ -1533,27 +3362,30 @@
           "x-real-ip": "152.70.187.230",
           "x-forwarded-for": "152.70.187.230",
           "x-forwarded-proto": "https",
-          "connection": "close",
-          "content-length": "314",
+          "connection": "upgrade",
+          "content-length": "320",
           "authorization": "Bearer 3fa85f64-5717-4562-b3fc-2c963f66afa6",
           "accept": "*/*",
           "accept-encoding": "gzip, deflate",
-          "user-agent": "Python/3.10 aiohttp/3.11.12",
+          "user-agent": "Python/3.10 aiohttp/3.9.5",
           "content-type": "application/json"
         },
         "params": {},
         "query": {},
         "body": {
-          "command": "mention",
-          "status": "ok",
-          "message": "<@1347227313636642937> !register Safonov",
-          "result": {},
-          "author": "safonov.denys",
+          "command": "survey",
+          "status": "step",
+          "message": "",
+          "result": {
+            "stepName": "workload_today",
+            "value": 5
+          },
           "userId": "720027389714759751",
-          "sessionId": "dab44d9e-e718-490f-a326-d4fdb70ef0b4",
           "channelId": "1348252644866654228",
+          "sessionId": "1348252644866654228_720027389714759751",
+          "author": "safonov.denys",
           "channelName": "head-denys-safonov",
-          "timestamp": 4720260
+          "timestamp": 1745863318
         },
         "webhookUrl": "https://n8n.etcetera.agency/webhook/discord-bot",
         "executionMode": "production"

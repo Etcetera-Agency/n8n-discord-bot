@@ -161,7 +161,11 @@ class ConfirmButton_survey(discord.ui.Button):
                         logger.debug(f"[{interaction.user.id}] - Attempting to remove processing reaction from command message {view.command_msg.id}")
                         await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                         logger.debug(f"[{interaction.user.id}] - Attempting to edit command message {view.command_msg.id} with success message")
-                        await view.command_msg.edit(content=f"Дякую! Вихідні: {', '.join(dates)} записані.")
+                        output_content = f"Дякую! Вихідні: {', '.join(dates)} записані."
+                        mention_message = " <@734125039955476501> зверніть увагу!"
+                        if mention_message not in output_content:
+                            output_content += mention_message
+                        await view.command_msg.edit(content=output_content)
                     
                     # Delete buttons message
                     if view.buttons_msg:
