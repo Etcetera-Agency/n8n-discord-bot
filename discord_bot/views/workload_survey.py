@@ -32,12 +32,18 @@ class WorkloadButton_survey(discord.ui.Button):
         self.continue_survey_func = continue_survey_func # Add this line
 
     async def _safe_defer_response(self, interaction, user_id):
-        logger.debug(f"[{user_id}] - Checking if interaction.response.is_done() before defer: {interaction.response.is_done()}")
+        logger.debug(f"[{user_id}] - [DEBUG] Entering _safe_defer_response")
+        logger.debug(f"[{user_id}] - Interaction response state: is_done={interaction.response.is_done()}, deferred={getattr(interaction, 'deferred', False)}")
+        
         if not interaction.response.is_done():
+            logger.info(f"[{user_id}] - Deferring interaction response (not done)")
             await interaction.response.defer(ephemeral=False)
-            logger.debug(f"[{user_id}] - Deferred interaction.response")
+            interaction.deferred = True  # Track deferral state
+            logger.debug(f"[{user_id}] - Successfully deferred")
         else:
-            logger.debug(f"[{user_id}] - Interaction.response already done, skipping defer")
+            logger.warning(f"[{user_id}] - Interaction response already completed")
+        
+        logger.debug(f"[{user_id}] - [DEBUG] Exiting _safe_defer_response")
 
     async def callback(self, interaction: discord.Interaction):
         # Extra debug for connects_thisweek step
@@ -103,7 +109,11 @@ class WorkloadButton_survey(discord.ui.Button):
                 return
 
             view = self.view
-            await self._safe_defer_response(interaction, getattr(view, 'user_id', 'unknown'))
+            logger.debug(f"[{view.user_id}] - [DEBUG] Pre-deferral check at line 106")
+            if not getattr(interaction, 'deferred', False):
+                await self._safe_defer_response(interaction, getattr(view, 'user_id', 'unknown'))
+            else:
+                logger.warning(f"[{view.user_id}] - Skipping deferral at line 106 (already deferred)")
 
         except Exception as e:
             logger.error(f"Interaction handling failed: {e}")
@@ -120,7 +130,11 @@ class WorkloadButton_survey(discord.ui.Button):
             # First, acknowledge the interaction to prevent timeout
             try:
                 logger.debug(f"[{view.user_id}] - Attempting to defer interaction response (second check)")
-                await self._safe_defer_response(interaction, view.user_id)
+                logger.debug(f"[{view.user_id}] - [DEBUG] Pre-deferral check at line 123")
+                if not getattr(interaction, 'deferred', False):
+                    await self._safe_defer_response(interaction, view.user_id)
+                else:
+                    logger.warning(f"[{view.user_id}] - Skipping deferral at line 123 (already deferred)")
                 logger.debug(f"[{view.user_id}] - Interaction response deferred (second check)")
             except Exception as e:
                 logger.error(f"[{view.user_id}] - Interaction response error: {e}")
@@ -387,7 +401,13 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
     logger.debug(f"[{user_id}] - After importing WORKLOAD_OPTIONS. WORKLOAD_OPTIONS: {WORKLOAD_OPTIONS}")
     # Add all workload options as buttons, including "Нічого немає"
     try:
-        for hour in WORKLOAD_OPTIONS:
+        # Only add buttons for workload-related commands
+        if self.cmd_or_step in ["workload_today", "workload_nextweek"]:
+            for hour in WORKLOAD_OPTIONS:
+                custom_id = f"workload_button_{hour}_{cmd}_{user_id}"
+                button = WorkloadButton_survey(label=hour, custom_id=custom_id, cmd_or_step=cmd, continue_survey_func=view.continue_survey_func)
+                logger.debug(f"[{user_id}] - Adding button with label: {hour}, custom_id: {custom_id}")
+                view.add_item(button)
             custom_id = f"workload_button_{hour}_{cmd}_{user_id}"
             button = WorkloadButton_survey(label=hour, custom_id=custom_id, cmd_or_step=cmd, continue_survey_func=view.continue_survey_func) # Pass the function
             logger.debug(f"[{user_id}] - Adding button with label: {hour}, custom_id: {custom_id}")

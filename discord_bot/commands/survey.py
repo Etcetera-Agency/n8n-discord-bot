@@ -517,13 +517,13 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
 
                     # Create and send modal
                     logger.info("Creating ConnectsModal instance")
-                    modal_to_send = ConnectsModal(survey=survey, step_name=step_name)
-                    logger.info("Sending ConnectsModal")
-                    await interaction.response.send_modal(modal_to_send)
-                    logger.info("ConnectsModal sent successfully")
+                    modal_to_send = ConnectsModal(survey=survey, step_name=step_name, continue_survey_func=continue_survey) # Pass continue_survey_func
+                    logger.info("Sending ConnectsModal via followup")
+                    await interaction.followup.send_modal(modal_to_send)
+                    logger.info("ConnectsModal sent successfully via followup")
 
                 except discord.errors.InteractionResponded:
-                    logger.error("Interaction already responded to when trying to send modal")
+                    logger.error("Interaction already responded to when trying to send modal via followup")
                     return
                 except Exception as e:
                     logger.error(f"Error in connects_thisweek button callback: {e}", exc_info=True)

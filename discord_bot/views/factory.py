@@ -173,14 +173,21 @@ def create_view(
             return WorkloadNextWeekModal(cmd_or_step, user_id)
         elif view_name == "day_off_nextweek":
             return DayOffNextWeekModal(cmd_or_step, user_id)
-    
+        elif view_name == "connects_thisweek":
+             from .connects_survey import ConnectsModal
+             # Assuming continue_survey_func is available in the scope where create_view is called
+             # and passed down. If not, you might need to adjust how this function is called.
+             return ConnectsModal(cmd_or_step, user_id, continue_survey_func)
+
+    # Handle connects_thisweek slash command case explicitly
+    if cmd_or_step == "connects_thisweek" and not has_survey:
+        logger.debug(f"[{user_id}] - create_view called for connects_thisweek slash command. Returning None as no view is needed.")
+        return None # No view needed for this slash command
+
     # Fall back to button views
-    # Fall back to button views based on specific command/step name
-    if cmd_or_step in ["workload_today", "workload_nextweek", "connects_thisweek"]:
-        logger.debug(f"[{user_id}] - Calling create_workload_view for cmd_or_step: {cmd_or_step}")
-        # Pass has_survey=True and continue_survey_func if available for survey steps
-        # This assumes continue_survey_func is available in the calling context; if not, pass None
-        return create_workload_view(cmd_or_step, user_id, has_survey=True)
+    if cmd_or_step in ["workload_today", "workload_nextweek"]:
+        logger.debug(f"[{user_id}] - Creating workload view for: {cmd_or_step}")
+        return create_workload_view(cmd_or_step, user_id, has_survey=has_survey, continue_survey_func=continue_survey_func)
     elif view_name == "day_off": # Keep existing day_off check
         logger.debug(f"Creating day_off view for {cmd_or_step}, user {user_id}")
         try:
@@ -190,6 +197,5 @@ def create_view(
         except Exception as e:
             logger.error(f"Error creating day_off view: {e}")
             raise
-
     # Default empty view
     return discord.ui.View(timeout=timeout)
