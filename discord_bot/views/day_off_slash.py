@@ -3,7 +3,7 @@ logger = logging.getLogger(__name__)
 import discord # type: ignore
 from typing import Optional, List
 import datetime
-from config import ViewType, logger, constants
+from config import ViewType, logger, constants, Strings
 import asyncio
 
 class DayOffButton_slash(discord.ui.Button):
@@ -147,9 +147,8 @@ class ConfirmButton_slash(discord.ui.Button):
                         if success and data and "output" in data:
                             logger.debug(f"[{interaction.user.id}] - Attempting to edit command message {view.command_msg.id} with output: {data['output']}")
                             output_content = data["output"]
-                            mention_message = " <@734125039955476501> зверніть увагу!"
-                            if view.selected_days and mention_message not in output_content: # Check if any days were selected AND message is not already present
-                                output_content += mention_message
+                            if view.selected_days and Strings.MENTION_MESSAGE not in output_content: # Check if any days were selected AND message is not already present
+                                output_content += Strings.MENTION_MESSAGE
                             await view.command_msg.edit(content=output_content)
                         else:
                             logger.warning(f"[{interaction.user.id}] - Webhook response indicates failure or no output. Editing command message {view.command_msg.id} with error.")

@@ -1,7 +1,7 @@
 import discord
 from typing import Optional, List
 import datetime
-from config import ViewType, logger, constants
+from config import ViewType, logger, constants, Strings
 from services import survey_manager
 import asyncio
 
@@ -162,9 +162,8 @@ class ConfirmButton_survey(discord.ui.Button):
                         await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                         logger.debug(f"[{interaction.user.id}] - Attempting to edit command message {view.command_msg.id} with success message")
                         output_content = f"Дякую! Вихідні: {', '.join(dates)} записані."
-                        mention_message = " <@734125039955476501> зверніть увагу!"
-                        if mention_message not in output_content:
-                            output_content += mention_message
+                        if Strings.MENTION_MESSAGE not in output_content:
+                            output_content += Strings.MENTION_MESSAGE
                         await view.command_msg.edit(content=output_content)
                     
                     # Delete buttons message

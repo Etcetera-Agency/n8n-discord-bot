@@ -48,3 +48,4 @@ class Strings:
     START_SURVEY_BUTTON = "Гайда"
     SURVEY_INPUT_BUTTON_LABEL = "Ввести"
     SURVEY_COMPLETE_MESSAGE = "Всі данні внесені. Дякую!"
+    MENTION_MESSAGE = " <@&734125039955476501> зверніть увагу!"

@@ -1,4 +1,5 @@
 import discord
+from discord import AllowedMentions
 import datetime
 from discord import app_commands
 from discord.ext import commands
@@ -122,7 +123,7 @@ class SlashCommands:
             
             # First send the command usage message and store it
             if not interaction.response.is_done():
-                await interaction.response.send_message(f"<@{interaction.user.id}> {Strings.DAY_OFF_THISWEEK}")
+                await interaction.response.send_message(f"<@{interaction.user.id}> {Strings.DAY_OFF_THISWEEK}", allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
             command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
@@ -148,7 +149,7 @@ class SlashCommands:
                 # First send the command usage message and store it
                 logger.debug("Sending command usage message")
                 if not interaction.response.is_done():
-                    await interaction.response.send_message(f"<@{interaction.user.id}> {Strings.DAY_OFF_NEXTWEEK}")
+                    await interaction.response.send_message(f"<@{interaction.user.id}> {Strings.DAY_OFF_NEXTWEEK}", allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
                 command_msg = await interaction.original_response()
                 
                 # Then send the buttons in a separate message
@@ -199,7 +200,7 @@ class SlashCommands:
             # Validate inputs
             if not (1 <= start_day <= 31) or not (1 <= end_day <= 31):
                 error_msg = f"Ваш запит: Відпустка {start_day}/{start_month} - {end_day}/{end_month}\nПомилка: День повинен бути між 1 та 31."
-                await interaction.response.send_message(error_msg, ephemeral=False)
+                await interaction.response.send_message(error_msg, ephemeral=False, allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
                 return
             
             # First, acknowledge the interaction to prevent timeout
@@ -255,15 +256,15 @@ class SlashCommands:
                 if success and data and "output" in data:
                     if message:
                         output_content = data["output"]
-                        mention_message = " <@734125039955476501> зверніть увагу!"
+                        logger.debug(f"Output content before mention check: '{output_content}', Mention message: '{Strings.MENTION_MESSAGE}'")
                         # Check if output is not empty and does not contain an error indicator
-                        if output_content and "Помилка" not in output_content and mention_message not in output_content:
-                            output_content += mention_message
-
+                        if output_content and "Помилка" not in output_content and Strings.MENTION_MESSAGE not in output_content:
+                            pass # Mention message is already in output_content, no need to append
+ 
                         if message:
-                            await message.edit(content=output_content)
+                            await message.edit(content=output_content, allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
                         else:
-                            await interaction.followup.send(output_content)
+                            await interaction.followup.send(output_content, allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
                 else:
                     error_msg = Strings.VACATION_ERROR.format(
                         start_day=start_day,
@@ -273,10 +274,10 @@ class SlashCommands:
                         error=Strings.GENERAL_ERROR
                     )
                     if message:
-                        await message.edit(content=error_msg)
+                        await message.edit(content=error_msg, allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
                         await message.add_reaction(Strings.ERROR)
                     else:
-                        await interaction.followup.send(error_msg)
+                        await interaction.followup.send(error_msg, allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
                     
             except Exception as e:
                 logger.error(f"Error in vacation command: {e}")
@@ -289,9 +290,8 @@ class SlashCommands:
                         end_month=end_month,
                         error=Strings.UNEXPECTED_ERROR
                     )
-                    await message.edit(content=error_msg)
+                    await message.edit(content=error_msg, allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
                     await message.add_reaction(Strings.ERROR)
-            
         @vacation_slash.autocomplete("start_month")
         @vacation_slash.autocomplete("end_month")
         async def month_autocomplete(interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
@@ -328,7 +328,7 @@ class SlashCommands:
             
             # First send the command usage message and store it
             if not interaction.response.is_done():
-                await interaction.response.send_message(f"<@{interaction.user.id}> На скільки годин у тебе підтверджена зайнятість з СЬОГОДНІ до кінця тижня? ")
+                await interaction.response.send_message(f"<@{interaction.user.id}> На скільки годин у тебе підтверджена зайнятість з СЬОГОДНІ до кінця тижня? ", allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
             command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
@@ -357,7 +357,7 @@ class SlashCommands:
             
             # First send the command usage message and store it
             if not interaction.response.is_done():
-                await interaction.response.send_message(f"<@{interaction.user.id}> Скажи, а чи є підтверджені завдання на наступний тиждень? ")
+                await interaction.response.send_message(f"<@{interaction.user.id}> Скажи, а чи є підтверджені завдання на наступний тиждень? ", allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
             command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
@@ -419,7 +419,7 @@ class SlashCommands:
                         logger.debug(f"[{interaction.user}] - Message exists, no edit needed for success output")
                         pass # No need to edit the original message if sending a follow-up
                     logger.info(f"[{interaction.user}] - Attempting to send followup message. Type: {type(data.get('output'))}, Value: '{data.get('output')}'")
-                    await interaction.followup.send(data["output"])
+                    await interaction.followup.send(data["output"], allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
                     logger.debug(f"[{interaction.user}] - Followup message sent")
                 else:
                     logger.debug(f"[{interaction.user}] - Webhook failed or no output in data for connects command")
@@ -429,13 +429,13 @@ class SlashCommands:
                     )
                     if message:
                         logger.debug(f"[{interaction.user}] - Attempting to edit message {message.id} with error message: {error_msg}")
-                        await message.edit(content=error_msg)
+                        await message.edit(content=error_msg, allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
                         logger.debug(f"[{interaction.user}] - Attempting to add error reaction to message {message.id}")
                         await message.add_reaction(Strings.ERROR)
                         logger.debug(f"[{interaction.user}] - Added error reaction to message {message.id}")
                     else:
                         logger.debug(f"[{interaction.user}] - Attempting to send followup error message: {error_msg}")
-                        await interaction.followup.send(error_msg)
+                        await interaction.followup.send(error_msg, allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
                         logger.debug(f"[{interaction.user}] - Followup error message sent")
                     
             except Exception as e:
@@ -452,7 +452,7 @@ class SlashCommands:
                         error=Strings.UNEXPECTED_ERROR
                     )
                     try:
-                        await message.edit(content=error_msg)
+                        await message.edit(content=error_msg, allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
                     except Exception as edit_e:
                         logger.error(f"[{interaction.user}] - Error editing message with error message in error handler: {edit_e}")
                         
@@ -467,6 +467,6 @@ class SlashCommands:
                         error=Strings.UNEXPECTED_ERROR
                     )
                     try:
-                        await interaction.followup.send(error_msg)
+                        await interaction.followup.send(error_msg, allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
                     except Exception as followup_e:
                         logger.error(f"[{interaction.user}] - Error sending followup error message in error handler: {followup_e}")
