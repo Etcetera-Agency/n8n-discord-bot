@@ -178,7 +178,9 @@ def create_view(
     # Fall back to button views based on specific command/step name
     if cmd_or_step in ["workload_today", "workload_nextweek", "connects_thisweek"]:
         logger.debug(f"[{user_id}] - Calling create_workload_view for cmd_or_step: {cmd_or_step}")
-        return create_workload_view(cmd_or_step, user_id)
+        # Pass has_survey=True and continue_survey_func if available for survey steps
+        # This assumes continue_survey_func is available in the calling context; if not, pass None
+        return create_workload_view(cmd_or_step, user_id, has_survey=True)
     elif view_name == "day_off": # Keep existing day_off check
         logger.debug(f"Creating day_off view for {cmd_or_step}, user {user_id}")
         try:
