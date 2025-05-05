@@ -542,31 +542,6 @@ A [background worker service](https://render.com/docs/background-workers) like t
 
 Additionally, if you're using Render.com, you can easily copy and paste your .env file in the **Environment** tab.
 
-### CapRover Deployment
-
-The project includes a `captain-definition` file for easy deployment on CapRover:
-
-1. Make sure you have the CapRover CLI installed:
-```bash
-npm install -g caprover
-```
-
-2. Log in to your CapRover instance:
-```bash
-caprover login
-```
-
-3. Deploy the application:
-```bash
-caprover deploy
-```
-
-4. Set up the environment variables in the CapRover dashboard:
-   - DISCORD_TOKEN
-   - N8N_WEBHOOK_URL
-   - WEBHOOK_AUTH_TOKEN
-   - Any other optional configuration variables
-
 ## Interacting with the Discord Bot
 
 Once set up, **users can interact** with the bot by **mentioning it in any channel** where it has access.
@@ -642,9 +617,3 @@ project_structure/
 ## Contributing
 
 // ... existing code ...
-
-## Developed with LLM Assistance
-
-The Python code was developed with the assistance of LLMs:
-- [Claude 3 Sonnet](https://docs.anthropic.com/claude/docs/claude-3-sonnet) - Used for complex code generation and architectural decisions
-- [o3-mini-high](https://ollama.com/library/openhermes) - Used for quick code reviews and minor adjustments
