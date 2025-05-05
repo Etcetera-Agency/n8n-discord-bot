@@ -283,7 +283,10 @@ class WebhookService:
                 await asyncio.sleep(1)
                 
                 logger.info(f"[SurveyContinuation] Checking for survey state for user {user_id}")
-                if user_id in SURVEYS:
+                logger.debug(f"[SurveyContinuation] Type of SURVEYS: {type(SURVEYS)}, keys: {list(SURVEYS.keys()) if SURVEYS else 'None'}; user_id: {user_id}")
+                if SURVEYS is None:
+                    logger.error(f"[SurveyContinuation] SURVEYS is None when trying to continue survey for user {user_id}. Initialization missing.")
+                elif user_id in SURVEYS:
                     state = SURVEYS[user_id]
                     logger.info(f"[SurveyContinuation] Found survey state for user {user_id}. Current step before next_step(): {state.current_step()}, Results: {state.results}")
                     
@@ -308,11 +311,15 @@ class WebhookService:
                 logger.info(f"[SurveyContinuation] Survey continuation processing completed for user {user_id}")
             except Exception as e:
                 logger.error(f"[SurveyContinuation] Error handling survey continuation for user {user_id}: {e}", exc_info=True) # Added exc_info=True
-                # Ensure channel is valid before sending
+                # Only notify user if survey did not actually continue
                 if channel and hasattr(channel, 'send'):
-                     await channel.send(f"<@{user_id}> Помилка при продовженні опитування: код 500") # Keep generic error for user
+                    # Check if user_id is not in SURVEYS or state is missing
+                    if not SURVEYS or user_id not in SURVEYS:
+                        await channel.send(f"<@{user_id}> Помилка при продовженні опитування: код 500")
+                    else:
+                        logger.info(f"[SurveyContinuation] Survey state exists for user {user_id}, suppressing redundant error message.")
                 else:
-                     logger.error(f"[SurveyContinuation] Invalid channel object for user {user_id}, cannot send error message.")
+                    logger.error(f"[SurveyContinuation] Invalid channel object for user {user_id}, cannot send error message.")
 
         logger.debug(f"send_webhook returning: success={success}, data={data}") # Added log
         return success, data
