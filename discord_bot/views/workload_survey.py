@@ -31,6 +31,14 @@ class WorkloadButton_survey(discord.ui.Button):
         self.cmd_or_step = cmd_or_step
         self.continue_survey_func = continue_survey_func # Add this line
 
+    async def _safe_defer_response(self, interaction, user_id):
+        logger.debug(f"[{user_id}] - Checking if interaction.response.is_done() before defer: {interaction.response.is_done()}")
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=False)
+            logger.debug(f"[{user_id}] - Deferred interaction.response")
+        else:
+            logger.debug(f"[{user_id}] - Interaction.response already done, skipping defer")
+
     async def callback(self, interaction: discord.Interaction):
         # Log entry into the callback immediately
         logger.info(f"WorkloadButton_survey.callback entered. Interaction ID: {interaction.id}, Custom ID: {self.custom_id}")
@@ -94,8 +102,7 @@ class WorkloadButton_survey(discord.ui.Button):
                 return
 
             view = self.view
-            if not interaction.response.is_done():
-                await interaction.response.defer(ephemeral=False)
+            await self._safe_defer_response(interaction, getattr(view, 'user_id', 'unknown'))
 
         except Exception as e:
             logger.error(f"Interaction handling failed: {e}")
@@ -112,8 +119,7 @@ class WorkloadButton_survey(discord.ui.Button):
             # First, acknowledge the interaction to prevent timeout
             try:
                 logger.debug(f"[{view.user_id}] - Attempting to defer interaction response (second check)")
-                if not interaction.response.is_done():
-                    await interaction.response.defer(ephemeral=False)
+                await self._safe_defer_response(interaction, view.user_id)
                 logger.debug(f"[{view.user_id}] - Interaction response deferred (second check)")
             except Exception as e:
                 logger.error(f"[{view.user_id}] - Interaction response error: {e}")
@@ -206,8 +212,16 @@ class WorkloadButton_survey(discord.ui.Button):
                     logger.info(f"[{view.user_id}] - Webhook sending result for survey step: success={success}, data={data}")
 
                     logger.info(f"Webhook response for survey step: success={success}, data={data}")
-                    state.next_step()
-                    await self.continue_survey_func(interaction.channel, state)
+                    try:
+                        logger.info(f"[{view.user_id}] - Calling state.next_step()")
+                        state.next_step()
+                    except Exception as e:
+                        logger.error(f"[{view.user_id}] - Error in state.next_step(): {e}", exc_info=True)
+                    try:
+                        logger.info(f"[{view.user_id}] - Calling continue_survey_func for channel {getattr(interaction.channel, 'id', None)} and state {state}")
+                        await self.continue_survey_func(interaction.channel, state)
+                    except Exception as e:
+                        logger.error(f"[{view.user_id}] - Error in continue_survey_func: {e}", exc_info=True)
 
                     if not success:
                         logger.error(f"Failed to send webhook for survey step: {view.cmd_or_step}")
@@ -269,8 +283,10 @@ class WorkloadButton_survey(discord.ui.Button):
                          try:
                              # Use followup if interaction was deferred
                              if interaction.response.is_done():
+                                 logger.debug(f"[{view.user_id}] - interaction.response.is_done()=True, using followup.send for expired survey")
                                  await interaction.followup.send(Strings.SURVEY_EXPIRED_OR_NOT_FOUND, ephemeral=True)
                              else:
+                                 logger.debug(f"[{view.user_id}] - interaction.response.is_done()=False, using response.send_message for expired survey")
                                  await interaction.response.send_message(Strings.SURVEY_EXPIRED_OR_NOT_FOUND, ephemeral=True)
                          except Exception as e:
                              logger.error(f"[{view.user_id}] - Failed to send survey expired message: {e}")
