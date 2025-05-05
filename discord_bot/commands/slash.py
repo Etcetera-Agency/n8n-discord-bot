@@ -335,6 +335,7 @@ class SlashCommands:
             logger.debug(f"[{interaction.user}] - Calling create_view for workload_today")
             view = create_view("workload", "workload_today", str(interaction.user.id))
             view.command_msg = command_msg  # Store reference to command message
+            logger.debug(f"[{interaction.user}] - Workload view items before sending: {len(view.children)}") # Add this log
             buttons_msg = await interaction.channel.send(
                 Strings.SELECT_HOURS,
                 view=view
