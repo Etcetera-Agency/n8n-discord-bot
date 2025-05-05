@@ -40,8 +40,9 @@ class WorkloadButton_survey(discord.ui.Button):
             logger.debug(f"[{user_id}] - Interaction.response already done, skipping defer")
 
     async def callback(self, interaction: discord.Interaction):
-        # Log entry into the callback immediately
+        # Extra debug for connects_thisweek step
         logger.info(f"WorkloadButton_survey.callback entered. Interaction ID: {interaction.id}, Custom ID: {self.custom_id}")
+        logger.debug(f"Button callback for step: {self.cmd_or_step}, interaction.response.is_done(): {getattr(interaction.response, 'is_done', lambda: 'n/a')()}")
         from config import Strings # Import Strings locally
         """Handle button press with complete validation"""
         # Log entry with full interaction details

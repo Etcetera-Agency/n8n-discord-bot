@@ -176,7 +176,7 @@ def create_view(
     
     # Fall back to button views
     # Fall back to button views based on specific command/step name
-    if cmd_or_step in ["workload_today", "workload_nextweek"]:
+    if cmd_or_step in ["workload_today", "workload_nextweek", "connects_thisweek"]:
         logger.debug(f"[{user_id}] - Calling create_workload_view for cmd_or_step: {cmd_or_step}")
         return create_workload_view(cmd_or_step, user_id)
     elif view_name == "day_off": # Keep existing day_off check
