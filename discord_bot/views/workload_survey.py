@@ -402,16 +402,13 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
     # Add all workload options as buttons, including "Нічого немає"
     try:
         # Only add buttons for workload-related commands
-        if self.cmd_or_step in ["workload_today", "workload_nextweek"]:
+        logger.debug(f"[{user_id}] - Checking cmd: {cmd}") # Added log to check cmd value
+        if cmd in ["workload_today", "workload_nextweek"]:
             for hour in WORKLOAD_OPTIONS:
                 custom_id = f"workload_button_{hour}_{cmd}_{user_id}"
                 button = WorkloadButton_survey(label=hour, custom_id=custom_id, cmd_or_step=cmd, continue_survey_func=view.continue_survey_func)
                 logger.debug(f"[{user_id}] - Adding button with label: {hour}, custom_id: {custom_id}")
                 view.add_item(button)
-            custom_id = f"workload_button_{hour}_{cmd}_{user_id}"
-            button = WorkloadButton_survey(label=hour, custom_id=custom_id, cmd_or_step=cmd, continue_survey_func=view.continue_survey_func) # Pass the function
-            logger.debug(f"[{user_id}] - Adding button with label: {hour}, custom_id: {custom_id}")
-            view.add_item(button)
         logger.debug(f"[{user_id}] - Finished adding workload buttons")
     except Exception as e:
         logger.error(f"[{user_id}] - Error adding workload buttons: {e}")
