@@ -173,7 +173,7 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
         # No steps provided - finish the survey flow
         logger.info(f"No survey steps provided for channel {channel_id}, finishing survey.")
         # Create a minimal survey object to pass to finish_survey
-        minimal_survey = SurveyFlow(user_id, channel_id, [], session_id)
+        minimal_survey = SurveyFlow(channel_id, [], user_id, session_id)
         # Mark the minimal survey as done immediately
         minimal_survey._current_index = len(minimal_survey.steps) # Set index to indicate completion
         await finish_survey(bot, channel, minimal_survey)
@@ -485,7 +485,7 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
             raise ValueError("Invalid survey completion data")
 
         # Send initial completion message
-        completion_message = await channel.send(f"<@{current_survey.user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
+        completion_message = await channel.send(f"{Strings.SURVEY_COMPLETE_MESSAGE}")
         logger.info(f"[{current_survey.user_id}] - Sent initial completion message (ID: {completion_message.id}) to channel {current_survey.channel_id}.")
 
         payload = {
