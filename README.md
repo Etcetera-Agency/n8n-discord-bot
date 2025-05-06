@@ -299,7 +299,7 @@ Response when a survey is successfully completed, potentially triggering Notion 
 When n8n includes `"survey": "end"` in the response:
 1. The bot sends the `output` message to the user in Discord.
 2. If the `url` field is also present, the bot uses this URL with the `services/Notion_todos.py` script to fetch unchecked ToDo tasks created within the last 14 days from the specified Notion page.
-3. If tasks are found, they are sent as a separate message to the Discord channel. If fetching fails (e.g., invalid `NOTION_TOKEN` environment variable, API error), a fallback message ("Дякую. /nЧудового дня!") is sent instead.
+3. If tasks are found, they are sent as a separate message to the Discord channel. If fetching fails (e.g., invalid `NOTION_TOKEN` environment variable, API error), a fallback message ("Дякую. \nЧудового дня!") is sent instead.
 
 Note that currently, the bot processes the `output`, `survey`, and `url` fields from n8n responses.
 

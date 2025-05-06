@@ -2,7 +2,7 @@
 
 ## 1. Goal
 
-Modify the bot's end-of-survey process. When n8n responds to the `status: "end"` webhook, it will include an `output` message and a Notion `url`. The bot will first send the `output` message, then use the `url` with `services/Notion_todos.py` to fetch unchecked ToDo tasks created within the last 14 days from the specified Notion page. If tasks are found, they will be sent as a separate message. If fetching fails, a standard "Дякую. /nЧудового дня!" message will be sent instead. Documentation will be updated.
+Modify the bot's end-of-survey process. When n8n responds to the `status: "end"` webhook, it will include an `output` message and a Notion `url`. The bot will first send the `output` message, then use the `url` with `services/Notion_todos.py` to fetch unchecked ToDo tasks created within the last 14 days from the specified Notion page. If tasks are found, they will be sent as a separate message. If fetching fails, a standard "Дякую. \nЧудового дня!" message will be sent instead. Documentation will be updated.
 
 ## 2. Code Changes
 
@@ -18,7 +18,7 @@ Modify the bot's end-of-survey process. When n8n responds to the `status: "end"`
                 *   Fetch: `tasks_json_str = await notion_service.get_tasks_text()`.
                 *   Parse: `tasks_data = json.loads(tasks_json_str)`.
                 *   If `tasks_data.get("tasks_found")`: send `tasks_data.get("text")` as a new message.
-                *   In `except` block: Log error details (`logger.error(f"Failed to fetch Notion tasks from URL {notion_url}: {e}", exc_info=True)`) and send fallback message `await channel.send("Дякую. /nЧудового дня!")`.
+                *   In `except` block: Log error details (`logger.error(f"Failed to fetch Notion tasks from URL {notion_url}: {e}", exc_info=True)`) and send fallback message `await channel.send("Дякую. \nЧудового дня!")`.
             *   Else (no `notion_url`): Log debug message.
         *   Else (webhook failed): Handle error (e.g., `raise Exception(...)`).
 *   **`services/Notion_todos.py`:**
@@ -71,7 +71,7 @@ sequenceDiagram
                 end
             catch Error (ValueError, ConnectionError, JSONDecodeError, Exception)
                 Bot->>Logger: Log error details (URL, exception)
-                Bot->>Discord: Send message ("Дякую. /nЧудового дня!")
+                Bot->>Discord: Send message ("Дякую. \nЧудового дня!")
             end
         else No Notion URL
              Bot->>Logger: Log debug message (No URL)

@@ -673,13 +673,13 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> Non
                 except (ValueError, ConnectionError, json.JSONDecodeError) as notion_e:
                     logger.error(f"[{survey.user_id}] - Failed to fetch/process Notion tasks from URL {notion_url}: {notion_e}", exc_info=True)
                     try:
-                        await channel.send("Дякую. /nЧудового дня!") # Send fallback message on Notion error
+                        await channel.send("Дякую. \nЧудового дня!") # Send fallback message on Notion error
                     except Exception as send_e:
                          logger.error(f"Failed to send fallback message after Notion error: {send_e}")
                 except Exception as e: # Catch any other unexpected errors during Notion processing
                     logger.error(f"[{survey.user_id}] - Unexpected error during Notion task fetching for URL {notion_url}: {e}", exc_info=True)
                     try:
-                        await channel.send("Дякую. /nЧудового дня!") # Send fallback message
+                        await channel.send("Дякую. \nЧудового дня!") # Send fallback message
                     except Exception as send_e:
                          logger.error(f"Failed to send fallback message after unexpected Notion error: {send_e}")
             else:
