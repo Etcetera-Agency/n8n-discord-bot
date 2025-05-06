@@ -144,7 +144,8 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
     # Check if channel is registered
     payload = { # Payload for check_channel webhook
         "command": "check_channel",
-        "channelId": channel_id
+        "channelId": channel_id,
+        "sessionId": session_id # Added session_id
     }
     headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
     logger.info(f"First check_channel call for channel {channel_id} with payload: {payload}")
