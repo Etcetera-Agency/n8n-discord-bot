@@ -43,7 +43,7 @@ class Notion_todos:
             raise ValueError(f"Could not parse a valid Notion block ID from URL: {self.todo_url}")
         self.days = days
 
-    async def get_tasks_text(self, only_unchecked: bool = True) -> str:
+    async def get_tasks_text(self, user_id: str, only_unchecked: bool = True) -> str:
         # Calculate date range if days is set
         start_date = None
         end_date = None
@@ -63,7 +63,7 @@ class Notion_todos:
         tasks_found = bool(todos)
         if not tasks_found:
             return json.dumps({"tasks_found": False, "text": "Дякую. /nЧудового дня!"}, ensure_ascii=False)
-        lines = ["### Зверни увагу, що у тебе в ToDo є такі завдання, які було б чудово вже  виконати:"]
+        lines = [f"<@{user_id}> ### Зверни увагу, що у тебе в ToDo є такі завдання, які було б чудово вже  виконати:"]
         for block in todos:
             lines.append(f" * *{block.title}*")
         return json.dumps({"tasks_found": True, "text": "\n".join(lines)}, ensure_ascii=False)
