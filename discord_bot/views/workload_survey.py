@@ -269,18 +269,17 @@ class WorkloadButton_survey(discord.ui.Button):
                     state.results[view.cmd_or_step] = value
                     logger.info(f"Updated survey results: {state.results}")
 
-                    # Delete command message instead of updating it
+                    # Update command message with n8n output instead of deleting it
                     if view.command_msg:
                         try:
-                            logger.debug(f"[{view.user_id}] - Attempting to delete command message {view.command_msg.id}")
-                            await view.command_msg.delete()
-                            logger.info(f"[{view.user_id}] - Successfully deleted command message {view.command_msg.id}")
-                            view.command_msg = None # Clear reference after successful deletion
-                        except discord.NotFound:
-                            logger.warning(f"[{view.user_id}] - Command message {getattr(view.command_msg, 'id', 'N/A')} already deleted or not found.")
-                            view.command_msg = None # Clear reference if not found
-                        except Exception as delete_error:
-                            logger.error(f"[{view.user_id}] - Error deleting command message {getattr(view.command_msg, 'id', 'N/A')}: {delete_error}", exc_info=True)
+                            logger.debug(f"[{view.user_id}] - Attempting to remove processing reaction from command message {view.command_msg.id}")
+                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                            output_content = data.get("output", f"Дякую! Робоче навантаження {value} годин записано.") # Default success message
+                            logger.debug(f"[{view.user_id}] - Attempting to edit command message {view.command_msg.id} with output: {output_content}")
+                            await view.command_msg.edit(content=output_content, view=None, attachments=[]) # Update content and remove view/attachments
+                            logger.info(f"[{view.user_id}] - Updated command message {view.command_msg.id} with response")
+                        except Exception as edit_error:
+                            logger.error(f"[{view.user_id}] - Error editing command message {getattr(view.command_msg, 'id', 'N/A')}: {edit_error}", exc_info=True)
 
 
                     # Log survey state before continuation

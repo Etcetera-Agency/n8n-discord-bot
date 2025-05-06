@@ -84,7 +84,7 @@ async def handle_survey_incomplete(session_id: str) -> None:
     if not survey:
         # logger.debug(f"No survey found for session_id {session_id} during incomplete handling.")
         return
-
+    
     # Fetch channel using the global bot instance
     channel = None
     try:
@@ -301,28 +301,20 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 workload_view = create_workload_view(step_name, str(interaction.user.id), has_survey=True, continue_survey_func=continue_survey, survey=current_survey) # Pass survey object
                 # logger.debug(f"Workload view created: {workload_view}")
 
-                # Edit the original message to replace the button with the workload view
+                # Send the workload view as a new message instead of editing the original
                 try:
-                    original_msg = await interaction.channel.fetch_message(current_survey.current_question_message_id)
-                    if original_msg:
-                        await original_msg.edit(content=Strings.SELECT_HOURS, view=workload_view) # Update content and set the new view
-                        logger.info(f"Edited message {original_msg.id} with workload view.")
-                        # Store the message object reference on the view for the callback to use
-                        workload_view.buttons_msg = original_msg # Store the message object on the view
-                    else:
-                        logger.warning(f"Original message {current_survey.current_question_message_id} not found when trying to edit with workload view.")
-                        # Fallback: send the view as a new message if original not found
-                        buttons_msg = await interaction.followup.send(
-                            content=Strings.SELECT_HOURS,
-                            view=workload_view,
-                            ephemeral=False
-                        )
-                        logger.info(f"Sent workload view as new message {buttons_msg.id} (original not found).")
-                        workload_view.buttons_msg = buttons_msg # Store the new message object
+                    buttons_msg = await interaction.followup.send(
+                        content=Strings.SELECT_HOURS,
+                        view=workload_view,
+                        ephemeral=False
+                    )
+                    logger.info(f"Sent workload view as new message {buttons_msg.id}.")
+                    # Store the message object reference on the view for the callback to use
+                    workload_view.buttons_msg = buttons_msg # Store the new message object
 
                 except Exception as e:
-                    logger.error(f"Error editing message {current_survey.current_question_message_id} with workload view: {e}", exc_info=True)
-                    # Attempt to send error message via followup if editing failed
+                    logger.error(f"Error sending workload view as new message: {e}", exc_info=True)
+                    # Attempt to send error message via followup if sending failed
                     try:
                         await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
                     except:
@@ -365,28 +357,20 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 day_off_view = create_day_off_view(step_name, str(interaction.user.id), has_survey=True, continue_survey_func=continue_survey, survey=current_survey) # Pass survey object
                 # logger.debug(f"Day off view created: {day_off_view}")
 
-                # Edit the original message to replace the button with the day off view
+                # Send the day off view as a new message instead of editing the original
                 try:
-                    original_msg = await interaction.channel.fetch_message(current_survey.current_question_message_id)
-                    if original_msg:
-                        await original_msg.edit(content=Strings.DAY_OFF_NEXTWEEK, view=day_off_view) # Update content and set the new view
-                        logger.info(f"Edited message {original_msg.id} with day off view.")
-                        # Store the message object reference on the view for the callback to use
-                        day_off_view.buttons_msg = original_msg # Store the message object on the view
-                    else:
-                        logger.warning(f"Original message {current_survey.current_question_message_id} not found when trying to edit with day off view.")
-                        # Fallback: send the view as a new message if original not found
-                        buttons_msg = await interaction.followup.send(
-                            Strings.DAY_OFF_NEXTWEEK,
-                            view=day_off_view,
-                            ephemeral=False
-                        )
-                        logger.info(f"Sent day off view as new message {buttons_msg.id} (original not found).")
-                        day_off_view.buttons_msg = buttons_msg # Store the new message object
+                    buttons_msg = await interaction.followup.send(
+                        Strings.DAY_OFF_NEXTWEEK,
+                        view=day_off_view,
+                        ephemeral=False
+                    )
+                    logger.info(f"Sent day off view as new message {buttons_msg.id}.")
+                    # Store the message object reference on the view for the callback to use
+                    day_off_view.buttons_msg = buttons_msg # Store the new message object
 
                 except Exception as e:
-                    logger.error(f"Error editing message {current_survey.current_question_message_id} with day off view: {e}", exc_info=True)
-                    # Attempt to send error message via followup if editing failed
+                    logger.error(f"Error sending day off view as new message: {e}", exc_info=True)
+                    # Attempt to send error message via followup if sending failed
                     try:
                         await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
                     except:
