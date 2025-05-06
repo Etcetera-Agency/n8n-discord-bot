@@ -42,7 +42,8 @@ class WebServer:
             try:
                 channel = await self.bot.fetch_channel(channel_id)
                 logger.info(f"Attempting to send greeting message to channel {channel_id} for user {user_id}")
-                await channel.send(f"<@{user_id}> {Strings.SURVEY_GREETING}")
+                from discord_bot.views.start_survey import StartSurveyView
+                await channel.send(f"<@{user_id}> {Strings.SURVEY_GREETING}", view=StartSurveyView())
                 logger.info("Greeting message sent successfully")
                 return web.json_response({"status": "Greeting message sent"})
             except Exception as e:
