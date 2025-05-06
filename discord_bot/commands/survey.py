@@ -84,7 +84,7 @@ async def handle_survey_incomplete(session_id: str) -> None:
     if not survey:
         # logger.debug(f"No survey found for session_id {session_id} during incomplete handling.")
         return
-    
+
     # Fetch channel using the global bot instance
     channel = None
     try:
@@ -421,6 +421,13 @@ async def continue_survey(channel: discord.TextChannel, survey: SurveyFlow) -> N
         logger.info(f"[{survey.user_id}] - Survey is done, calling finish_survey.") # Added log
         await finish_survey(channel, current_survey)
     else:
+        # Remove reaction from the previous message before asking the next step
+        if current_survey.current_message:
+            try:
+                await current_survey.current_message.remove_reaction("⏳", bot.user)
+            except Exception as reaction_error:
+                logger.warning(f"Could not remove ⏳ reaction from message {current_survey.current_message.id} in channel {channel.id}: {reaction_error}")
+
         next_step = current_survey.current_step()
         if next_step:
             logger.info(f"[{survey.user_id}] - Asking next step: {next_step}") # Added log
