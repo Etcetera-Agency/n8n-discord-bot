@@ -18,7 +18,7 @@ class WorkloadTodayModal(discord.ui.Modal):
             min_length=1,
             max_length=3
         )
-        self.add_item(self.input)
+        self.add_item(self.input) 
 
 class WorkloadNextWeekModal(discord.ui.Modal):
     def __init__(self, survey, step_name):
