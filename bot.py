@@ -14,7 +14,8 @@ from aiohttp import web
 from config import Config
 from services.session import SessionManager
 from services.webhook import WebhookService, initialize_survey_functions
-from services.survey import SurveyFlow # Import SurveyFlow
+from services.survey import SurveyFlow, survey_manager # Import SurveyFlow and survey_manager
+from discord_bot.commands.survey import ask_dynamic_step, finish_survey # Import the functions
 from config import (
     WORKLOAD_OPTIONS,
     WEEKDAY_OPTIONS,
@@ -191,7 +192,7 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow):
 ###############################################################################
 ###############################################################################
 # Discord Events
-##############################################################################
+#############################################################################
 @bot.event
 async def on_ready():
     logger.info(f"Bot connected as {bot.user}")
@@ -200,6 +201,11 @@ async def on_ready():
     bot.add_view(StartSurveyView())
     logger.info("Persistent views added.")
     # Note: Slash commands are synced separately, usually in on_ready or a setup cog
+
+    # Initialize survey functions in webhook service
+    logger.info("Initializing survey functions in webhook service...")
+    initialize_survey_functions(survey_manager.surveys, ask_dynamic_step, finish_survey)
+    logger.info("Survey functions initialized.")
 
 @bot.event
 async def on_close():
@@ -210,7 +216,7 @@ async def on_close():
 ###############################################################################
 ###############################################################################
 # Discord on_message Event
-#############################################################################
+###########################################################################
 @bot.event # Re-added @bot.event decorator
 async def on_message(message: discord.Message):
     # Ignore messages from the bot itself
@@ -330,7 +336,7 @@ async def on_message(message: discord.Message):
 
 ###############################################################################
 # Main function to run both the HTTP/HTTPS server and the Discord Bot
-##############################################################################
+#############################################################################
 async def main():
     # Start HTTP server
     from web import server
