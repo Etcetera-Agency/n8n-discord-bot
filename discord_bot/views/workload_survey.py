@@ -33,12 +33,11 @@ class WorkloadButton_survey(discord.ui.Button):
 
     async def _safe_defer_response(self, interaction, user_id):
         logger.debug(f"[{user_id}] - [DEBUG] Entering _safe_defer_response")
-        logger.debug(f"[{user_id}] - Interaction response state: is_done={interaction.response.is_done()}, deferred={getattr(interaction, 'deferred', False)}")
+        logger.debug(f"[{user_id}] - Interaction response state: is_done={interaction.response.is_done()}")
         
         if not interaction.response.is_done():
             logger.info(f"[{user_id}] - Deferring interaction response (not done)")
             await interaction.response.defer(ephemeral=False)
-            interaction.deferred = True  # Track deferral state
             logger.debug(f"[{user_id}] - Successfully deferred")
         else:
             logger.warning(f"[{user_id}] - Interaction response already completed")
@@ -48,7 +47,7 @@ class WorkloadButton_survey(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         # Extra debug for connects_thisweek step
         logger.info(f"WorkloadButton_survey.callback entered. Interaction ID: {interaction.id}, Custom ID: {self.custom_id}")
-        logger.debug(f"Button callback for step: {self.cmd_or_step}, interaction.response.is_done(): {getattr(interaction.response, 'is_done', lambda: 'n/a')()}")
+        logger.debug(f"Button callback for step: {self.cmd_or_step}, interaction.response.is_done(): {interaction.response.is_done()}")
         from config import Strings # Import Strings locally
         """Handle button press with complete validation"""
         # Log entry with full interaction details
@@ -59,6 +58,7 @@ class WorkloadButton_survey(discord.ui.Button):
             logger.error("Null interaction received in callback")
             return
 
+        view = None # Initialize view to None
         try:
             # Skip validation for bot's own messages
             if getattr(interaction.user, 'bot', False) and str(interaction.user.id) == str(interaction.client.user.id):
@@ -110,7 +110,7 @@ class WorkloadButton_survey(discord.ui.Button):
 
             view = self.view
             logger.debug(f"[{view.user_id}] - [DEBUG] Pre-deferral check at line 106")
-            if not getattr(interaction, 'deferred', False):
+            if not interaction.response.is_done():
                 await self._safe_defer_response(interaction, getattr(view, 'user_id', 'unknown'))
             else:
                 logger.warning(f"[{view.user_id}] - Skipping deferral at line 106 (already deferred)")
@@ -126,43 +126,56 @@ class WorkloadButton_survey(discord.ui.Button):
         view = self.view
         logger.info(f"Processing WorkloadView_survey callback - view user: {view.user_id}, interaction user: {interaction.user.id}")
 
-        if isinstance(view, WorkloadView_survey):
-            # First, acknowledge the interaction to prevent timeout
-            try:
-                logger.debug(f"[{view.user_id}] - Attempting to defer interaction response (second check)")
-                logger.debug(f"[{view.user_id}] - [DEBUG] Pre-deferral check at line 123")
-                if not getattr(interaction, 'deferred', False):
-                    await self._safe_defer_response(interaction, view.user_id)
-                else:
-                    logger.warning(f"[{view.user_id}] - Skipping deferral at line 123 (already deferred)")
-                logger.debug(f"[{view.user_id}] - Interaction response deferred (second check)")
-            except Exception as e:
-                logger.error(f"[{view.user_id}] - Interaction response error: {e}")
-                return
-
-            logger.info(f"Workload button clicked: {self.label} by user {view.user_id} for step {view.cmd_or_step}")
-
-            # Add processing reaction to command message
-            if view.command_msg:
+        try: # Main try block to ensure button message deletion in finally
+            if isinstance(view, WorkloadView_survey):
+                # First, acknowledge the interaction to prevent timeout
                 try:
-                    logger.debug(f"[{view.user_id}] - Attempting to add processing reaction to command message {view.command_msg.id}")
-                    await view.command_msg.add_reaction(Strings.PROCESSING)
-                    logger.info(f"[{view.user_id}] - Added processing reaction to command message {view.command_msg.id}")
+                    logger.debug(f"[{view.user_id}] - Attempting to defer interaction response (second check)")
+                    logger.debug(f"[{view.user_id}] - [DEBUG] Pre-deferral check at line 123")
+                    if not interaction.response.is_done():
+                        await self._safe_defer_response(interaction, view.user_id)
+                    else:
+                        logger.warning(f"[{view.user_id}] - Skipping deferral at line 123 (already deferred)")
+                    logger.debug(f"[{view.user_id}] - Interaction response deferred (second check)")
                 except Exception as e:
-                    logger.error(f"[{view.user_id}] - Error adding processing reaction to command message {getattr(view.command_msg, 'id', 'N/A')}: {e}", exc_info=True) # Added exc_info and safe access
+                    logger.error(f"[{view.user_id}] - Interaction response error: {e}")
+                    return
 
-            try:
-                # Set value based on button label and convert to integer
-                # Handle "Нічого немає" button specifically
-                if self.label == "Нічого немає":
-                    if not interaction or not interaction.channel:
-                        logger.error("Missing interaction data for Нічого немає button")
-                        return
-                    value = 0
-                    logger.info(f"Нічого немає selected in channel {interaction.channel.id}")
-                else:
-                    value = int(self.label)
-                logger.info(f"Parsed value: {value} from label: {self.label}")
+                logger.info(f"Workload button clicked: {self.label} by user {view.user_id} for step {view.cmd_or_step}")
+
+                # Add processing reaction to command message
+                if view.command_msg:
+                    try:
+                        logger.debug(f"[{view.user_id}] - Attempting to add processing reaction to command message {view.command_msg.id}")
+                        await view.command_msg.add_reaction(Strings.PROCESSING)
+                        logger.info(f"[{view.user_id}] - Added processing reaction to command message {view.command_msg.id}")
+                    except Exception as e:
+                        logger.error(f"[{view.user_id}] - Error adding processing reaction to command message {getattr(view.command_msg, 'id', 'N/A')}: {e}", exc_info=True) # Added exc_info and safe access
+
+                try:
+                    # Set value based on button label and convert to integer
+                    # Handle "Нічого немає" button specifically
+                    if self.label == "Нічого немає":
+                        if not interaction or not interaction.channel:
+                            logger.error("Missing interaction data for Нічого немає button")
+                            return
+                        value = 0
+                        logger.info(f"Нічого немає selected in channel {interaction.channel.id}")
+                    else:
+                        value = int(self.label)
+                    logger.info(f"Parsed value: {value} from label: {self.label}")
+                except ValueError:
+                    logger.error(f"[{view.user_id}] - Could not convert button label to integer: {self.label}", exc_info=True)
+                    # Handle the error, perhaps send an ephemeral message to the user
+                    if not interaction.response.is_done():
+                         await interaction.followup.send("Invalid button value.", ephemeral=True)
+                    return # Exit callback if value is invalid
+                except Exception as e:
+                    logger.error(f"[{view.user_id}] - Unexpected error parsing button value: {e}", exc_info=True)
+                    if not interaction.response.is_done():
+                         await interaction.followup.send("An unexpected error occurred.", ephemeral=True)
+                    return # Exit callback on unexpected error
+
 
                 # Log right before the survey check
                 logger.info(f"[{view.user_id}] - Checking view.has_survey in callback. Value: {view.has_survey}. Interaction ID: {interaction.id}")
@@ -254,7 +267,7 @@ class WorkloadButton_survey(discord.ui.Button):
                     # Update survey state
                     state.results[view.cmd_or_step] = value
                     logger.info(f"Updated survey results: {state.results}")
-
+                    
                     # Update command message with response
                     if view.command_msg:
                         # Clear all reactions except ❌
@@ -271,7 +284,7 @@ class WorkloadButton_survey(discord.ui.Button):
 
                     # Log survey state before continuation
                     logger.info(f"Survey state before continuation - current step: {state.current_step()}, results: {state.results}")
-
+                    
                     # Let n8n handle the survey continuation through webhook response
                     # Don't advance the step here, as it will be handled by the webhook service
                     # But verify we have a valid state for continuation
@@ -370,20 +383,30 @@ class WorkloadButton_survey(discord.ui.Button):
                                     except discord.NotFound:
                                         logger.debug("Buttons message already deleted")
 
-            except Exception as e:
-                logger.error(f"[{view.user_id}] - Error in workload button callback: {e}", exc_info=True) # Modified log to include user_id and exc_info
-                if view.command_msg:
-                    await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                    value = 0 if self.label == "Нічого немає" else self.label
-                    error_msg = Strings.WORKLOAD_ERROR.format(
-                        hours=value,
-                        error=Strings.UNEXPECTED_ERROR
-                    )
-                    await view.command_msg.edit(content=error_msg)
-                    await view.command_msg.add_reaction(Strings.ERROR)
-                if view.buttons_msg:
+        except Exception as e:
+            logger.error(f"[{view.user_id}] - Error in workload button callback: {e}", exc_info=True) # Modified log to include user_id and exc_info
+            if view and view.command_msg: # Check if view and command_msg exist before accessing
+                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                value = 0 if self.label == "Нічого немає" else self.label
+                error_msg = Strings.WORKLOAD_ERROR.format(
+                    hours=value,
+                    error=Strings.UNEXPECTED_ERROR
+                )
+                await view.command_msg.edit(content=error_msg)
+                await view.command_msg.add_reaction(Strings.ERROR)
+            logger.error(f"[{view.user_id}] - Failed to send error response in workload callback: {e}") # Modified log to include user_id
+        finally:
+            # Ensure buttons message is deleted in all cases
+            if view and view.buttons_msg: # Check if view and buttons_msg exist before accessing
+                logger.debug(f"[{view.user_id}] - Attempting to delete buttons message in finally block.")
+                try:
                     await view.buttons_msg.delete()
-                logger.error(f"[{view.user_id}] - Failed to send error response in workload callback: {e}") # Modified log to include user_id
+                    logger.info(f"[{view.user_id}] - Successfully deleted buttons message in finally block.")
+                except discord.NotFound:
+                    logger.warning(f"[{view.user_id}] - Buttons message already deleted or not found in finally block.")
+                except Exception as e:
+                    logger.error(f"[{view.user_id}] - Error deleting buttons message in finally block: {e}", exc_info=True)
+
 
 def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None, has_survey: bool = False, continue_survey_func=None) -> WorkloadView_survey:
     """Create workload view for regular commands only"""
