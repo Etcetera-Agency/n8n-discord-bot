@@ -74,7 +74,7 @@ class Notion_todos:
         if not tasks_found:
             logger.debug("No tasks found, returning empty result.")
             return json.dumps({"tasks_found": False, "text": "Дякую. /nЧудового дня!"}, ensure_ascii=False)
-        lines = ["Дякую. /nЗверни увагу, що у тебе в ToDo є такі завдання, які було б чудово вже  виконати:"]
+        lines = [### Зверни увагу, що у тебе в ToDo є такі завдання, які було б чудово вже  виконати:"]
         for block in todos:
             lines.append(f" * *{block.title}*")
         logger.debug("Returning tasks text.")

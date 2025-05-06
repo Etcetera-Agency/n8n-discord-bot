@@ -587,27 +587,6 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
             except Exception as e2:
                 logger.error(f"Error continuing survey after step failure: {e2}")
 
-async def continue_survey(channel: discord.TextChannel, survey: SurveyFlow) -> None: # Type hint updated
-    """Advances the survey to the next step or finishes it if all steps are done.
-    Called after a modal for a step is successfully submitted.
-    """
-    try:
-        logger.info(f"[{survey.user_id}] - Entering continue_survey. Current index: {{survey.current_index}}, Total steps: {{len(survey.steps)}}") # Log state in continue_survey
-        # Keep previous messages intact, only proceed to next step
-        next_step = survey.current_step()
-        if next_step:
-            await ask_dynamic_step(channel, survey, next_step)
-        else:
-            await finish_survey(channel, survey)
-
-    except Exception as e:
-        logger.error(f"Error continuing survey: {e}")
-        try:
-            await channel.send(f"<@{survey.user_id}> Помилка при переході між кроками: {str(e)}")
-        except Exception as e2:
-            logger.error(f"Failed to send error message to channel: {e2}")
-
-
 async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> None: # Type hint updated
     """Finalizes a completed survey.
     Sends the collected results in a 'complete' status webhook to n8n
@@ -626,10 +605,7 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> Non
             "command": "survey",
             "status": "end",
             "message": "",
-            "result": {
-                "stepName": list(survey.results.keys())[-1] if survey.results else "",
-                "value": list(survey.results.values())[-1] if survey.results else ""
-            },
+            "result": {}, # Modified result to be an empty dictionary
             "userId": str(survey.user_id),
             "channelId": str(survey.channel_id),
             "sessionId": str(getattr(survey, 'session_id', ''))
@@ -666,9 +642,9 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> Non
                         await channel.send(tasks_data.get("text", "Error: Could not format Notion tasks."))
                         logger.info(f"[{survey.user_id}] - Successfully sent Notion ToDos.")
                     else:
-                         logger.info(f"[{survey.user_id}] - No Notion ToDos found or tasks_found was false.")
-                         # Optionally send a message if no tasks found, or just log it.
-                         # await channel.send("No relevant Notion tasks found.")
+                        logger.info(f"[{survey.user_id}] - No Notion ToDos found or tasks_found was false.")
+                        # Optionally send a message if no tasks found, or just log it.
+                        # await channel.send("No relevant Notion tasks found.")
 
                 except (ValueError, ConnectionError, json.JSONDecodeError) as notion_e:
                     logger.error(f"[{survey.user_id}] - Failed to fetch/process Notion tasks from URL {notion_url}: {notion_e}", exc_info=True)
