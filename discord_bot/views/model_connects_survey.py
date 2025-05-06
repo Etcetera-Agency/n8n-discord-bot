@@ -132,42 +132,47 @@ class ConnectsModal(discord.ui.Modal):
 
             # Send step webhook for just this step
             try:
-                step_payload = {
-                    "command": "survey",
-                    "status": "step",
-                    "message": "",
-                    "result": {
-                        "stepName": self.step_name,
-                        "value": str(connects)
-                    },
-                    "userId": str(self.survey.user_id),
-                    "channelId": str(self.survey.channel_id),
-                    "sessionId": str(getattr(current_survey, 'session_id', ''))
+                result_payload = {
+                    "stepName": self.step_name,
+                    "value": str(connects)
                 }
-                logger.info(f"Sending step webhook: {{step_payload}}")
-                success, response = await self.webhook_service_instance.send_webhook_with_retry( # Use passed instance
-                    interaction.channel,
-                    step_payload, # Send the step payload
-                    {"Authorization": f"Bearer {{self.webhook_service_instance.auth_token}}"} # Use auth_token from instance
+                logger.info(f"Sending survey step webhook for step: {{self.step_name}} with value: {{connects}}")
+                success, response = await self.webhook_service_instance.send_webhook( # Use passed instance
+                    interaction, # Pass interaction directly
+                    command="survey", # Use command="survey"
+                    status="step", # Use status="step"
+                    result=result_payload # Pass result_payload dictionary
                 )
                 logger.info(f"Step webhook response for channel {{current_survey.channel_id}}: success={{success}}, response={{response}}")
                 # Show n8n output to user if present
-                if response:
-                    try:
-                        # Update the initial message with the n8n output
-                        if current_survey.current_message:
-                            await current_survey.current_message.edit(content=str(response), view=None, attachments=[]) # Remove view/attachments
-                            # Remove reaction if it was added
-                            try: # Use try-except for reaction removal
-                                await current_survey.current_message.remove_reaction("⏳", self.bot_instance.user) # Use passed instance
-                            except discord.NotFound:
-                                pass # Ignore if reaction wasn't there or couldn't be removed
-                        else:
-                             await interaction.followup.send(str(response), ephemeral=False) # Send as new message if original not found
-                    except Exception as e:
-                        logger.warning(f"Failed to send n8n step response to user: {{e}}")
+                # Update command message with n8n output instead of deleting it
+                if success and response and "output" in response:
+                    if current_survey.current_message:
+                        try:
+                            logger.debug(f"Attempting to remove processing reaction from command message {{current_survey.current_message.id}}")
+                            await current_survey.current_message.remove_reaction("⏳", self.bot_instance.user) # Use passed instance
+                            output_content = response.get("output", f"Дякую! Кількість коннектів {connects} записано.") # Default success message
+                            logger.debug(f"Attempting to edit command message {{current_survey.current_message.id}} with output: {{output_content}}")
+                            await current_survey.current_message.edit(content=output_content, view=None, attachments=[]) # Update content and remove view/attachments
+                            logger.info(f"Updated command message {{current_survey.current_message.id}} with response")
+                        except Exception as edit_error:
+                            logger.error(f"Error editing command message {{getattr(current_survey.current_message, 'id', 'N/A')}}: {{edit_error}}", exc_info=True)
+                elif not success:
+                    logger.error(f"Failed to send webhook for survey step: {{self.step_name}}")
+                    if current_survey.current_message:
+                        try:
+                            await current_survey.current_message.remove_reaction("⏳", self.bot_instance.user) # Use passed instance
+                            error_msg = Strings.CONNECTS_ERROR.format( # Assuming a CONNECTS_ERROR string exists
+                                connects=connects,
+                                error=Strings.GENERAL_ERROR
+                            )
+                            await current_survey.current_message.edit(content=error_msg)
+                            await current_survey.current_message.add_reaction(Strings.ERROR)
+                        except Exception as edit_error:
+                            logger.error(f"Error editing command message on webhook failure {{getattr(current_survey.current_message, 'id', 'N/A')}}: {{edit_error}}", exc_info=True)
+
             except Exception as e:
-                logger.error(f"Error sending step webhook: {{e}}")
+                logger.error(f"Error sending step webhook or handling response: {{e}}", exc_info=True)
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
                 return # Exit if step webhook fails
 
@@ -194,4 +199,5 @@ class ConnectsModal(discord.ui.Modal):
                 # Clean up previous message even on error to prevent stuck buttons
                 # await cleanup_survey_message(interaction, self.survey) # Cleanup logic is now handled by updating the message
             except Exception as cleanup_error:
+                logger.error(f"Error during error cleanup: {{cleanup_error}}")
                 logger.error(f"Error during error cleanup: {{cleanup_error}}")
