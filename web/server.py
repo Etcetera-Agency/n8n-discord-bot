@@ -60,10 +60,10 @@ class WebServer:
                         from discord_bot.commands.survey import handle_start_daily_survey
                         # Pass both IDs explicitly
                         await handle_start_daily_survey(
+                            bot=self.bot, # Pass the bot instance
                             user_id=self.user_id,
                             channel_id=self.channel_id,
                             session_id=self.session_id  # Pass combined session ID
-                            # Removed unexpected 'steps' argument
                         )
                     except Exception as e:
                         logger.error(f"Survey start error: {str(e)}")
