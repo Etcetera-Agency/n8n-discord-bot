@@ -587,6 +587,22 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
             except Exception as e2:
                 logger.error(f"Error continuing survey after step failure: {e2}")
 
+async def continue_survey(channel: discord.TextChannel, survey: SurveyFlow) -> None:
+    """Continues the survey to the next step or finishes it."""
+    logger.info(f"[{survey.user_id}] - Entering continue_survey. is_done(): {survey.is_done()}, Current index: {survey.current_index}, Total steps: {len(survey.steps)}") # Added log
+
+    if survey.is_done():
+        logger.info(f"[{survey.user_id}] - Survey is done, calling finish_survey.") # Added log
+        await finish_survey(channel, survey)
+    else:
+        next_step = survey.current_step()
+        if next_step:
+            logger.info(f"[{survey.user_id}] - Asking next step: {next_step}") # Added log
+            await ask_dynamic_step(channel, survey, next_step)
+        else:
+            # This case should ideally not be reached if is_done() is False but current_step() is None
+            logger.error(f"[{survey.user_id}] - Survey not done but no next step found. Finishing survey.") # Added log
+            await finish_survey(channel, survey)
 async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> None: # Type hint updated
     """Finalizes a completed survey.
     Sends the collected results in a 'complete' status webhook to n8n
