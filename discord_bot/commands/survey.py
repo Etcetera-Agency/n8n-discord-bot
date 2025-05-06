@@ -285,11 +285,26 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                 logger.warning(f"User {interaction.user.id} attempted to interact with survey in channel {interaction.channel.id} but it belongs to user {current_survey.user_id if current_survey else 'N/A'}")
                 await interaction.followup.send(Strings.SURVEY_NOT_FOR_YOU, ephemeral=False)
                 return # Exit if user/channel mismatch
+            # Disable the button on the original message
+            try:
+                original_msg = await interaction.channel.fetch_message(current_survey.current_question_message_id)
+                if original_msg:
+                    view = discord.ui.View.from_message(original_msg)
+                    if view:
+                        for item in view.children:
+                            if isinstance(item, discord.ui.Button) and item.custom_id == f"survey_step_{current_survey.session_id}_{step_name}":
+                                item.disabled = True
+                                await original_msg.edit(view=view)
+                                logger.debug(f"Disabled button on message {original_msg.id} for step {step_name}")
+                                break # Found and disabled the button, no need to continue loop
+
+            except Exception as disable_error:
+                logger.warning(f"Could not disable button on message {current_survey.current_question_message_id} for step {step_name}: {disable_error}")
 
             # Add "⏳" reaction to the original message
             try:
-                original_msg = await interaction.channel.fetch_message(current_survey.current_question_message_id)
-                if original_msg and not any(r.emoji == "⏳" for r in original_msg.reactions): # Avoid adding reaction if already present
+                # original_msg is already fetched above, reuse it if available
+                if 'original_msg' in locals() and original_msg and not any(r.emoji == "⏳" for r in original_msg.reactions): # Avoid adding reaction if already present
                     await original_msg.add_reaction("⏳") # Add reaction to the original message
                     # logger.debug(f"Added ⏳ reaction to message {original_msg.id} in channel {interaction.channel.id}")
             except Exception as reaction_error:
@@ -335,7 +350,7 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                         webhook_service_instance=webhook_service, # Pass webhook_service instance
                         bot_instance=bot # Pass bot instance
                     )
-                    await interaction.followup.send_modal(modal_to_send)
+                    await interaction.response.send_modal(modal_to_send)
 
                 except discord.errors.InteractionResponded:
                     logger.error("Interaction already responded to when trying to send modal via followup")
