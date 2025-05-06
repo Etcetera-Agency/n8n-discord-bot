@@ -1,7 +1,8 @@
 from typing import Optional, Union
 import discord
 from config import ViewType, logger, Strings
-from .workload_slash import create_workload_view # Use slash-specific workload view
+from .workload_slash import create_workload_view as create_workload_slash_view # Use slash-specific workload view
+from .workload_survey import create_workload_view as create_workload_survey_view # Use survey-specific workload view
 from .day_off_slash import create_day_off_view # Use slash-specific day_off view
 from .base import BaseView # Import from original base
 from .generic import GenericSelect # Import from original generic
@@ -186,15 +187,26 @@ def create_view(
 
     # Fall back to button views
     if cmd_or_step in ["workload_today", "workload_nextweek"]:
-        logger.debug(f"[{user_id}] - Attempting to create workload view for: {cmd_or_step} with has_survey={has_survey}")
-        try:
-            view = create_workload_view(cmd_or_step, user_id, has_survey=has_survey, continue_survey_func=continue_survey_func)
-            logger.debug(f"[{user_id}] - Successfully created workload view for: {cmd_or_step}")
-            return view
-        except Exception as e:
-            logger.error(f"[{user_id}] - Error creating workload view for {cmd_or_step}: {e}", exc_info=True)
-            # Return an empty view or None to indicate failure, depending on expected behavior
-            return discord.ui.View(timeout=timeout) # Return empty view on error
+        if has_survey:
+            logger.debug(f"[{user_id}] - Attempting to create workload SURVEY view for: {cmd_or_step}")
+            try:
+                # Pass continue_survey_func here as it's needed for survey views
+                view = create_workload_survey_view(cmd_or_step, user_id, timeout=timeout, has_survey=has_survey, continue_survey_func=continue_survey_func)
+                logger.debug(f"[{user_id}] - Successfully created workload SURVEY view for: {cmd_or_step}")
+                return view
+            except Exception as e:
+                logger.error(f"[{user_id}] - Error creating workload SURVEY view for {cmd_or_step}: {e}", exc_info=True)
+                return discord.ui.View(timeout=timeout) # Return empty view on error
+        else:
+            logger.debug(f"[{user_id}] - Attempting to create workload SLASH view for: {cmd_or_step}")
+            try:
+                # Do NOT pass has_survey or continue_survey_func to the slash view
+                view = create_workload_slash_view(cmd_or_step, user_id, timeout=timeout)
+                logger.debug(f"[{user_id}] - Successfully created workload SLASH view for: {cmd_or_step}")
+                return view
+            except Exception as e:
+                logger.error(f"[{user_id}] - Error creating workload SLASH view for {cmd_or_step}: {e}", exc_info=True)
+                return discord.ui.View(timeout=timeout) # Return empty view on error
     elif view_name == "day_off": # Keep existing day_off check
         logger.debug(f"Creating day_off view for {cmd_or_step}, user {user_id}")
         try:
