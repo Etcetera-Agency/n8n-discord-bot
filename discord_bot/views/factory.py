@@ -150,11 +150,13 @@ class DayOffNextWeekModal(discord.ui.Modal):
             await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
 
 def create_view(
+    bot_instance, # Added bot_instance
     view_name: str,
     cmd_or_step: str,
     user_id: str,
     timeout: Optional[float] = None,
-    has_survey: bool = False
+    has_survey: bool = False,
+    survey=None # Added survey
 ) -> Union[discord.ui.View, discord.ui.Modal]:
     """
     Factory function to create the appropriate view type.
@@ -189,7 +191,7 @@ def create_view(
         if has_survey:
             logger.debug(f"[{user_id}] - Attempting to create workload SURVEY view for: {cmd_or_step}")
             try:
-                view = create_workload_survey_view(cmd_or_step, user_id, timeout=timeout, has_survey=has_survey, continue_survey_func=continue_survey_func)
+                view = create_workload_survey_view(bot_instance, cmd_or_step, user_id, timeout=timeout, has_survey=has_survey, continue_survey_func=continue_survey_func, survey=survey) # Pass bot_instance and survey
                 logger.debug(f"[{user_id}] - Successfully created workload SURVEY view for: {cmd_or_step}")
                 return view
             except Exception as e:
@@ -208,7 +210,7 @@ def create_view(
         logger.debug(f"Creating day_off view for {cmd_or_step}, user {user_id}")
         try:
             if has_survey:
-                view = create_day_off_survey_view(cmd_or_step, user_id, timeout, has_survey, continue_survey_func)
+                view = create_day_off_survey_view(bot_instance, cmd_or_step, user_id, timeout, has_survey, continue_survey_func, survey) # Pass bot_instance and survey
             else:
                 view = create_day_off_view(cmd_or_step, user_id, timeout, has_survey)
             logger.debug(f"Successfully created day_off view")

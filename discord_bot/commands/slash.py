@@ -127,7 +127,7 @@ class SlashCommands:
             command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
-            view = create_view("day_off", "day_off_thisweek", str(interaction.user.id))
+            view = create_view(self.bot, "day_off", "day_off_thisweek", str(interaction.user.id), survey=None) # Pass bot_instance and survey=None
             view.command_msg = command_msg  # Store reference to command message
             buttons_msg = await interaction.channel.send(
                 Strings.CONFIRM_BUTTON,
@@ -154,7 +154,7 @@ class SlashCommands:
                 
                 # Then send the buttons in a separate message
                 logger.debug("Creating day off view")
-                view = create_view("day_off", "day_off_nextweek", str(interaction.user.id))
+                view = create_view(self.bot, "day_off", "day_off_nextweek", str(interaction.user.id), survey=None) # Pass bot_instance and survey=None
                 view.command_msg = command_msg  # Store reference to command message
                 
                 logger.debug("Sending buttons message")
@@ -333,7 +333,7 @@ class SlashCommands:
             
             # Then send the buttons in a separate message
             logger.debug(f"[{interaction.user}] - Calling create_view for workload_today")
-            view = create_view("workload", "workload_today", str(interaction.user.id))
+            view = create_view(self.bot, "workload", "workload_today", str(interaction.user.id), survey=None) # Pass bot_instance and survey=None
             view.command_msg = command_msg  # Store reference to command message
             logger.debug(f"[{interaction.user}] - Workload view items before sending: {len(view.children)}") # Add this log
             buttons_msg = await interaction.channel.send(
@@ -363,7 +363,7 @@ class SlashCommands:
             
             # Then send the buttons in a separate message
             logger.debug(f"[{interaction.user}] - Calling create_view for workload_nextweek")
-            view = create_view("workload", "workload_nextweek", str(interaction.user.id))
+            view = create_view(self.bot, "workload", "workload_nextweek", str(interaction.user.id), survey=None) # Pass bot_instance and survey=None
             view.command_msg = command_msg  # Store reference to command message
             buttons_msg = await interaction.channel.send(
                 Strings.SELECT_HOURS,

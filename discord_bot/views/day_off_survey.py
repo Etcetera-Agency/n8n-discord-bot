@@ -179,10 +179,10 @@ class ConfirmButton_survey(discord.ui.Button):
                     # Continue survey
                     if next_step:
                         from discord_bot.commands.survey import ask_dynamic_step # Corrected import
-                        await ask_dynamic_step(interaction.channel, state, next_step)
+                        await ask_dynamic_step(self.bot_instance, interaction.channel, state, next_step) # Pass bot_instance
                     else:
                         from discord_bot.commands.survey import finish_survey # Corrected import
-                        await finish_survey(interaction.channel, state)
+                        await finish_survey(self.bot_instance, interaction.channel, state) # Pass bot_instance
 
                 else:
                     # Regular slash command
@@ -356,10 +356,10 @@ class DeclineButton_survey(discord.ui.Button):
                     # Continue survey
                     if next_step:
                         from discord_bot.commands.survey import ask_dynamic_step # Corrected import
-                        await ask_dynamic_step(interaction.channel, state, next_step)
+                        await ask_dynamic_step(self.bot_instance, interaction.channel, state, next_step) # Pass bot_instance
                     else:
                         from discord_bot.commands.survey import finish_survey # Corrected import
-                        await finish_survey(interaction.channel, state)
+                        await finish_survey(self.bot_instance, interaction.channel, state) # Pass bot_instance
 
                 else:
                     # Regular slash command
@@ -455,8 +455,9 @@ class DeclineButton_survey(discord.ui.Button):
                     await view.buttons_msg.delete()
 
 class DayOffView_survey(discord.ui.View):
-    def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None, survey=None):
+    def __init__(self, bot_instance, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None, survey=None, session_id: Optional[str] = None): # Added bot_instance and session_id
         super().__init__(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"]) # Use configured timeout
+        self.bot_instance = bot_instance # Store bot instance
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
         self.has_survey = has_survey
@@ -468,6 +469,7 @@ class DayOffView_survey(discord.ui.View):
         self.buttons_msg = None  # Reference to the buttons message
         self.continue_survey_func = continue_survey_func # Store continue survey function
         self.survey = survey # Store the survey object
+        self.session_id = session_id # Store session ID
 
 
     def get_date_for_day(self, day: str) -> datetime.datetime:
@@ -507,13 +509,14 @@ class DayOffView_survey(discord.ui.View):
                 logger.error(f"Error deleting timed out DayOffView_survey buttons message: {e}")
 
         # Handle survey incomplete on timeout if it was a survey
-        if self.has_survey and self.survey:
+        if self.has_survey and self.survey and self.bot_instance and self.session_id: # Added checks for bot_instance and session_id
              from discord_bot.commands.survey import handle_survey_incomplete # Corrected import
-             logger.info(f"Handling survey incomplete for session {self.survey.session_id} due to timeout.")
-             await handle_survey_incomplete(self.survey.session_id)
+             logger.info(f"Handling survey incomplete for session {self.session_id} due to timeout.") # Use stored session_id
+             await handle_survey_incomplete(self.bot_instance, self.session_id) # Pass bot_instance and session_id
 
 
 def create_day_off_view(
+    bot_instance, # Added bot_instance
     cmd_or_step: str,
     user_id: str,
     timeout: Optional[float] = None,
@@ -523,7 +526,7 @@ def create_day_off_view(
 ) -> DayOffView_survey:
     """Create a day off view with buttons."""
     logger.debug(f"Creating DayOffView_survey for {cmd_or_step}, user {user_id}")
-    view = DayOffView_survey(cmd_or_step, user_id, has_survey=has_survey, continue_survey_func=continue_survey_func, survey=survey) # Pass survey object
+    view = DayOffView_survey(bot_instance, cmd_or_step, user_id, has_survey=has_survey, continue_survey_func=continue_survey_func, survey=survey, session_id=survey.session_id if survey else None) # Pass bot_instance, survey, and session_id
 
     # Get current weekday (0 = Monday, 6 = Sunday)
     current_date = datetime.datetime.now(constants.KYIV_TIMEZONE) # Use Kyiv timezone

@@ -315,7 +315,7 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                 logger.info(f"Button callback for workload survey step: {step_name}. Creating workload view.")
                 # Create the multi-button workload view
                 # Pass the current_survey object and continue_survey function to the view factory
-                workload_view = create_workload_view(step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey, command_msg=original_msg) # Pass bot instance to continue_survey and the original message
+                workload_view = create_workload_view(bot, step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey, command_msg=original_msg) # Pass bot instance to continue_survey and the original message, added bot instance
                 # logger.debug(f"Workload view created: {workload_view}")
 
                 # Send the workload view as a new message instead of editing the original
@@ -385,7 +385,7 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                 # Create the day off view
                 from discord_bot.views.day_off_survey import create_day_off_view # Use survey-specific view
                 # Pass the current_survey object and continue_survey function to the view factory
-                day_off_view = create_day_off_view(step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey) # Pass bot instance to continue_survey
+                day_off_view = create_day_off_view(bot, step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey) # Pass bot instance to create_day_off_view
                 # logger.debug(f"Day off view created: {day_off_view}")
 
                 # Send the day off view as a new message instead of editing the original
@@ -484,6 +484,10 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
         if not current_survey or not current_survey.user_id or not current_survey.channel_id:
             raise ValueError("Invalid survey completion data")
 
+        # Send initial completion message
+        completion_message = await channel.send(f"<@{current_survey.user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
+        logger.info(f"[{current_survey.user_id}] - Sent initial completion message (ID: {completion_message.id}) to channel {current_survey.channel_id}.")
+
         payload = {
             "command": "survey",
             "status": "end",
@@ -508,16 +512,17 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
             # Send main output message if present
             if output_msg := response.get("output"):
                 try:
-                    # Update the initial message with the final output
-                    if current_survey.current_message:
-                        await current_survey.current_message.edit(content=output_msg, view=None, attachments=[]) # Remove view/attachments
+                    # Update the initial completion message with the final output
+                    if completion_message: # Use the newly sent completion message
+                        await completion_message.edit(content=output_msg, view=None, attachments=[]) # Remove view/attachments
                         # Also remove reaction if it was added
                         try:
-                            await current_survey.current_message.remove_reaction("⏳", bot.user)
+                            await completion_message.remove_reaction("⏳", bot.user) # Remove reaction from completion message
                         except:
                             pass # Ignore if reaction wasn't there or couldn't be removed
                     else:
-                        await channel.send(output_msg) # Send as new message if original not found
+                        # This case should not happen if completion_message was sent successfully
+                        await channel.send(output_msg) # Send as new message if completion message not found
                 except Exception as e:
                     logger.warning(f"Failed to send n8n output message to user: {e}")
 

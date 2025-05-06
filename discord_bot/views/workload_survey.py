@@ -5,7 +5,7 @@ from services import webhook_service, survey_manager
 
 class WorkloadView_survey(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
-    def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None, survey=None, command_msg: Optional[discord.Message] = None):
+    def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None, survey=None, command_msg: Optional[discord.Message] = None, bot_instance=None, session_id: Optional[str] = None): # Added bot_instance and session_id
         logger.debug(f"[{user_id}] - WorkloadView_survey.__init__ called for cmd_or_step: {cmd_or_step}, has_survey: {has_survey}")
         self.continue_survey_func = continue_survey_func # Store continue survey function
         self.survey = survey # Store the survey object
@@ -17,10 +17,19 @@ class WorkloadView_survey(discord.ui.View):
         self.has_survey = has_survey
         self.command_msg = command_msg  # Reference to the command message
         self.buttons_msg = None  # Reference to the buttons message
+        self.bot_instance = bot_instance # Store bot instance
+        self.session_id = session_id # Store session ID
         logger.debug(f"[{self.user_id}] - WorkloadView_survey initialized. command_msg: {self.command_msg}, buttons_msg: {self.buttons_msg}") # Added log
 
     async def on_timeout(self):
         logger.warning(f"WorkloadView_survey timed out for user {self.user_id}")
+        # Call handle_survey_incomplete on timeout
+        if self.has_survey and self.bot_instance and self.session_id:
+            logger.info(f"[{self.user_id}] - Calling handle_survey_incomplete on timeout for session {self.session_id}")
+            from discord_bot.commands.survey import handle_survey_incomplete # Import locally to avoid circular dependency
+            await handle_survey_incomplete(self.bot_instance, self.session_id)
+        else:
+            logger.warning(f"[{self.user_id}] - Cannot call handle_survey_incomplete on timeout. has_survey: {self.has_survey}, bot_instance: {bool(self.bot_instance)}, session_id: {self.session_id}")
 
 class WorkloadButton_survey(discord.ui.Button):
     def __init__(self, *, label: str, custom_id: str, cmd_or_step: str, continue_survey_func=None):
@@ -408,12 +417,12 @@ class WorkloadButton_survey(discord.ui.Button):
                     logger.error(f"[{view.user_id}] - Error deleting buttons message in finally block: {e}", exc_info=True)
 
 
-def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None, has_survey: bool = False, continue_survey_func=None, survey=None, command_msg: Optional[discord.Message] = None) -> WorkloadView_survey:
+def create_workload_view(bot_instance, cmd: str, user_id: str, timeout: Optional[float] = None, has_survey: bool = False, continue_survey_func=None, survey=None, command_msg: Optional[discord.Message] = None) -> WorkloadView_survey: # Added bot_instance parameter
     """Create workload view for regular commands only"""
     print(f"[{user_id}] - create_workload_view function entered")
     logger.info(f"[{user_id}] - create_workload_view called with cmd: {cmd}, user_id: {user_id}, has_survey: {has_survey}") # Change to INFO
     try:
-        view = WorkloadView_survey(cmd, user_id, has_survey=has_survey, continue_survey_func=continue_survey_func, survey=survey, command_msg=command_msg)
+        view = WorkloadView_survey(cmd, user_id, has_survey=has_survey, continue_survey_func=continue_survey_func, survey=survey, command_msg=command_msg, bot_instance=bot_instance, session_id=survey.session_id if survey else None) # Pass bot_instance and session_id
         logger.debug(f"[{user_id}] - WorkloadView_survey instantiated successfully") # Keep debug
     except Exception as e:
         logger.error(f"[{user_id}] - Error instantiating WorkloadView_survey: {e}")
