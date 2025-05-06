@@ -173,10 +173,17 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
         # No steps provided - finish the survey flow
         logger.info(f"No survey steps provided for channel {channel_id}, finishing survey.")
         # Create a minimal survey object to pass to finish_survey
-        minimal_survey = SurveyFlow(channel_id, [], user_id, session_id)
-        # Mark the minimal survey as done immediately
-        minimal_survey._current_index = len(minimal_survey.steps) # Set index to indicate completion
-        await finish_survey(bot, channel, minimal_survey)
+        # Use create_survey so it's added to the manager and can be retrieved by finish_survey
+        try:
+            minimal_survey = survey_manager.create_survey(user_id, channel_id, [], session_id)
+            # Mark the minimal survey as done immediately
+            minimal_survey.current_index = len(minimal_survey.steps) # Set index to indicate completion
+            await finish_survey(bot, channel, minimal_survey)
+        except ValueError as e:
+            logger.error(f"Failed to create minimal survey for channel {channel_id}: {e}")
+            # Optionally send an error message to the channel here if creation fails
+            if channel:
+                 await channel.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}: Failed to initialize survey.")
         return
 
     logger.info(f"Starting survey with steps: {steps}")
