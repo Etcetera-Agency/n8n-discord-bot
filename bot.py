@@ -139,7 +139,7 @@ async def handle_start_daily_survey(bot, user_id: str, channel_id: str, steps: L
         survey = survey_manager.create_survey(user_id, channel_id, steps)
         step = survey.current_step()
         if step:
-            await ask_dynamic_step(channel, survey, step)
+            await ask_dynamic_step(bot, channel, survey, step)
         else:
             await channel.send(f"<@{user_id}> -- Схоже всі данні вже занесені")
     except discord.NotFound:
@@ -149,41 +149,8 @@ async def handle_start_daily_survey(bot, user_id: str, channel_id: str, steps: L
     except Exception as e:
         logger.error(f"Error in handle_start_daily_survey: {e}")
 
-async def ask_dynamic_step(channel: discord.TextChannel, state: SurveyFlow, step_name: str):
-    user_id = state.user_id
-    if step_name.startswith("workload") or step_name.startswith("connects"):
-        if step_name == "workload_nextweek":
-            text_q = f"<@{user_id}> Скільки годин на НАСТУПНИЙ тиждень?"
-        elif step_name == "workload_thisweek":
-            text_q = f"<@{user_id}> Скільки годин на ЦЬОГО тижня?"
-        elif step_name == "connects":
-            text_q = f"<@{user_id}> Скільки CONNECTS на ЦЬОГО тижня?"
-        else:
-            text_q = f"<@{user_id}> Будь ласка, оберіть кількість годин:"
-        view = create_view("workload", step_name, user_id, "dynamic")
-        await channel.send(text_q, view=view)
-    elif step_name.startswith("day_off"):
-        text_q = f"<@{user_id}> Які дні вихідних на наступний тиждень?"
-        view = create_view("day_off", step_name, user_id, "dynamic")
-        await channel.send(text_q, view=view)
-    else:
-        await channel.send(f"<@{user_id}> Невідомий крок опитування: {step_name}. Пропускаємо.")
-        state.next_step()
-        nxt = state.current_step()
-        if nxt:
-            await ask_dynamic_step(channel, state, nxt)
-        else:
-            await finish_survey(channel, state)
-
-async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow):
-    if survey.is_done():
-        await bot.webhook_service.send_webhook(
-            channel,
-            command="survey",
-            status="end", # Added status="end"
-            result=survey.results[survey.steps[-1]] # Changed result to send only the last step's result
-        )
-    survey_manager.remove_survey(survey.user_id)
+# Removed old ask_dynamic_step and finish_survey definitions here
+# They are now imported from discord_bot.commands.survey
 
 ###############################################################################
 # UI Component Factory
@@ -196,15 +163,19 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow):
 @bot.event
 async def on_ready():
     logger.info(f"Bot connected as {bot.user}")
-    logger.info("Prefix commands should be registered now.") # Added log
-# Add persistent views here
+    logger.info("Prefix commands should be registered now.")
     bot.add_view(StartSurveyView())
     logger.info("Persistent views added.")
     # Note: Slash commands are synced separately, usually in on_ready or a setup cog
 
     # Initialize survey functions in webhook service
     logger.info("Initializing survey functions in webhook service...")
-    initialize_survey_functions(survey_manager.surveys, ask_dynamic_step, finish_survey)
+    # Pass the bot instance to the survey functions when initializing
+    initialize_survey_functions(
+        survey_manager.surveys,
+        lambda channel, survey: ask_dynamic_step(bot, channel, survey), # Bind bot to ask_dynamic_step
+        lambda channel, survey: finish_survey(bot, channel, survey) # Bind bot to finish_survey
+    )
     logger.info("Survey functions initialized.")
 
 @bot.event
@@ -325,6 +296,7 @@ async def on_message(message: discord.Message):
                 user_id = parts[1]
                 channel_id = parts[2]
                 steps = parts[3:]
+                # Pass the bot instance to handle_start_daily_survey
                 await handle_start_daily_survey(bot, channel_id, user_id, steps)
 
         # Any other general message handling that should happen for non-mention messages would go here.

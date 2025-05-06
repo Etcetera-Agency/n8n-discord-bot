@@ -1,5 +1,6 @@
 import asyncio
 import discord
+from discord.ext import commands # Import commands for bot type hinting
 import json # Added for Notion ToDo JSON parsing
 from typing import Optional, List, Any # Added Any
 from config import ViewType, logger, Strings, Config, constants # Added constants
@@ -8,7 +9,7 @@ from services.notion_todos import Notion_todos # Added for Notion ToDo fetching
 from services.survey import SurveyFlow # Added import
 # Removed factory import
 from discord_bot.views.workload_survey import create_workload_view # Use survey-specific view
-from bot import bot # Import the bot instance from the root bot.py
+# Removed: from bot import bot # Import the bot instance from the root bot.py
 from discord_bot.views.model_connects_survey import ConnectsModal # Import the moved modal
 
 # ==================================
@@ -76,7 +77,7 @@ async def handle_modal_error(interaction: discord.Interaction):
 # Survey Flow Logic
 # ==================================
 
-async def handle_survey_incomplete(session_id: str) -> None:
+async def handle_survey_incomplete(bot: commands.Bot, session_id: str) -> None: # Added bot parameter
     """Handles the scenario where a survey times out or is otherwise incomplete.
     Sends an 'incomplete' status webhook to n8n and cleans up the survey session.
     """
@@ -85,7 +86,7 @@ async def handle_survey_incomplete(session_id: str) -> None:
         # logger.debug(f"No survey found for session_id {session_id} during incomplete handling.")
         return
 
-    # Fetch channel using the global bot instance
+    # Fetch channel using the provided bot instance
     channel = None
     try:
         channel = await bot.fetch_channel(int(survey.channel_id))
@@ -113,7 +114,7 @@ async def handle_survey_incomplete(session_id: str) -> None:
     survey_manager.remove_survey(survey.channel_id) # Remove by channel_id
     logger.info(f"Survey for user {survey.user_id} (session {session_id}) timed out with incomplete steps: {incomplete}")
 
-async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: str) -> None:
+async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id: str, session_id: str) -> None: # Added bot parameter
     """Initiates or resumes the daily survey for a channel.
     Checks for existing sessions, verifies channel registration with n8n,
     retrieves, filters, and orders steps, then starts the survey by asking the first step.
@@ -129,7 +130,7 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: s
             if step:
                 channel = await bot.fetch_channel(int(existing_survey.channel_id))
                 if channel:
-                    await ask_dynamic_step(channel, existing_survey, step) # Resend current step question/button
+                    await ask_dynamic_step(bot, channel, existing_survey, step) # Pass bot instance
                     return
             else: # Survey exists but is somehow done? Clean up and proceed.
                 logger.warning(f"Existing survey found for channel {channel_id} but no current step. Removing and starting new.")
@@ -138,6 +139,7 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: s
             # Survey exists but in a different channel - this shouldn't normally happen with button start
             logger.warning(f"User {user_id} has existing survey in channel {existing_survey.channel_id}, but request is for {channel_id}. Ignoring old survey.")
             # Let the flow continue to create a new survey for the *current* channel
+
 
     # Check if channel is registered
     payload = { # Payload for check_channel webhook
@@ -199,7 +201,7 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: s
         channel = await bot.fetch_channel(int(channel_id))
         if channel:
             logger.info(f"Fetched channel for survey: ID={channel.id}, Name={channel.name} (user: {user_id})") # Added log
-            await ask_dynamic_step(channel, survey, first_step) # Ask the first step
+            await ask_dynamic_step(bot, channel, survey, first_step) # Pass bot instance
         else:
             logger.error(f"Could not fetch channel {channel_id} to ask first survey step.")
             survey_manager.remove_survey(channel_id) # Clean up unusable survey by channel_id
@@ -209,7 +211,7 @@ async def handle_start_daily_survey(user_id: str, channel_id: str, session_id: s
         channel = await bot.fetch_channel(int(channel_id))
         if channel: await channel.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}: No steps found.")
         survey_manager.remove_survey(channel_id) # Clean up by channel_id
-async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, step_name: str) -> None: # Type hint updated
+async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, survey: SurveyFlow, step_name: str) -> None: # Added bot parameter, Type hint updated
     """Asks a single step of the survey.
     Sends a message with the step question and a 'Ввести' button.
     The button's callback triggers the appropriate survey-specific modal.
@@ -298,7 +300,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 logger.info(f"Button callback for workload survey step: {step_name}. Creating workload view.")
                 # Create the multi-button workload view
                 # Pass the current_survey object and continue_survey function to the view factory
-                workload_view = create_workload_view(step_name, str(interaction.user.id), has_survey=True, continue_survey_func=continue_survey, survey=current_survey) # Pass survey object
+                workload_view = create_workload_view(step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey) # Pass bot instance to continue_survey
                 # logger.debug(f"Workload view created: {workload_view}")
 
                 # Send the workload view as a new message instead of editing the original
@@ -329,7 +331,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                     modal_to_send = ConnectsModal(
                         survey=current_survey,
                         step_name=step_name,
-                        finish_survey_func=finish_survey, # Pass finish_survey function
+                        finish_survey_func=lambda c, s: finish_survey(bot, c, s), # Pass bot instance to finish_survey
                         webhook_service_instance=webhook_service, # Pass webhook_service instance
                         bot_instance=bot # Pass bot instance
                     )
@@ -354,7 +356,7 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
                 # Create the day off view
                 from discord_bot.views.day_off_survey import create_day_off_view # Use survey-specific view
                 # Pass the current_survey object and continue_survey function to the view factory
-                day_off_view = create_day_off_view(step_name, str(interaction.user.id), has_survey=True, continue_survey_func=continue_survey, survey=current_survey) # Pass survey object
+                day_off_view = create_day_off_view(step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey) # Pass bot instance to continue_survey
                 # logger.debug(f"Day off view created: {day_off_view}")
 
                 # Send the day off view as a new message instead of editing the original
@@ -403,11 +405,11 @@ async def ask_dynamic_step(channel: discord.TextChannel, survey: SurveyFlow, ste
         if not isinstance(e, (AttributeError, ValueError)):
             try:
                 survey.next_step()
-                await continue_survey(channel, survey)
+                await continue_survey(bot, channel, survey) # Pass bot instance
             except Exception as e2:
                 logger.error(f"Error continuing survey after step failure: {e2}")
 
-async def continue_survey(channel: discord.TextChannel, survey: SurveyFlow) -> None:
+async def continue_survey(bot: commands.Bot, channel: discord.TextChannel, survey: SurveyFlow) -> None: # Added bot parameter, Type hint updated
     """Continues the survey to the next step or finishes it."""
     logger.info(f"[{survey.user_id}] - Entering continue_survey. is_done(): {survey.is_done()}, Current index: {survey.current_index}, Total steps: {len(survey.steps)}") # Added log
 
@@ -419,7 +421,7 @@ async def continue_survey(channel: discord.TextChannel, survey: SurveyFlow) -> N
 
     if current_survey.is_done():
         logger.info(f"[{survey.user_id}] - Survey is done, calling finish_survey.") # Added log
-        await finish_survey(channel, current_survey)
+        await finish_survey(bot, channel, current_survey) # Pass bot instance
     else:
         # Remove reaction from the previous message before asking the next step
         if current_survey.current_message:
@@ -431,12 +433,12 @@ async def continue_survey(channel: discord.TextChannel, survey: SurveyFlow) -> N
         next_step = current_survey.current_step()
         if next_step:
             logger.info(f"[{survey.user_id}] - Asking next step: {next_step}") # Added log
-            await ask_dynamic_step(channel, current_survey, next_step)
+            await ask_dynamic_step(bot, channel, current_survey, next_step) # Pass bot instance
         else:
             # This case should ideally not be reached if is_done() is False but current_step() is None
             logger.error(f"[{survey.user_id}] - Survey not done but no next step found. Finishing survey.") # Added log
-            await finish_survey(channel, current_survey)
-async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> None: # Type hint updated
+            await finish_survey(bot, channel, current_survey) # Pass bot instance
+async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey: SurveyFlow) -> None: # Added bot parameter, Type hint updated
     """Finalizes a completed survey.
     Sends the collected results in a 'complete' status webhook to n8n
     and cleans up the survey session.
