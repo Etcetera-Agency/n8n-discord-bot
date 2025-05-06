@@ -67,8 +67,7 @@ class Notion_todos:
 
         logger.debug(f"Extracting todos from block_id: {self.block_id}")
         # Run blocking Notion API call in a separate thread
-        todos = await asyncio.to_thread(self._extract_todos, self.block_id, only_unchecked=only_unchecked, start_date=start_date, end_date=end_date)
-        logger.debug(f"Extracted {len(todos)} todos.")
+        todos = await self._extract_todos(self.block_id, only_unchecked=only_unchecked, start_date=start_date, end_date=end_date)
 
         tasks_found = bool(todos)
         logger.debug(f"Tasks found: {tasks_found}")
