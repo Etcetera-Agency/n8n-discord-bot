@@ -4,6 +4,7 @@ from config import ViewType, logger, Strings
 from .workload_slash import create_workload_view as create_workload_slash_view # Use slash-specific workload view
 from .workload_survey import create_workload_view as create_workload_survey_view # Use survey-specific workload view
 from .day_off_slash import create_day_off_view # Use slash-specific day_off view
+from .day_off_survey import create_day_off_view as create_day_off_survey_view # Use survey-specific day_off view
 from .base import BaseView # Import from original base
 from .generic import GenericSelect # Import from original generic
 
@@ -18,7 +19,7 @@ class WorkloadTodayModal(discord.ui.Modal):
             min_length=1,
             max_length=3
         )
-        self.add_item(self.input) 
+        self.add_item(self.input)
 
 class WorkloadNextWeekModal(discord.ui.Modal):
     def __init__(self, survey, step_name):
@@ -43,7 +44,7 @@ class WorkloadNextWeekModal(discord.ui.Modal):
 
             # Store result
             self.survey.add_result(self.step_name, int(self.input.value))
-            
+
             # Cleanup previous message
             if hasattr(self.survey, 'current_step_message'):
                 try:
@@ -79,7 +80,7 @@ class WorkloadNextWeekModal(discord.ui.Modal):
             if not self.survey.is_done():
                 from bot.commands.survey import continue_survey
                 await continue_survey(interaction.channel, self.survey)
-                
+
         except Exception as e:
             logger.error(f"Error handling workload modal submit: {e}")
             await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
@@ -107,7 +108,7 @@ class DayOffNextWeekModal(discord.ui.Modal):
 
             # Store result
             self.survey.add_result(self.step_name, self.input.value)
-            
+
             # Cleanup previous message
             if hasattr(self.survey, 'current_step_message'):
                 try:
@@ -143,13 +144,13 @@ class DayOffNextWeekModal(discord.ui.Modal):
             if not self.survey.is_done():
                 from bot.commands.survey import continue_survey
                 await continue_survey(interaction.channel, self.survey)
-                
+
         except Exception as e:
             logger.error(f"Error handling day off modal submit: {e}")
             await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
 
 def create_view(
-    view_name: str, 
+    view_name: str,
     cmd_or_step: str,
     user_id: str,
     timeout: Optional[float] = None,
@@ -158,14 +159,14 @@ def create_view(
     """
     Factory function to create the appropriate view type.
     """
-    
+
     # Survey view handling (button-based implementation)
     if view_name == "survey":
-        from bot.views.generic import create_survey_view
-        return create_survey_view(cmd_or_step, user_id, **kwargs)
-    
+        from .generic import create_survey_view
+        return create_survey_view(cmd_or_step, user_id)
+
     logger.info(f"Creating {view_name} view for command: {cmd_or_step}")
-    
+
     # Handle modal creation for survey steps
     if has_survey:
         if view_name == "workload_today":
@@ -176,8 +177,6 @@ def create_view(
             return DayOffNextWeekModal(cmd_or_step, user_id)
         elif view_name == "connects_thisweek":
              from .connects_survey import ConnectsModal
-             # Assuming continue_survey_func is available in the scope where create_view is called
-             # and passed down. If not, you might need to adjust how this function is called.
              return ConnectsModal(cmd_or_step, user_id, continue_survey_func)
 
     # Handle connects_thisweek slash command case explicitly
@@ -190,7 +189,6 @@ def create_view(
         if has_survey:
             logger.debug(f"[{user_id}] - Attempting to create workload SURVEY view for: {cmd_or_step}")
             try:
-                # Pass continue_survey_func here as it's needed for survey views
                 view = create_workload_survey_view(cmd_or_step, user_id, timeout=timeout, has_survey=has_survey, continue_survey_func=continue_survey_func)
                 logger.debug(f"[{user_id}] - Successfully created workload SURVEY view for: {cmd_or_step}")
                 return view
@@ -200,17 +198,19 @@ def create_view(
         else:
             logger.debug(f"[{user_id}] - Attempting to create workload SLASH view for: {cmd_or_step}")
             try:
-                # Do NOT pass has_survey or continue_survey_func to the slash view
                 view = create_workload_slash_view(cmd_or_step, user_id, timeout=timeout)
                 logger.debug(f"[{user_id}] - Successfully created workload SLASH view for: {cmd_or_step}")
                 return view
             except Exception as e:
                 logger.error(f"[{user_id}] - Error creating workload SLASH view for {cmd_or_step}: {e}", exc_info=True)
                 return discord.ui.View(timeout=timeout) # Return empty view on error
-    elif view_name == "day_off": # Keep existing day_off check
+    elif view_name == "day_off":
         logger.debug(f"Creating day_off view for {cmd_or_step}, user {user_id}")
         try:
-            view = create_day_off_view(cmd_or_step, user_id, timeout, has_survey)
+            if has_survey:
+                view = create_day_off_survey_view(cmd_or_step, user_id, timeout, has_survey, continue_survey_func)
+            else:
+                view = create_day_off_view(cmd_or_step, user_id, timeout, has_survey)
             logger.debug(f"Successfully created day_off view")
             return view
         except Exception as e:

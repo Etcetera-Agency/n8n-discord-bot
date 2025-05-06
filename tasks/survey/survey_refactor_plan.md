@@ -35,7 +35,7 @@ This plan aims to refactor the Discord bot's survey flow. It will implement a st
 
 This refactoring will be broken down into the following individual tasks:
 
-**Task: Refactor Survey Step Interaction**
+**Task 1: Refactor Survey Step Interaction**
 *   Ensure the initial greeting message with the "Гайда" button is present and interactive in the channel. Implement the callback for the "Гайда" button to check for an existing survey session for the channel and, if none exists, initiate a new survey flow by calling the appropriate logic (e.g., checking channel registration with n8n and creating a new SurveyFlow instance).
 *   Analyze current survey code and adjust for channel-bound interactions.
 *   Refine `SurveyFlow` and `SurveyManager` to use `channel_id` as the key and store message IDs.
@@ -51,7 +51,7 @@ This refactoring will be broken down into the following individual tasks:
 *   After processing input (from either modal or view): send a per-step webhook, update the initial message (remove reaction/button/view as appropriate) with n8n output, and advance the survey.
 *   Update relevant configuration and constants.
 
-**Task: Implement Survey Finalization and Notion Fetching**
+**Task 2: Implement Survey Finalization and Notion Fetching**
 *   Verify/Adjust the `finish_survey` function to send the final webhook (`status: "end"`).
 *   Handle the final webhook response, sending the output message.
 *   Verify/Adjust Notion task fetching using the provided URL, including error handling.
@@ -59,7 +59,7 @@ This refactoring will be broken down into the following individual tasks:
 *   Clean up the survey state by removing it from the `SurveyManager`.
 *   Update relevant configuration and strings.
 
-**Task: Clean Up Excessive Survey Logging**
+**Task 3: Clean Up Excessive Survey Logging**
 *   Review logging statements in survey-related files.
 *   Identify and remove or adjust excessive or redundant logs.
 *   Ensure critical errors are still logged appropriately.

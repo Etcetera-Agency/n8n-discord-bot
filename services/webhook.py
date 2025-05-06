@@ -34,11 +34,11 @@ class HttpSession:
     def __init__(self):
         """Initialize the HTTP session."""
         self.session = None
-        
+
     async def __aenter__(self) -> aiohttp.ClientSession:
         """
         Create and return a new aiohttp ClientSession.
-        
+
         Returns:
             An aiohttp ClientSession instance
         """
@@ -50,11 +50,11 @@ class HttpSession:
         )
         self.session = aiohttp.ClientSession(connector=connector)
         return self.session
-        
+
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """
         Close the aiohttp ClientSession.
-        
+
         Args:
             exc_type: Exception type
             exc_val: Exception value
@@ -76,7 +76,7 @@ class WebhookService:
         logger.info(f"Webhook URL configured: {bool(self.url)}")
         logger.info(f"Auth token configured: {bool(self.auth_token)}")
         self.http_session: Optional[aiohttp.ClientSession] = None
-        
+
     async def initialize(self) -> None:
         """Initialize the HTTP session."""
         try:
@@ -93,7 +93,7 @@ class WebhookService:
         except Exception as e:
             logger.error(f"Failed to initialize HTTP session: {e}")
             raise
-        
+
     async def close(self) -> None:
         """Close the HTTP session."""
         if self.http_session and not self.http_session.closed:
@@ -103,7 +103,7 @@ class WebhookService:
                 logger.info("Successfully closed webhook service HTTP session")
             except Exception as e:
                 logger.error(f"Error closing HTTP session: {e}")
-    
+
     def build_payload(
         self,
         command: str,
@@ -119,7 +119,7 @@ class WebhookService:
     ) -> Dict[str, Any]:
         """
         Build a consistent payload for n8n webhooks.
-        
+
         Args:
             command: Command name
             user_id: User ID (required)
@@ -131,7 +131,7 @@ class WebhookService:
             author: Author tag (optional)
             channel_name: Channel name (optional)
             timestamp: Message timestamp (optional)
-            
+
         Returns:
             Dict containing the webhook payload with required structure:
             {
@@ -149,13 +149,13 @@ class WebhookService:
         """
         if result is None:
             result = {}
-            
+
         if not user_id or not channel_id:
             raise ValueError("Both user_id and channel_id are required")
-            
+
         # Generate session ID from channel+user IDs
         session_id = f"{channel_id}_{user_id}"
-            
+
         # Build the payload with required structure
         payload = {
             "command": command,
@@ -166,7 +166,7 @@ class WebhookService:
             "channelId": channel_id,
             "sessionId": session_id
         }
-        
+
         # Add optional fields if provided
         if author is not None:
             payload["author"] = author
@@ -174,9 +174,9 @@ class WebhookService:
             payload["channelName"] = channel_name
         if timestamp is not None:
             payload["timestamp"] = timestamp
-        
+
         return payload
-    
+
     async def send_webhook(
         self,
         target: Union[commands.Context, discord.Interaction, discord.TextChannel],
@@ -188,7 +188,7 @@ class WebhookService:
     ) -> Tuple[bool, Optional[Dict[str, Any]]]:
         """
         Send a webhook request to n8n.
-        
+
         Args:
             target: Discord Context, Interaction or TextChannel
             command: Command name
@@ -196,15 +196,15 @@ class WebhookService:
             message: Message string
             result: Result dictionary
             extra_headers: Additional headers
-            
+
         Returns:
             Tuple of (success, response_data)
         """
-        logger.debug(f"send_webhook called with command: {command}, status: {status}, result: {result}") # Added log
-        
+        logger.info(f"send_webhook called with command: {command}, status: {status}, result: {result}") # Changed to INFO
+
         user_id = None
         channel_id = None
-        author = None
+        author = None # Initialize author
         channel_name = None
         timestamp = None
         channel = None # Initialize channel variable
@@ -241,13 +241,11 @@ class WebhookService:
 
         if not user_id and not isinstance(target, discord.TextChannel):
              logger.warning(f"send_webhook called without user_id for target type {type(target)}. Target: {target}") # Added target to log
-             # Decide how to handle: raise error, use default, or proceed without user_id
-             # For now, let's proceed but log a warning. build_payload will raise error if user_id is required.
+             # Proceed but log a warning. build_payload will raise error if user_id is required.
 
         if not channel_id:
              logger.warning(f"send_webhook called without channel_id for target type {type(target)}. Target: {target}") # Added target to log
-             # Decide how to handle: raise error, use default, or proceed without channel_id
-             # For now, let's proceed but log a warning. build_payload will raise error if channel_id is required.
+             # Proceed but log a warning. build_payload will raise error if channel_id is required.
 
         # Build the payload using the unified builder
         payload = self.build_payload(
@@ -261,54 +259,44 @@ class WebhookService:
             channel_name=channel_name, # Pass channel_name
             timestamp=timestamp # Pass timestamp
         )
-        
+
         # Set up headers
-        headers = {}
+        headers = {} # Initialize headers dictionary
         if self.auth_token:
             headers["Authorization"] = f"Bearer {self.auth_token}"
         if extra_headers:
             headers.update(extra_headers)
-            
-        logger.debug(f"Calling send_webhook_with_retry with payload: {payload}") # Added log
+
+        logger.info(f"Calling send_webhook_with_retry for command: {command}") # Log at INFO level
         # Send webhook and get response
         success, data = await self.send_webhook_with_retry(target, payload, headers)
-        logger.debug(f"send_webhook_with_retry returned (in send_webhook): success={success}, data={data}") # Added log with context
-        
+        logger.info(f"send_webhook_with_retry returned (in send_webhook): success={success}, data={data}") # Log at INFO level
+
         # Check if n8n wants to continue the survey
         if success and data and "survey" in data and data["survey"] == "continue":
-            user_id = payload['userId']
+            user_id = payload['userId'] # Get user_id from payload
             logger.info(f"[SurveyContinuation] n8n requested survey continuation for user {user_id}")
             try:
                 # Add a small delay to ensure the current interaction is complete
                 await asyncio.sleep(1)
-                
-                logger.info(f"[SurveyContinuation] Checking for survey state for user {user_id}")
-                logger.debug(f"[SurveyContinuation] Type of SURVEYS: {type(SURVEYS)}, keys: {list(SURVEYS.keys()) if SURVEYS else 'None'}; user_id: {user_id}")
+
                 if SURVEYS is None:
-                    logger.error(f"[SurveyContinuation] SURVEYS is None when trying to continue survey for user {user_id}. Initialization missing.")
+                    logger.error(f"[SurveyContinuation] SURVEYS is None when trying to continue survey for user {user_id}. Initialization missing.") # Keep ERROR
                 elif user_id in SURVEYS:
                     state = SURVEYS[user_id]
-                    logger.info(f"[SurveyContinuation] Found survey state for user {user_id}. Current step before next_step(): {state.current_step()}, Results: {state.results}")
-                    
-                    logger.info(f"[SurveyContinuation] Calling state.next_step() for user {user_id}")
+
                     state.next_step()
                     next_step = state.current_step()
-                    logger.info(f"[SurveyContinuation] Next step determined for user {user_id}: {next_step}")
-                    
+
                     if next_step:
-                        logger.info(f"[SurveyContinuation] Calling ask_dynamic_step for user {user_id}, step: {next_step}")
                         await ask_dynamic_step(channel, state, next_step)
-                        logger.info(f"[SurveyContinuation] ask_dynamic_step completed for user {user_id}, step: {next_step}")
                     else:
-                        logger.info(f"[SurveyContinuation] No next step found. Calling finish_survey for user {user_id}")
                         await finish_survey(channel, state)
-                        logger.info(f"[SurveyContinuation] finish_survey completed for user {user_id}")
                 else:
                     logger.warning(f"[SurveyContinuation] Survey state not found for user {user_id} when trying to continue.")
                     # Optionally inform the user
                     # await channel.send(f"<@{user_id}> Не вдалося знайти ваше активне опитування для продовження.")
 
-                logger.info(f"[SurveyContinuation] Survey continuation processing completed for user {user_id}")
             except Exception as e:
                 logger.error(f"[SurveyContinuation] Error handling survey continuation for user {user_id}: {e}", exc_info=True) # Added exc_info=True
                 # Only notify user if survey did not actually continue
@@ -317,13 +305,12 @@ class WebhookService:
                     if not SURVEYS or user_id not in SURVEYS:
                         await channel.send(f"<@{user_id}> Помилка при продовженні опитування: код 500")
                     else:
-                        logger.info(f"[SurveyContinuation] Survey state exists for user {user_id}, suppressing redundant error message.")
+                        pass # Survey state exists for user {user_id}, suppressing redundant error message.
                 else:
                     logger.error(f"[SurveyContinuation] Invalid channel object for user {user_id}, cannot send error message.")
-
-        logger.debug(f"send_webhook returning: success={success}, data={data}") # Added log
+        logger.info(f"send_webhook returning: success={success}, data={data}") # Log at INFO level
         return success, data
- 
+
     async def send_interaction_response(
         self,
         interaction: discord.Interaction,
@@ -337,7 +324,7 @@ class WebhookService:
     ) -> None:
         """
         Send an interaction response with consistent reaction handling.
-        
+
         Args:
             interaction: Discord interaction
             initial_message: Initial message to show while processing
@@ -352,11 +339,11 @@ class WebhookService:
             # First, acknowledge the interaction to prevent timeout
             if not interaction.response.is_done():
                 await interaction.response.defer(ephemeral=False)
-            
+
             # Send the message with view if provided
             response_message = await interaction.followup.send(initial_message, view=view, wait=True)
             await response_message.add_reaction(Strings.PROCESSING)  # Show processing
-            
+
             # Send the webhook
             success, data = await self.send_webhook(
                 interaction,
@@ -366,10 +353,10 @@ class WebhookService:
                 result=result,
                 extra_headers=extra_headers
             )
-            
+
             # Remove processing reaction
             await response_message.remove_reaction(Strings.PROCESSING, interaction.client.user)
-            
+
             # If webhook was successful and we got output, delete the original message
             if success and data and "output" in data:
                 # Add success reaction before deleting
@@ -383,11 +370,11 @@ class WebhookService:
                         user_input = f"Connects: {result['connects']}"
                     elif "value" in result:
                         user_input = f"Вибрано: {result['value']}"
-                
+
                 error_msg = f"{user_input}\nПомилка: Не вдалося виконати команду." if user_input else f"{initial_message}\nПомилка: Не вдалося виконати команду."
                 await response_message.edit(content=error_msg)
                 await response_message.add_reaction(Strings.ERROR)  # Show error
-                
+
         except Exception as e:
             logger.error(f"Error in send_interaction_response: {e}")
             if not interaction.response.is_done():
@@ -398,7 +385,7 @@ class WebhookService:
                 await message.add_reaction(Strings.PROCESSING)  # Show that processing was attempted
                 await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
                 await message.add_reaction(Strings.ERROR)  # Show error
-    
+
     async def send_webhook_with_retry(
         self,
         target_channel: Any,
@@ -409,14 +396,14 @@ class WebhookService:
     ) -> Tuple[bool, Optional[Dict[str, Any]]]:
         """
         Send a webhook request to n8n with retry logic.
-        
+
         Args:
             target_channel: Discord channel or interaction
             payload: Request payload
             headers: Request headers
             max_retries: Maximum number of retries
             retry_delay: Delay between retries in seconds
-            
+
         Returns:
             Tuple of (success, response_data)
         """
@@ -438,17 +425,15 @@ class WebhookService:
                 if error_channel:
                     await error_channel.send("Failed to initialize webhook session")
                 raise WebhookError("Failed to initialize HTTP session")
-            
+
         logger.info(f"Attempting to send webhook to URL: {self.url}") # Modified log
-        logger.debug(f"Webhook Payload: {payload}") # Modified log
-        logger.debug(f"Webhook Headers: {headers}") # Modified log
-        
-        for attempt in range(max_retries):
+        logger.debug(f"Webhook Payload: {payload}") # Keep DEBUG for detailed payload
+        logger.debug(f"Webhook Headers: {headers}") # Keep DEBUG for detailed headers
+
+        for attempt in range(max_retries): # Retry loop
             request_id = str(uuid.uuid4())[:8] # Add unique ID for tracking
             logger.info(f"[{request_id}] Sending webhook attempt {attempt+1}/{max_retries}") # Added log + request_id
             try:
-                logger.debug(f"[{request_id}] Preparing POST request to {self.url}") # Added log
-                logger.debug(f"[{request_id}] Final Webhook Payload being sent: {payload}") # Added log to check payload
                 async with self.http_session.post(
                     self.url,
                     json=payload,
@@ -458,63 +443,63 @@ class WebhookService:
                     response_text = await response.text() # Keep reading text first
                     logger.info(f"[{request_id}] Received response status: {response.status}") # Added log + request_id
                     logger.debug(f"[{request_id}] Raw response text: {response_text}") # Added log + request_id
-                    
+
                     if response.status == 200:
                         try:
-                            data = await response.json() # Now parse JSON
+                            data = await response.json() # Parse JSON response
                             logger.info(f"[{request_id}] Successfully received and parsed 200 OK response.") # Added log
                             logger.debug(f"[{request_id}] Parsed JSON response: {data}") # Added log
-                            logger.debug(f"[{request_id}] Returning from send_webhook_with_retry (200 OK): success=True, data={data}") # Added log
+                            logger.info(f"[{request_id}] Returning from send_webhook_with_retry (200 OK): success=True, data={data}") # Change to INFO
                             # Explicitly check and return data if not None
                             if data is not None:
-                                logger.debug(f"[{request_id}] Final return from send_webhook_with_retry (200 OK, data not None): success=True, data={data}") # Added log
+                                logger.info(f"[{request_id}] Final return from send_webhook_with_retry (200 OK, data not None): success=True, data={data}") # Change to INFO
                                 return True, data
                             else:
                                 logger.error(f"[{request_id}] Data became None after successful JSON parse for 200 OK response.")
-                                logger.debug(f"[{request_id}] Final return from send_webhook_with_retry (200 OK, data is None): success=False, data=None") # Added log
+                                logger.warning(f"[{request_id}] Final return from send_webhook_with_retry (200 OK, data is None): success=False, data=None") # Change to WARNING
                                 return False, None # Return failure if data is unexpectedly None
                         except Exception as e:
                             logger.error(f"[{request_id}] JSON parse error: {e}. Response text was: {response_text}", exc_info=True) # Added log + request_id + exc_info
                             if error_channel:
                                 await error_channel.send("Received invalid response from n8n")
                             fallback = response_text.strip()
-                            logger.debug(f"[{request_id}] Final return from send_webhook_with_retry (JSON error): success=True, data={{'output': '...'}}") # Added log
+                            logger.warning(f"[{request_id}] Final return from send_webhook_with_retry (JSON error): success=True, data={{'output': '...'}}") # Change to WARNING
                             return True, {"output": fallback or "No valid JSON from n8n."}
                     elif response.status >= 500: # Server errors might be retryable
-                         logger.warning(f"[{request_id}] Received server error status: {response.status}. Will retry if possible.")
-                         # Let retry logic handle it
+                           logger.warning(f"[{request_id}] Received server error status: {response.status}. Will retry if possible.")
+                           # Let retry logic handle it
                     else: # Client errors (4xx) are usually not retryable
                         logger.error(f"[{request_id}] Received client error status: {response.status}. Aborting retries.") # Added log
-                        # Removed direct message sending on client error. The caller (e.g., on_message) should handle user feedback.
+                        # The caller (e.g., on_message) should handle user feedback.
                         # if attempt == max_retries - 1: # Log final attempt error
                         #     if hasattr(target_channel, "channel"):
                         #         await target_channel.channel.send(f"Error calling n8n: code {response.status}")
                         #     else:
                         #         await self.send_error_message(target_channel, f"Error calling n8n: code {response.status}")
             except aiohttp.ClientConnectorError as e:
-                logger.error(f"[{request_id}] Attempt {attempt+1} failed: Connection Error - {e}. Will retry if possible.", exc_info=True) # Specific error + exc_info
+                logger.warning(f"[{request_id}] Attempt {attempt+1} failed: Connection Error - {e}. Will retry if possible.", exc_info=True) # Change to WARNING
                 # Let retry logic handle it
             except asyncio.TimeoutError:
-                 logger.error(f"[{request_id}] Attempt {attempt+1} failed: Request Timeout. Will retry if possible.", exc_info=True) # Specific error + exc_info
+                 logger.warning(f"[{request_id}] Attempt {attempt+1} failed: Request Timeout. Will retry if possible.", exc_info=True) # Change to WARNING
                  # Let retry logic handle it
             except Exception as e:
                 logger.error(f"[{request_id}] Attempt {attempt+1} failed with unexpected error: {e}. Aborting retries.", exc_info=True) # Added log + request_id + exc_info
                 if attempt == max_retries - 1: # Log final attempt error
-                    if hasattr(target_channel, "channel"):
+                    if hasattr(target_channel, "channel"): # Check if target has a channel attribute
                         await target_channel.channel.send(f"An error occurred: {e}")
                     else:
                         await self.send_error_message(target_channel, f"An error occurred: {e}")
             if attempt < max_retries - 1:
                 await asyncio.sleep(retry_delay * (attempt + 1)) # Exponential backoff might be better, but simple delay for now
-        
-        logger.error(f"[{request_id}] Webhook failed after {max_retries} attempts.") # Added log
-        logger.debug(f"[{request_id}] Returning from send_webhook_with_retry (Failed): success=False, data=None") # Added log
+
+        logger.error(f"[{request_id}] Webhook failed after {max_retries} attempts.") # Keep ERROR
+        logger.error(f"[{request_id}] Returning from send_webhook_with_retry (Failed): success=False, data=None") # Change to ERROR
         return False, None
-    
+
     async def send_error_message(self, target: Any, message: str) -> None:
         """
         Send an error message to the appropriate destination.
-        
+
         Args:
             target: Discord channel or interaction
             message: Error message
@@ -526,18 +511,17 @@ class WebhookService:
                 await target.response.send_message(message, ephemeral=False)
         else:
             await target.send(message)
-    
+
     async def send_n8n_reply_channel(self, channel: discord.TextChannel, data: Dict[str, Any]) -> None:
         """
         Send n8n response to a text channel.
-        
         Args:
             channel: Discord text channel
             data: Response data
         """
         if data and "output" in data:
             await channel.send(data["output"])
-            
+
         # Handle survey control
         if data and "survey" in data:
             user_id = None
@@ -546,7 +530,7 @@ class WebhookService:
                 if str(member.id) in session_manager.sessions:
                     user_id = str(member.id)
                     break
-                    
+
             if user_id and user_id in SURVEYS:
                 if data["survey"] == "continue":
                     # Continue to the next step in the survey
@@ -565,14 +549,15 @@ class WebhookService:
                 elif data["survey"] == "end":
                     # End the survey and send results
                     state = SURVEYS[user_id]
-                    if "stepName" in data and "value" in data:
-                        state.add_result(data["stepName"], data["value"])
+                    # Check if result contains stepName and value
+                    if "result" in data and isinstance(data["result"], dict):
+                        if "stepName" in data["result"] and "value" in data["result"]:
+                            state.add_result(data["result"]["stepName"], data["result"]["value"])
                     await finish_survey(channel, state)
-    
+
     async def send_n8n_reply_interaction(self, interaction: discord.Interaction, data: Dict[str, Any]) -> None:
         """
         Send n8n response to an interaction.
-        
         Args:
             interaction: Discord interaction
             data: Response data
@@ -582,12 +567,12 @@ class WebhookService:
                 await interaction.followup.send(data["output"], ephemeral=False)
             else:
                 await interaction.response.send_message(data["output"], ephemeral=False)
-                
+
         # Handle survey control
         if data and "survey" in data:
             user_id = str(interaction.user.id)
             channel = interaction.channel
-            
+
             if user_id and user_id in SURVEYS:
                 if data["survey"] == "continue":
                     # Continue to the next step in the survey
@@ -614,7 +599,7 @@ class WebhookService:
                         if "stepName" in data["result"] and "value" in data["result"]:
                             state.add_result(data["result"]["stepName"], data["result"]["value"])
                     await finish_survey(channel, state)
-    
+
     async def send_button_pressed_info(
         self,
         interaction: discord.Interaction,
@@ -622,7 +607,6 @@ class WebhookService:
     ) -> None:
         """
         Send information about which button/select was pressed.
-        
         Args:
             interaction: Discord interaction
             button_or_select: Button or select UI element
@@ -668,7 +652,7 @@ class WebhookService:
                     "placeholder": button_or_select.placeholder,
                     "values": button_or_select.values
                 })
-            
+
             await self.send_webhook(
                 interaction,
                 command="button_pressed",
@@ -676,4 +660,4 @@ class WebhookService:
             )
 
 # Global webhook service instance
-webhook_service = WebhookService() 
+webhook_service = WebhookService()

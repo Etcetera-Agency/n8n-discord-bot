@@ -84,7 +84,7 @@ bot.webhook_service = WebhookService()
 from discord_bot.commands.prefix import PrefixCommands
 from discord_bot.commands.slash import SlashCommands
 from discord_bot.commands.events import EventHandlers # Assuming EventHandlers setup is needed
-# Removed import of SurveyButtonView as it seems unused/incorrectly referenced
+from discord_bot.views.start_survey import StartSurveyView # Import the new persistent view
 
 # Register commands and event handlers
 prefix_commands = PrefixCommands(bot)
@@ -93,8 +93,8 @@ event_handlers = EventHandlers(bot)
 # event_handlers.setup() # Call setup if EventHandlers class requires it
 
 # Removed registration of SurveyButtonView as it seems unused/incorrectly referenced
-# bot.add_view(SurveyButtonView()) # Removed this line
-
+# Register the persistent view for the start survey button
+bot.add_view(StartSurveyView())
 logger.info("Bot instance created and handlers initialized in bot.py")
 # --- MOVED FROM bot/client.py END ---
 
@@ -191,7 +191,7 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow):
 ###############################################################################
 ###############################################################################
 # Discord Events
-###############################################################################
+##############################################################################
 @bot.event
 async def on_ready():
     logger.info(f"Bot connected as {bot.user}")
@@ -207,9 +207,8 @@ async def on_close():
 ###############################################################################
 ###############################################################################
 # Discord on_message Event
-##############################################################################
+#############################################################################
 @bot.event # Re-added @bot.event decorator
-@bot.event
 async def on_message(message: discord.Message):
     # Ignore messages from the bot itself
     if message.author == bot.user:
@@ -290,10 +289,10 @@ async def on_message(message: discord.Message):
                     elif success: # Success but no specific output message
                          final_content = f"Processed mention, {message.author.mention}."
                     else: # Failure case
-                        logger.warning(f"Webhook for mention failed. Success: {success}, Data: {data}")
-                        # Include the 404 error detail if possible, assuming data might contain error info
-                        error_detail = f" (Error: {data})" if data else ""
-                        final_content = f"Sorry, {message.author.mention}, I couldn't process that mention.{error_detail}"
+                         logger.warning(f"Webhook for mention failed. Success: {success}, Data: {data}")
+                         # Include the 404 error detail if possible, assuming data might contain error info
+                         error_detail = f" (Error: {data})" if data else ""
+                         final_content = f"Sorry, {message.author.mention}, I couldn't process that mention.{error_detail}"
 
                     # Edit the placeholder message with the final content
                     await placeholder_message.edit(content=final_content)
