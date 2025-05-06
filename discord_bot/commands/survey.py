@@ -300,7 +300,7 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                 logger.info(f"Button callback for workload survey step: {step_name}. Creating workload view.")
                 # Create the multi-button workload view
                 # Pass the current_survey object and continue_survey function to the view factory
-                workload_view = create_workload_view(step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey) # Pass bot instance to continue_survey
+                workload_view = create_workload_view(step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey, command_msg=original_msg) # Pass bot instance to continue_survey and the original message
                 # logger.debug(f"Workload view created: {workload_view}")
 
                 # Send the workload view as a new message instead of editing the original

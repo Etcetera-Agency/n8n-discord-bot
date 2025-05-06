@@ -5,7 +5,7 @@ from services import webhook_service, survey_manager
 
 class WorkloadView_survey(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
-    def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None, survey=None):
+    def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None, survey=None, command_msg: Optional[discord.Message] = None):
         logger.debug(f"[{user_id}] - WorkloadView_survey.__init__ called for cmd_or_step: {cmd_or_step}, has_survey: {has_survey}")
         self.continue_survey_func = continue_survey_func # Store continue survey function
         self.survey = survey # Store the survey object
@@ -15,7 +15,7 @@ class WorkloadView_survey(discord.ui.View):
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
         self.has_survey = has_survey
-        self.command_msg = None  # Reference to the command message
+        self.command_msg = command_msg  # Reference to the command message
         self.buttons_msg = None  # Reference to the buttons message
         logger.debug(f"[{self.user_id}] - WorkloadView_survey initialized. command_msg: {self.command_msg}, buttons_msg: {self.buttons_msg}") # Added log
 
@@ -408,12 +408,12 @@ class WorkloadButton_survey(discord.ui.Button):
                     logger.error(f"[{view.user_id}] - Error deleting buttons message in finally block: {e}", exc_info=True)
 
 
-def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None, has_survey: bool = False, continue_survey_func=None, survey=None) -> WorkloadView_survey:
+def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None, has_survey: bool = False, continue_survey_func=None, survey=None, command_msg: Optional[discord.Message] = None) -> WorkloadView_survey:
     """Create workload view for regular commands only"""
     print(f"[{user_id}] - create_workload_view function entered")
     logger.info(f"[{user_id}] - create_workload_view called with cmd: {cmd}, user_id: {user_id}, has_survey: {has_survey}") # Change to INFO
     try:
-        view = WorkloadView_survey(cmd, user_id, has_survey=has_survey, continue_survey_func=continue_survey_func, survey=survey)
+        view = WorkloadView_survey(cmd, user_id, has_survey=has_survey, continue_survey_func=continue_survey_func, survey=survey, command_msg=command_msg)
         logger.debug(f"[{user_id}] - WorkloadView_survey instantiated successfully") # Keep debug
     except Exception as e:
         logger.error(f"[{user_id}] - Error instantiating WorkloadView_survey: {e}")
