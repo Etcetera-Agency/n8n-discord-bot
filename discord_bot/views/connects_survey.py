@@ -2,7 +2,7 @@ import discord
 from discord.ui import Modal, TextInput
 from config import logger, Strings
 from services import webhook_service, survey_manager
-from discord_bot.commands.survey import continue_survey # Import continue_survey
+
 
 class ConnectsModal(Modal, title="Введіть кількість контактів"):
     connects_input = TextInput(
@@ -56,7 +56,7 @@ class ConnectsModal(Modal, title="Введіть кількість контак
                 ephemeral=True
             )
             # Call the continue_survey function to proceed to the next step
-            await continue_survey(interaction.channel, state)
+            await self.continue_survey_func(interaction.channel, state)
         else:
             logger.error(f"[{self.user_id}] Webhook failed")
             await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=True)
