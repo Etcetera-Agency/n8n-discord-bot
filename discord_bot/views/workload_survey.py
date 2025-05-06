@@ -96,7 +96,7 @@ class WorkloadButton_survey(discord.ui.Button):
             # logger.debug(f"[{view.user_id}] - Attempting to defer interaction response")
             # if not interaction.response.is_done():
             #     await interaction.response.defer(ephemeral=False)
-            logger.debug(f"[{view.user_id}] - Interaction response deferred")
+            # logger.debug(f"[{view.user_id}] - Interaction response deferred")
 
             logger.info(f"Processing workload selection for user {view.user_id}")
 
@@ -269,19 +269,19 @@ class WorkloadButton_survey(discord.ui.Button):
                     state.results[view.cmd_or_step] = value
                     logger.info(f"Updated survey results: {state.results}")
 
-                    # Update command message with response
+                    # Delete command message instead of updating it
                     if view.command_msg:
-                        # Clear all reactions except ❌
-                        for reaction in view.command_msg.reactions:
-                            if str(reaction.emoji) != "❌":
-                                await reaction.remove(interaction.client.user)
-                        if "output" in data and data["output"].strip():
-                            logger.debug(f"[{view.user_id}] - Attempting to edit command message with output: {data['output']}")
-                            await view.command_msg.edit(content=data["output"])
-                        else:
-                            logger.debug(f"[{view.user_id}] - Attempting to edit command message with default success message")
-                            await view.command_msg.edit(content=f"Дякую! Навантаження: {value} годин записано.")
-                        logger.info(f"[{view.user_id}] - Updated command message with response")
+                        try:
+                            logger.debug(f"[{view.user_id}] - Attempting to delete command message {view.command_msg.id}")
+                            await view.command_msg.delete()
+                            logger.info(f"[{view.user_id}] - Successfully deleted command message {view.command_msg.id}")
+                            view.command_msg = None # Clear reference after successful deletion
+                        except discord.NotFound:
+                            logger.warning(f"[{view.user_id}] - Command message {getattr(view.command_msg, 'id', 'N/A')} already deleted or not found.")
+                            view.command_msg = None # Clear reference if not found
+                        except Exception as delete_error:
+                            logger.error(f"[{view.user_id}] - Error deleting command message {getattr(view.command_msg, 'id', 'N/A')}: {delete_error}", exc_info=True)
+
 
                     # Log survey state before continuation
                     logger.info(f"Survey state before continuation - current step: {state.current_step()}, results: {state.results}")
