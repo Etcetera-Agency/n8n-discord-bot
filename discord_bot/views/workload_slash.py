@@ -206,30 +206,36 @@ class WorkloadButton_slash(discord.ui.Button):
                 # Deletion handled at the beginning
 
 
-def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None) -> WorkloadView_slash: # Removed has_survey parameter
+def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None, has_survey: bool = False, continue_survey_func=None) -> WorkloadView_slash:
     """Create workload view for regular commands only"""
-    print(f"[{user_id}] - create_workload_view function entered")
-    logger.debug(f"[{user_id}] - create_workload_view called with cmd: {cmd}, user_id: {user_id}") # Removed has_survey from log
+    logger.debug(f"[{user_id}] - create_workload_view function entered with cmd: {cmd}, has_survey: {has_survey}")
     try:
-        view = WorkloadView_slash(cmd, user_id) # Removed has_survey argument
-        logger.debug(f"[{user_id}] - WorkloadView_slash instantiated successfully")
+        view = WorkloadView_slash(cmd, user_id)
+        logger.debug(f"[{user_id}] - WorkloadView_slash instantiated successfully for cmd: {cmd}")
     except Exception as e:
-        logger.error(f"[{user_id}] - Error instantiating WorkloadView: {e}")
-        raise # Re-raise the exception after logging
-    
-    logger.debug(f"[{user_id}] - Before importing WORKLOAD_OPTIONS")
-    from config.constants import WORKLOAD_OPTIONS
-    logger.debug(f"[{user_id}] - After importing WORKLOAD_OPTIONS. WORKLOAD_OPTIONS: {WORKLOAD_OPTIONS}")
-    # Add all workload options as buttons, including "Нічого немає"
+        logger.error(f"[{user_id}] - Error instantiating WorkloadView_slash for cmd {cmd}: {e}", exc_info=True)
+        raise
+
+    logger.debug(f"[{user_id}] - Before importing WORKLOAD_OPTIONS for cmd: {cmd}")
     try:
+        from config.constants import WORKLOAD_OPTIONS
+        logger.debug(f"[{user_id}] - After importing WORKLOAD_OPTIONS for cmd: {cmd}. WORKLOAD_OPTIONS: {WORKLOAD_OPTIONS}")
+    except Exception as e:
+        logger.error(f"[{user_id}] - Error importing WORKLOAD_OPTIONS for cmd {cmd}: {e}", exc_info=True)
+        raise
+
+    logger.debug(f"[{user_id}] - Before adding workload buttons for cmd: {cmd}")
+    try:
+        # Add all workload options as buttons, including "Нічого немає"
         for hour in WORKLOAD_OPTIONS:
             custom_id = f"workload_button_{hour}_{cmd}_{user_id}"
-            button = WorkloadButton_slash(label=hour, custom_id=custom_id, cmd_or_step=cmd) # Pass cmd to button
-            logger.debug(f"[{user_id}] - Adding button with label: {hour}, custom_id: {custom_id}")
+            button = WorkloadButton_slash(label=hour, custom_id=custom_id, cmd_or_step=cmd)
+            logger.debug(f"[{user_id}] - Adding button with label: {hour}, custom_id: {custom_id} for cmd: {cmd}")
             view.add_item(button)
-        logger.debug(f"[{user_id}] - Finished adding workload buttons")
+        logger.debug(f"[{user_id}] - Finished adding workload buttons for cmd: {cmd}. Total buttons added: {len(view.children)}")
     except Exception as e:
-        logger.error(f"[{user_id}] - Error adding workload buttons: {e}")
-        raise # Re-raise the exception after logging
-    
+        logger.error(f"[{user_id}] - Error adding workload buttons for cmd {cmd}: {e}", exc_info=True)
+        raise
+
+    logger.debug(f"[{user_id}] - Returning workload view for cmd: {cmd}")
     return view

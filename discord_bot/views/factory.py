@@ -186,8 +186,15 @@ def create_view(
 
     # Fall back to button views
     if cmd_or_step in ["workload_today", "workload_nextweek"]:
-        logger.debug(f"[{user_id}] - Creating workload view for: {cmd_or_step}")
-        return create_workload_view(cmd_or_step, user_id, has_survey=has_survey, continue_survey_func=continue_survey_func)
+        logger.debug(f"[{user_id}] - Attempting to create workload view for: {cmd_or_step} with has_survey={has_survey}")
+        try:
+            view = create_workload_view(cmd_or_step, user_id, has_survey=has_survey, continue_survey_func=continue_survey_func)
+            logger.debug(f"[{user_id}] - Successfully created workload view for: {cmd_or_step}")
+            return view
+        except Exception as e:
+            logger.error(f"[{user_id}] - Error creating workload view for {cmd_or_step}: {e}", exc_info=True)
+            # Return an empty view or None to indicate failure, depending on expected behavior
+            return discord.ui.View(timeout=timeout) # Return empty view on error
     elif view_name == "day_off": # Keep existing day_off check
         logger.debug(f"Creating day_off view for {cmd_or_step}, user {user_id}")
         try:
