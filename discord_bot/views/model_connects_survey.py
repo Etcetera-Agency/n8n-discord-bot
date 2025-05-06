@@ -120,6 +120,57 @@ class ConnectsModal(discord.ui.Modal):
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
                 return
 
+            logger.info(f"Storing connects result: {{connects}} for channel {{current_survey.channel_id}}")
+            # Store the validated result
+            try:
+                current_survey.add_result(self.step_name, str(connects))
+                # logger.debug(f"After add_result, survey.results: {{current_survey.results}}")
+            except Exception as e:
+                logger.error(f"Error storing connects result for channel {{current_survey.channel_id}}: {{e}}")
+                await send_error_response(interaction, Strings.GENERAL_ERROR)
+                return
+
+            # Send step webhook for just this step
+            try:
+                step_payload = {
+                    "command": "survey",
+                    "status": "step",
+                    "message": "",
+                    "result": {
+                        "stepName": self.step_name,
+                        "value": str(connects)
+                    },
+                    "userId": str(self.survey.user_id),
+                    "channelId": str(self.survey.channel_id),
+                    "sessionId": str(getattr(current_survey, 'session_id', ''))
+                }
+                logger.info(f"Sending step webhook: {{step_payload}}")
+                success, response = await self.webhook_service_instance.send_webhook_with_retry( # Use passed instance
+                    interaction.channel,
+                    step_payload, # Send the step payload
+                    {"Authorization": f"Bearer {{self.webhook_service_instance.auth_token}}"} # Use auth_token from instance
+                )
+                logger.info(f"Step webhook response for channel {{current_survey.channel_id}}: success={{success}}, response={{response}}")
+                # Show n8n output to user if present
+                if response:
+                    try:
+                        # Update the initial message with the n8n output
+                        if current_survey.current_message:
+                            await current_survey.current_message.edit(content=str(response), view=None, attachments=[]) # Remove view/attachments
+                            # Remove reaction if it was added
+                            try: # Use try-except for reaction removal
+                                await current_survey.current_message.remove_reaction("⏳", self.bot_instance.user) # Use passed instance
+                            except discord.NotFound:
+                                pass # Ignore if reaction wasn't there or couldn't be removed
+                        else:
+                             await interaction.followup.send(str(response), ephemeral=False) # Send as new message if original not found
+                    except Exception as e:
+                        logger.warning(f"Failed to send n8n step response to user: {{e}}")
+            except Exception as e:
+                logger.error(f"Error sending step webhook: {{e}}")
+                await send_error_response(interaction, Strings.GENERAL_ERROR)
+                return # Exit if step webhook fails
+
             logger.info(f"Advancing survey for channel {{current_survey.channel_id}}")
             # Advance survey state
             try:
@@ -127,55 +178,11 @@ class ConnectsModal(discord.ui.Modal):
                 # logger.debug(f"Survey results after connects: {{current_survey.results}}")
                 # logger.debug(f"Survey steps: {{getattr(current_survey, 'steps', None)}}")
                 # logger.debug(f"Survey current_step: {{current_survey.current_step() if hasattr(current_survey, 'current_step') else None}}")
-                # logger.debug(f"Survey is_done: {{current_survey.is_done()}}")
-                if current_survey.is_done(): # Check if survey is finished
-                    logger.info("Survey is complete, finishing")
-                    await self.finish_survey_func(interaction.channel, current_survey) # Use passed function
-                else:
-                    logger.info("Survey continuing to next step")
-                    # Send step webhook for just this step
-                    try:
-                        step_payload = {
-                            "command": "survey",
-                            "status": "step",
-                            "message": "",
-                            "result": {
-                                "stepName": self.step_name,
-                                "value": str(connects)
-                            },
-                            "userId": str(self.survey.user_id),
-                            "channelId": str(self.survey.channel_id),
-                            "sessionId": str(getattr(current_survey, 'session_id', ''))
-                        }
-                        logger.info(f"Sending step webhook: {{step_payload}}")
-                        success, response = await self.webhook_service_instance.send_webhook_with_retry( # Use passed instance
-                            interaction.channel,
-                            step_payload, # Send the step payload
-                            {"Authorization": f"Bearer {{self.webhook_service_instance.auth_token}}"} # Use auth_token from instance
-                        )
-                        logger.info(f"Step webhook response for channel {{current_survey.channel_id}}: success={{success}}, response={{response}}")
-                        # Show n8n output to user if present
-                        if response:
-                            try:
-                                # Update the initial message with the n8n output
-                                if current_survey.current_message:
-                                    await current_survey.current_message.edit(content=str(response), view=None, attachments=[]) # Remove view/attachments
-                                    # Remove reaction if it was added
-                                    try: # Use try-except for reaction removal
-                                        await current_survey.current_message.remove_reaction("⏳", self.bot_instance.user) # Use passed instance
-                                    except discord.NotFound:
-                                        pass # Ignore if reaction wasn't there or couldn't be removed
-                                else:
-                                     await interaction.followup.send(str(response), ephemeral=False) # Send as new message if original not found
 
-                            except Exception as e:
-                                logger.warning(f"Failed to send n8n step response to user: {{e}}")
-                    except Exception as e:
-                        logger.error(f"Error sending step webhook: {{e}}")
+                # Call continue_survey unconditionally, it will handle is_done() check
+                from discord_bot.commands.survey import continue_survey # Keep this import for now, will remove in next step
+                await continue_survey(self.bot_instance, interaction.channel, current_survey) # Call continue_survey after sending webhook, pass bot instance
 
-                    # logger.debug("Calling continue_survey after step webhook")
-                    from discord_bot.commands.survey import continue_survey # Keep this import for now, will remove in next step
-                    await continue_survey(interaction.channel, current_survey) # Call continue_survey after sending webhook
             except Exception as e:
                 logger.error(f"Error advancing survey: {{e}}")
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
