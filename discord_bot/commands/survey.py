@@ -491,7 +491,7 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
             "sessionId": str(getattr(current_survey, 'session_id', ''))
         }
 
-        logger.info(f"[{current_survey.user_id}] - Sending 'end' webhook for completed survey in channel {current_survey.channel_id}.") # Log before sending end webhook
+        logger.info(f"[{current_survey.user_id}] - Sending 'end' webhook for completed survey in channel {current_survey.channel_id}. Payload: {payload}") # Log before sending end webhook, include payload
         # Send completion webhook directly
         success, response = await webhook_service.send_webhook_with_retry(
             channel,
@@ -547,18 +547,18 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                         await channel.send("Дякую. \nЧудового дня!") # Send fallback message
                     except Exception as send_e:
                          logger.error(f"Failed to send fallback message after unexpected Notion error: {send_e}")
-            else:
-                logger.info(f"[{current_survey.user_id}] - No Notion URL provided in n8n response for channel {current_survey.channel_id}.")
+                else:
+                    logger.info(f"[{current_survey.user_id}] - No Notion URL provided in n8n response for channel {current_survey.channel_id}.")
 
-        elif not success:
-             logger.error(f"[{current_survey.user_id}] - Completion webhook failed. Response: {response}")
-             # Keep existing error message logic below
+            elif not success:
+                 logger.error(f"[{current_survey.user_id}] - Completion webhook failed. Response: {response}")
+                 # Keep existing error message logic below
 
-        logger.info(f"Survey completed processing for channel {current_survey.channel_id} with results: {current_survey.results}")
+            logger.info(f"Survey completed processing for channel {current_survey.channel_id} with results: {current_survey.results}")
 
     except Exception as e:
         # This catches errors *before* or *during* the webhook call, or if success is False and we re-raise
-        logger.error(f"Error completing survey for channel {current_survey.channel_id}: {str(e)}", exc_info=True) # Added user_id and exc_info
+        logger.error(f"Error during webhook sending or processing for channel {current_survey.channel_id}: {str(e)}", exc_info=True) # Added user_id and exc_info
         try:
             await channel.send(
                 f"<@{current_survey.user_id}> Помилка при завершенні: {str(e)}"
