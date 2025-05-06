@@ -42,7 +42,7 @@ class ConnectsModal(discord.ui.Modal):
             # Create and configure text input
             # logger.debug("Creating TextInput field")
             self.connects_input = discord.ui.TextInput(
-                label=Strings.CONNECTS_INPUT,
+                label=Strings.CONNECTS_MODAL,
                 placeholder=Strings.CONNECTS_PLACEHOLDER,
                 min_length=1,
                 max_length=3,
