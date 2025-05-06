@@ -170,9 +170,13 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
         # Steps provided - proceed with survey
         pass
     else:
-        # No steps provided - send completion message
-        await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
-        logger.info(f"No survey steps provided for channel {channel_id}, survey complete")
+        # No steps provided - finish the survey flow
+        logger.info(f"No survey steps provided for channel {channel_id}, finishing survey.")
+        # Create a minimal survey object to pass to finish_survey
+        minimal_survey = SurveyFlow(user_id, channel_id, [], session_id)
+        # Mark the minimal survey as done immediately
+        minimal_survey._current_index = len(minimal_survey.steps) # Set index to indicate completion
+        await finish_survey(bot, channel, minimal_survey)
         return
 
     logger.info(f"Starting survey with steps: {steps}")
@@ -187,7 +191,7 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
     if not final_steps:
         logger.info(f"No *required* survey steps found for channel {channel_id} after filtering {steps}.")
         channel = await bot.fetch_channel(int(channel_id))
-        if channel: await channel.send(f"<@{user_id}> {Strings.SURVEY_COMPLETE_MESSAGE}")
+        if channel: await channel.send(f"{Strings.SURVEY_COMPLETE_MESSAGE}")
         return
 
     logger.info(f"Starting new survey for user {user_id} in channel {channel_id} with steps: {final_steps}")
@@ -475,7 +479,6 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
         return
 
     logger.info(f"[{current_survey.user_id}] - Entering finish_survey. is_done(): {current_survey.is_done()}, Current index: {current_survey.current_index}, Total steps: {len(current_survey.steps)}") # Log state in finish_survey
-
     try:
         # Validate completion data
         if not current_survey or not current_survey.user_id or not current_survey.channel_id:
@@ -528,12 +531,13 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                     tasks_data = json.loads(tasks_json_str)
 
                     if tasks_data.get("tasks_found"):
-                        await channel.send(tasks_data.get("text", "Error: Could not format Notion tasks."))
-                        logger.info(f"[{current_survey.user_id}] - Successfully sent Notion ToDos for channel {current_survey.channel_id}.")
+                        tasks_text = tasks_data.get("text", "Error: Could not format Notion tasks.")
+                        updated_message_content = f"{Strings.SURVEY_COMPLETE_MESSAGE}\n{tasks_text}"
+                        await completion_message.edit(content=updated_message_content)
+                        logger.info(f"[{current_survey.user_id}] - Successfully updated completion message with Notion ToDos for channel {current_survey.channel_id}.")
                     else:
                         logger.info(f"[{current_survey.user_id}] - No Notion ToDos found or tasks_found was false for channel {current_survey.channel_id}.")
-                        # Optionally send a message if no tasks found, or just log it.
-                        # await channel.send("No relevant Notion tasks found.")
+                        # The initial completion message is already sent, no need to send another message here.
 
                 except (ValueError, ConnectionError, json.JSONDecodeError) as notion_e:
                     logger.error(f"[{current_survey.user_id}] - Failed to fetch/process Notion tasks from URL {notion_url} for channel {current_survey.channel_id}: {notion_e}", exc_info=True)
