@@ -519,10 +519,12 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
         if success and isinstance(response, dict):
             # Send main output message if present
             if output_msg := response.get("output"):
+                # Remove "Записав! " prefix if present
+                cleaned_output_msg = output_msg.replace("Записав! ", "")
                 try:
                     # Update the initial completion message with the final output
                     if completion_message: # Use the newly sent completion message
-                        await completion_message.edit(content=output_msg, view=None, attachments=[]) # Remove view/attachments
+                        await completion_message.edit(content=cleaned_output_msg, view=None, attachments=[]) # Remove view/attachments
                         # Also remove reaction if it was added
                         try:
                             await completion_message.remove_reaction("⏳", bot.user) # Remove reaction from completion message
@@ -530,7 +532,7 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                             pass # Ignore if reaction wasn't there or couldn't be removed
                     else:
                         # This case should not happen if completion_message was sent successfully
-                        await channel.send(output_msg) # Send as new message if completion message not found
+                        await channel.send(cleaned_output_msg) # Send as new message if completion message not found
                 except Exception as e:
                     logger.warning(f"Failed to send n8n output message to user: {e}")
 
