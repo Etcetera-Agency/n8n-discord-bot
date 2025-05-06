@@ -13,7 +13,7 @@ class StartSurveyView(discord.ui.View):
         super().__init__(timeout=None)
         logger.info("StartSurveyView initialized (persistent)")
 
-    @discord.ui.button(label=Strings.START_SURVEY_BUTTON_LABEL, style=discord.ButtonStyle.primary, custom_id="start_survey_button")
+    @discord.ui.button(label=Strings.START_SURVEY_BUTTON, style=discord.ButtonStyle.primary, custom_id="start_survey_button")
     async def start_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """
         Callback for the "Гайда" button.
