@@ -260,31 +260,15 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
 
             logger.info(f"Button callback triggered for step: {step_name} in channel {interaction.channel.id} by user {interaction.user.id}") # Added log with user ID
 
-            # Defer interaction *before* doing potentially slow work (creating view)
-            try:
-                # Check if already responded to prevent errors
-                if not interaction.response.is_done():
-                    await interaction.response.defer(ephemeral=False) # Defer publicly
-                    # logger.debug(f"Interaction deferred for step: {step_name} in channel {interaction.channel.id}")
-                else:
-                    logger.warning(f"Interaction already responded/deferred for step: {step_name} in channel {interaction.channel.id}")
-            except Exception as defer_error:
-                 logger.error(f"Error deferring interaction for step {step_name} in channel {interaction.channel.id}: {defer_error}", exc_info=True)
-                 # Attempt to notify user if possible, then return
-                 try:
-                     # Use followup since we might have deferred successfully before error
-                     await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
-                 except:
-                     pass
-                 return
-
             # Verify user matches survey user
             # Retrieve the survey using channel_id
             current_survey = survey_manager.get_survey(str(interaction.channel.id))
             if not current_survey or str(interaction.user.id) != str(current_survey.user_id):
                 logger.warning(f"User {interaction.user.id} attempted to interact with survey in channel {interaction.channel.id} but it belongs to user {current_survey.user_id if current_survey else 'N/A'}")
-                await interaction.followup.send(Strings.SURVEY_NOT_FOR_YOU, ephemeral=False)
+                # Use send_message as this is the initial response
+                await interaction.response.send_message(Strings.SURVEY_NOT_FOR_YOU, ephemeral=False)
                 return # Exit if user/channel mismatch
+
             # Disable the button on the original message
             try:
                 original_msg = await interaction.channel.fetch_message(current_survey.current_question_message_id)
@@ -312,6 +296,18 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
 
             # Identify the correct view or modal based on step_name
             if step_name in ["workload_today", "workload_nextweek"]:
+                # Defer interaction for workload view as it's a followup message
+                try:
+                    if not interaction.response.is_done():
+                        await interaction.response.defer(ephemeral=False) # Defer publicly
+                except Exception as defer_error:
+                    logger.error(f"Error deferring interaction for workload step {step_name}: {defer_error}", exc_info=True)
+                    try:
+                        await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=False)
+                    except:
+                        pass
+                    return
+
                 logger.info(f"Button callback for workload survey step: {step_name}. Creating workload view.")
                 # Create the multi-button workload view
                 # Pass the current_survey object and continue_survey function to the view factory
@@ -341,7 +337,7 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                 try:
                     logger.info(f"Button callback for connects_thisweek survey step: {step_name}")
 
-                    # Create and send modal
+                    # Create and send modal as the initial response
                     # Pass the current_survey object and dependencies
                     modal_to_send = ConnectsModal(
                         survey=current_survey,
@@ -350,14 +346,16 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                         webhook_service_instance=webhook_service, # Pass webhook_service instance
                         bot_instance=bot # Pass bot instance
                     )
+                    # Send modal as the initial response
                     await interaction.response.send_modal(modal_to_send)
 
                 except discord.errors.InteractionResponded:
-                    logger.error("Interaction already responded to when trying to send modal via followup")
+                    logger.error("Interaction already responded to when trying to send modal")
                     return
                 except Exception as e:
                     logger.error(f"Error in connects_thisweek button callback: {e}", exc_info=True)
                     try:
+                        # Use send_message as this is the initial response
                         if not interaction.response.is_done():
                             await interaction.response.send_message(
                                 Strings.GENERAL_ERROR,
@@ -367,6 +365,18 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                         logger.error(f"Error sending error response in connects_thisweek button callback: {e}")
 
             elif step_name == "dayoff_nextweek":
+                # Defer interaction for day off view as it's a followup message
+                try:
+                    if not interaction.response.is_done():
+                        await interaction.response.defer(ephemeral=False) # Defer publicly
+                except Exception as defer_error:
+                    logger.error(f"Error deferring interaction for day off step {step_name}: {defer_error}", exc_info=True)
+                    try:
+                        await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=False)
+                    except:
+                        pass
+                    return
+
                 logger.info(f"Button callback for dayoff_nextweek survey step: {step_name}. Creating day off view.")
                 # Create the day off view
                 from discord_bot.views.day_off_survey import create_day_off_view # Use survey-specific view
@@ -395,7 +405,8 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
 
             else:
                 logger.error(f"Button callback triggered for unknown survey step: {step_name}")
-                await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False) # Use followup as interaction is deferred
+                # Use send_message as this is the initial response
+                await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=False)
                 return
 
         # Assign callback and create view
