@@ -41,40 +41,10 @@ class WebServer:
             # Create consistent session ID format
             session_id = f"{channel_id}_{user_id}"
 
-            class StartSurveyButton(discord.ui.Button):
-                def __init__(self, user_id: str, channel_id: str):
-                    # Encode both IDs in the custom ID using a separator
-                    super().__init__(
-                        style=discord.ButtonStyle.success,
-                        label=Strings.START_SURVEY_BUTTON,
-                        custom_id=f"survey_start_{session_id}"  # Use consistent session ID format
-                    )
-                    self.user_id = user_id
-                    self.channel_id = channel_id
-                    self.session_id = session_id  # Use pre-validated session ID
-
-                async def callback(self, interaction: discord.Interaction):
-                    await interaction.response.defer()
-                    try:
-                        logger.info("Attempting to import handle_start_daily_survey")
-                        from discord_bot.commands.survey import handle_start_daily_survey
-                        # Pass both IDs explicitly
-                        await handle_start_daily_survey(
-                            bot=self.bot, # Pass the bot instance
-                            user_id=self.user_id,
-                            channel_id=self.channel_id,
-                            session_id=self.session_id  # Pass combined session ID
-                        )
-                    except Exception as e:
-                        logger.error(f"Survey start error: {str(e)}")
-                        await interaction.followup.send(f"<@{self.user_id}> {Strings.SURVEY_START_ERROR}")
-
             try:
                 channel = await self.bot.fetch_channel(channel_id)
-                view = discord.ui.View(timeout=None)
-                view.add_item(StartSurveyButton(user_id, str(channel_id)))
                 logger.info(f"Attempting to send greeting message to channel {channel_id} for user {user_id}")
-                await channel.send(f"<@{user_id}> {Strings.SURVEY_GREETING}", view=view)
+                await channel.send(f"<@{user_id}> {Strings.SURVEY_GREETING}")
                 logger.info("Greeting message sent successfully")
                 return web.json_response({"status": "Greeting message sent"})
             except Exception as e:
