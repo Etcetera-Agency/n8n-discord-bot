@@ -39,8 +39,6 @@ class WebServer:
                 return web.json_response({"error": "Invalid channel ID"}, status=400)
 
             # Create consistent session ID format
-            session_id = f"{channel_id}_{user_id}"
-
             try:
                 channel = await self.bot.fetch_channel(channel_id)
                 logger.info(f"Attempting to send greeting message to channel {channel_id} for user {user_id}")

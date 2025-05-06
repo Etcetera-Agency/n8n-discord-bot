@@ -46,7 +46,7 @@ class StartSurveyView(discord.ui.View):
             logger.info(f"No active survey found for channel {channel_id}. Initiating new survey for user {user_id}.")
             # Initiate a new survey flow
             # The session_id can be a combination of channel and user ID for uniqueness per user per channel
-            session_id = f"{channel_id}-{user_id}"
+            session_id = f"{channel_id}_{user_id}"
             try:
                 # Call the handler function to start the survey
                 # This function will handle checking channel registration and fetching steps
