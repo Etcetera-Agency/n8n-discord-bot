@@ -17,7 +17,7 @@ from discord_bot.views.model_connects_survey import ConnectsModal # Import the m
 
 
 async def cleanup_survey_message(interaction: discord.Interaction, survey: SurveyFlow): # Removed survey_id from log
-    # logger.debug(f"[{survey.user_id if survey else 'N/A'}] - cleanup_survey_message called for message ID: {survey.current_question_message_id if survey else 'N/A'}")
+    # logger.debug(f"[{survey.user_id if survey else 'N/A'}] - cleanup_survey_message called with message ID: {survey.current_question_message_id if survey else 'N/A'}")
     """Helper function to clean up the survey question message after modal submission.
     Attempts to disable the button on the original message and then delete it.
     Handles potential errors like message not found or missing permissions gracefully.
@@ -489,7 +489,7 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow) -> Non
                 try:
                     notion_service = Notion_todos(todo_url=notion_url, days=14)
                     # Assuming get_tasks_text is made async or runs in executor
-                    tasks_json_str = await notion_service.get_tasks_text()
+                    tasks_json_str = await notion_service.get_tasks_text(user_id=current_survey.user_id)
                     tasks_data = json.loads(tasks_json_str)
 
                     if tasks_data.get("tasks_found"):
