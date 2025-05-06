@@ -94,7 +94,7 @@ event_handlers = EventHandlers(bot)
 
 # Removed registration of SurveyButtonView as it seems unused/incorrectly referenced
 # Register the persistent view for the start survey button
-bot.add_view(StartSurveyView())
+
 logger.info("Bot instance created and handlers initialized in bot.py")
 # --- MOVED FROM bot/client.py END ---
 
@@ -196,6 +196,9 @@ async def finish_survey(channel: discord.TextChannel, survey: SurveyFlow):
 async def on_ready():
     logger.info(f"Bot connected as {bot.user}")
     logger.info("Prefix commands should be registered now.") # Added log
+# Add persistent views here
+    bot.add_view(StartSurveyView())
+    logger.info("Persistent views added.")
     # Note: Slash commands are synced separately, usually in on_ready or a setup cog
 
 @bot.event
