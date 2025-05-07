@@ -34,7 +34,7 @@ class Strings:
     # Success/Processing
     PROCESSING = "⏳"
     ERROR = "❌"
-    SURVEY_GREETING = "Готовий почати робочий день?"
+    SURVEY_GREETING = "Поділишся трохи планами?"
 
     # Modal Titles
     WORKLOAD_TODAY_MODAL = "Години сьогодні"
