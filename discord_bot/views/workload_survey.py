@@ -124,16 +124,17 @@ class WorkloadButton_survey(discord.ui.Button):
                 return
 
             view = self.view # Get the parent view
-            logger.debug(f"[{view.session_id.split('_')[0]}] - [DEBUG] Pre-deferral check at line 106")
-            if not interaction.response.is_done():
-                await self._safe_defer_response(interaction, getattr(view, 'user_id', 'unknown'))
-            else:
-                logger.warning(f"[{view.session_id.split('_')[0]}] - Skipping deferral at line 106 (already deferred)")
+            view = self.view # Get the parent view
+            # Removed deferral as it's handled in the initial button callback
+            # logger.debug(f"[{view.session_id.split('_')[0]}] - [DEBUG] Pre-deferral check at line 106")
+            # if not interaction.response.is_done():
+            #     await self._safe_defer_response(interaction, getattr(view, 'user_id', 'unknown'))
+            # else:
+            #     logger.warning(f"[{view.session_id.split('_')[0]}] - Skipping deferral at line 106 (already deferred)")
 
         except Exception as e:
             logger.error(f"Interaction handling failed: {e}")
             return
-
         if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView_survey):
             logger.error(f"Invalid view in callback: {getattr(self, 'view', None)}")
             return # Exit if view is invalid
@@ -144,18 +145,19 @@ class WorkloadButton_survey(discord.ui.Button):
         try: # Main try block to ensure button message deletion in finally
             if isinstance(view, WorkloadView_survey):
                 # First, acknowledge the interaction to prevent timeout
-                try:
-                    logger.debug(f"[{view.session_id.split('_')[0]}] - Attempting to defer interaction response (second check)") # Keep debug
-                    logger.debug(f"[{view.session_id.split('_')[0]}] - Pre-deferral check at line 123") # Keep debug
-                    if not interaction.response.is_done():
-                        await self._safe_defer_response(interaction, view.user_id)
-                    else:
-                        logger.warning(f"[{view.session_id.split('_')[0]}] - Skipping deferral at line 123 (already deferred)")
-                    logger.debug(f"[{view.session_id.split('_')[0]}] - Interaction response deferred (second check)") # Keep debug
-                except Exception as e:
-                    logger.error(f"[{view.session_id.split('_')[0]}] - Interaction response error: {e}")
-                    return
-
+                # First, acknowledge the interaction to prevent timeout
+                # Removed deferral as it's handled in the initial button callback
+                # try:
+                #     logger.debug(f"[{view.session_id.split('_')[0]}] - Attempting to defer interaction response (second check)") # Keep debug
+                #     logger.debug(f"[{view.session_id.split('_')[0]}] - Pre-deferral check at line 123") # Keep debug
+                #     if not interaction.response.is_done():
+                #         await self._safe_defer_response(interaction, view.user_id)
+                #     else:
+                #         logger.warning(f"[{view.session_id.split('_')[0]}[ - Skipping deferral at line 123 (already deferred)")
+                #     logger.debug(f"[{view.session_id.split('_')[0]}] - Interaction response deferred (second check)") # Keep debug
+                # except Exception as e:
+                #     logger.error(f"[{view.session_id.split('_')[0]}] - Interaction response error: {e}")
+                #     return
                 logger.info(f"Workload button clicked: {self.label} by user {view.user_id} for step {view.cmd_or_step} in channel {view.session_id.split('_')[0]}")
 
                 # Add processing reaction to command message
