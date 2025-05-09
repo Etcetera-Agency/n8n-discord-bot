@@ -522,13 +522,11 @@ def create_day_off_view(
     timeout: Optional[float] = None,
     has_survey: bool = False,
     continue_survey_func=None,
-    survey=None, # Add survey parameter
-    command_msg: Optional[discord.Message] = None # Add command_msg parameter
+    survey=None # Add survey parameter
 ) -> DayOffView_survey:
     """Create a day off view with buttons."""
     logger.debug(f"Creating DayOffView_survey for {cmd_or_step}, user {user_id}")
     view = DayOffView_survey(bot_instance, cmd_or_step, user_id, has_survey=has_survey, continue_survey_func=continue_survey_func, survey=survey, session_id=survey.session_id if survey else None) # Pass bot_instance, survey, and session_id
-    view.command_msg = command_msg # Set the command_msg on the view
 
     # Get current weekday (0 = Monday, 6 = Sunday)
     current_date = datetime.datetime.now(constants.KYIV_TIMEZONE) # Use Kyiv timezone
