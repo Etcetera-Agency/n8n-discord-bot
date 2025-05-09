@@ -301,10 +301,10 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
             try:
                 # original_msg is already fetched above, reuse it if available
                 if 'original_msg' in locals() and original_msg and not any(r.emoji == "⏳" for r in original_msg.reactions): # Avoid adding reaction if already present
-                    await original_msg.add_reaction("⏳") # Add reaction to the original message
-                    # logger.debug(f"Added ⏳ reaction to message {original_msg.id} in channel {interaction.channel.id}")
+                    await original_msg.add_reaction(Strings.PROCESSING) # Add reaction to the original message
+                    # logger.debug(f"Added {Strings.PROCESSING} reaction to message {original_msg.id} in channel {interaction.channel.id}")
             except Exception as reaction_error:
-                logger.warning(f"Could not add ⏳ reaction to message {current_survey.current_question_message_id} in channel {interaction.channel.id}: {reaction_error}")
+                logger.warning(f"Could not add {Strings.PROCESSING} reaction to message {current_survey.current_question_message_id} in channel {interaction.channel.id}: {reaction_error}")
 
             # Identify the correct view or modal based on step_name
             if step_name in ["workload_today", "workload_nextweek"]:
@@ -378,22 +378,10 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
 
             elif step_name == "dayoff_nextweek":
                 # Defer interaction for day off view as it's a followup message
-                try:
-                    if not interaction.response.is_done():
-                        await interaction.response.defer(ephemeral=False) # Defer publicly
-                except Exception as defer_error:
-                    logger.error(f"Error deferring interaction for day off step {step_name}: {defer_error}", exc_info=True)
-                    try:
-                        await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=False)
-                    except:
-                        pass
-                    return
-
                 logger.info(f"Button callback for dayoff_nextweek survey step: {step_name}. Creating day off view.")
-                # Create the day off view
                 from discord_bot.views.day_off_survey import create_day_off_view # Use survey-specific view
                 # Pass the current_survey object and continue_survey function to the view factory
-                day_off_view = create_day_off_view(bot, step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey) # Pass bot instance to create_day_off_view
+                day_off_view = create_day_off_view(bot, step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey, command_msg=original_msg) # Pass bot instance and original_msg to create_day_off_view
                 # logger.debug(f"Day off view created: {day_off_view}")
 
                 # Send the day off view as a new message instead of editing the original
