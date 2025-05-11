@@ -132,8 +132,8 @@ class ConfirmButton_survey(discord.ui.Button):
                         command="survey",
                         status="step",
                         result={
-                            "stepName": view.cmd_or_step,
-                            "daysSelected": dates
+                            "stepName": view.cmd_or_step,ate
+                            "daysSelected": [date.strftime("%Y-%m-%d") for date in dates]
                         }
                     )
                     logger.debug(f"[{interaction.user.id}] - Webhook response for survey step (ConfirmButton_survey): success={success}, data={data}")
