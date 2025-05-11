@@ -6,6 +6,7 @@ from services import webhook_service, survey_manager
 class WorkloadView_survey(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
     def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None, survey=None, command_msg: Optional[discord.Message] = None, bot_instance=None, session_id: Optional[str] = None): # Added bot_instance and session_id
+        self.session_id = session_id # Store session ID - Moved to the beginning
         logger.debug(f"[{self.session_id.split('_')[0]}] - WorkloadView_survey.__init__ called for cmd_or_step: {cmd_or_step}, has_survey: {has_survey}")
         self.continue_survey_func = continue_survey_func # Store continue survey function
         self.survey = survey # Store the survey object
@@ -18,7 +19,6 @@ class WorkloadView_survey(discord.ui.View):
         self.command_msg = command_msg  # Reference to the command message
         self.buttons_msg = None  # Reference to the buttons message
         self.bot_instance = bot_instance # Store bot instance
-        self.session_id = session_id # Store session ID
         logger.debug(f"[{self.session_id.split('_')[0]}] - WorkloadView_survey initialized. command_msg: {self.command_msg}, buttons_msg: {self.buttons_msg}") # Added log
 
     async def on_timeout(self):
