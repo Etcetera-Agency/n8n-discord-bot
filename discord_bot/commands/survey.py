@@ -7,7 +7,9 @@ from config import ViewType, logger, Strings, Config, constants # Added constant
 from services import survey_manager, webhook_service
 from services.notion_todos import Notion_todos # Added for Notion ToDo fetching
 from services.survey import SurveyFlow # Added import
+# Removed factory import
 from discord_bot.views.workload_survey import create_workload_view # Use survey-specific view
+# Removed: from bot import bot # Import the bot instance from the root bot.py
 from discord_bot.views.model_connects_survey import ConnectsModal # Import the moved modal
 from discord_bot.views.day_off_survey import create_day_off_view # Use survey-specific view
 
@@ -26,7 +28,9 @@ async def cleanup_survey_message(interaction: discord.Interaction, survey: Surve
         # logger.debug(f"[{survey.user_id if survey else 'N/A'}] - cleanup_survey_message: No message ID to clean up.")
         return # Added missing return
     try:
+        # logger.debug(f"[{survey.user_id if survey else 'N/A'}] - cleanup_survey_message: Fetching message {survey.current_question_message_id}")
         original_msg = await interaction.channel.fetch_message(survey.current_question_message_id)
+        # logger.debug(f"[{survey.user_id if survey else 'N/A'}] - cleanup_survey_message: Message fetched successfully.")
         # Attempt to disable button (best effort)
         try:
             view = discord.ui.View.from_message(original_msg)
@@ -64,6 +68,7 @@ async def handle_modal_error(interaction: discord.Interaction):
         if interaction.response.is_done():
             await interaction.followup.send(Strings.MODAL_SUBMIT_ERROR, ephemeral=True)
         else:
+            # If defer() failed or wasn't called, try initial response
             await interaction.response.send_message(Strings.MODAL_SUBMIT_ERROR, ephemeral=True)
     except Exception as e_resp:
          logger.error(f"Failed to send error response in modal: {e_resp}")
@@ -132,7 +137,9 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
                 logger.warning(f"Existing survey found for channel {channel_id} but no current step. Removing and starting new.")
                 survey_manager.remove_survey(channel_id) # Remove by channel_id
         else: # Corrected indentation and removed extra 'else'
+            # Survey exists but in a different channel - this shouldn't normally happen with button start
             logger.warning(f"User {user_id} has existing survey in channel {existing_survey.channel_id}, but request is for {channel_id}. Ignoring old survey.")
+            # Let the flow continue to create a new survey for the *current* channel
 
 
     # Check if channel is registered
@@ -144,6 +151,7 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
     headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
     logger.info(f"First check_channel call for channel {channel_id} with payload: {payload}")
     success, data = await webhook_service.send_webhook_with_retry(None, payload, headers)
+    # logger.debug(f"First check_channel webhook response: success={success}, raw_data={data}") # Log raw data at debug level
 
     if not success or str(data.get("output", "false")).lower() != "true":
         logger.info(f"First check_channel webhook response: success={success}, raw_data={data}") # Log raw data
@@ -152,6 +160,7 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
 
     # Check channel response data
     steps = data.get("steps", [])
+    # logger.debug(f"Extracted steps from webhook data: {steps}") # Log extracted steps at debug level
     channel = await bot.fetch_channel(channel_id)
 
     if not channel:
@@ -166,6 +175,7 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
         # No steps provided - finish the survey flow
         logger.info(f"No survey steps provided for channel {channel_id}, finishing survey.")
         # Create a minimal survey object to pass to finish_survey
+        # Use create_survey so it's added to the manager and can be retrieved by finish_survey
         try:
             minimal_survey = survey_manager.create_survey(user_id, channel_id, [], session_id)
             # Mark the minimal survey as done immediately
@@ -318,25 +328,29 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                 # Create the multi-button workload view
                 # Pass the current_survey object and continue_survey function to the view factory
                 workload_view = create_workload_view(bot, step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey, command_msg=original_msg) # Pass bot instance to continue_survey and the original message, added bot instance
+                # logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Workload view created: {workload_view}") # Keep debug
 
                 # Send the workload view as a new message instead of editing the original
+                # logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Attempting to send workload view via followup.send") # Added log
                 try:
                     buttons_msg = await interaction.followup.send(
                         content=Strings.SELECT_HOURS,
                         view=workload_view,
                         ephemeral=False
                     )
-                    logger.info(f"[{current_survey.session_id.split('_')[0]}] - Sent workload view as new message {buttons_msg.id}.") # Modified log
+                    logger.info(f"[Channel {current_survey.session_id.split('_')[0]}] - Sent workload view as new message {buttons_msg.id}.") # Modified log
                     # Store the message object reference on the view for the callback to use
                     workload_view.buttons_msg = buttons_msg # Store the new message object
 
                 except Exception as e:
-                    logger.error(f"[{current_survey.session_id.split('_')[0]}] - Error sending workload view as new message: {e}", exc_info=True) # Modified log
+                    logger.error(f"[Channel {current_survey.session_id.split('_')[0]}] - Error sending workload view as new message: {e}", exc_info=True) # Modified log
                     # Attempt to send error message via followup if sending failed
                     try:
+                        # logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Attempting to send error message via followup.send after failure") # Added log
                         await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
+                        # logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Sent error message via followup.send") # Added log
                     except Exception as e_send_error: # Added specific exception for error sending
-                        logger.error(f"[{current_survey.session_id.split('_')[0]}] - Failed to send error message after workload view send failure: {e_send_error}", exc_info=True) # Added log
+                        logger.error(f"[Channel {current_survey.session_id.split('_')[0]}] - Failed to send error message after workload view send failure: {e_send_error}", exc_info=True) # Added log
 
             elif step_name == "connects_thisweek":
                 try:
@@ -387,17 +401,19 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                         view=day_off_view,
                         ephemeral=False
                     )
-                    logger.info(f"Sent day off view as new message {buttons_msg.id}.")
+                    logger.info(f"[Channel {current_survey.session_id.split('_')[0]}] - Sent day off view as new message {buttons_msg.id}.")
                     # Store the message object reference on the view for the callback to use
                     day_off_view.buttons_msg = buttons_msg # Store the new message object
 
                 except Exception as e:
-                    logger.error(f"Error sending day off view as new message: {e}", exc_info=True)
+                    logger.error(f"[Channel {current_survey.session_id.split('_')[0]}] - Error sending day off view as new message: {e}", exc_info=True)
                     # Attempt to send error message via followup if sending failed
                     try:
+                        # logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Attempting to send error message via followup.send after failure") # Added log
                         await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
+                        # logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Sent error message via followup.send") # Added log
                     except Exception as e_send_error: # Added specific exception for error sending
-                        logger.error(f"[{current_survey.session_id.split('_')[0]}] - Failed to send error message after day off view send failure: {e_send_error}", exc_info=True) # Added log
+                        logger.error(f"[Channel {current_survey.session_id.split('_')[0]}] - Failed to send error message after day off view send failure: {e_send_error}", exc_info=True) # Added log
 
             else:
                 logger.error(f"Button callback triggered for unknown survey step: {step_name}")
@@ -431,6 +447,7 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
             except Exception as e2:
                 logger.error(f"Error continuing survey after step failure: {e2}")
 async def continue_survey(bot: commands.Bot, channel: discord.TextChannel, survey: SurveyFlow) -> None: # Added bot parameter, Type hint updated
+    """Continues the survey to the next step or finishes it."""
     logger.info(f"[{survey.user_id}] - Entering continue_survey. is_done(): {survey.is_done()}, Current index: {survey.current_index}, Total steps: {len(survey.steps)}") # Added log
 
     # Fetch the latest survey state using channel_id
@@ -468,7 +485,7 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
     if not current_survey or not current_survey.is_done():
         return
 
-    logger.info(f"[{current_survey.user_id}] - Entering finish_survey. is_done(): {current_survey.is_done()}, Current index: {current_survey.current_index}, Total steps: {len(current_survey.steps)}") # Log state in finish_survey
+    logger.info(f"[{current_survey.session_id}] - Entering finish_survey. is_done(): {current_survey.is_done()}, Current index: {current_survey.current_index}, Total steps: {len(current_survey.steps)}") # Log state in finish_survey
     try:
         # Validate completion data
         if not current_survey or not current_survey.user_id or not current_survey.channel_id:
@@ -476,7 +493,7 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
 
         # Send initial completion message
         completion_message = await channel.send(f"{Strings.SURVEY_COMPLETE_MESSAGE}")
-        logger.info(f"[{current_survey.user_id}] - Sent initial completion message (ID: {completion_message.id}) to channel {current_survey.channel_id}.")
+        logger.info(f"[{current_survey.session_id}] - Sent initial completion message (ID: {completion_message.id}) to channel {current_survey.channel_id}.")
 
         payload = {
             "command": "survey",
@@ -488,7 +505,7 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
             "sessionId": str(getattr(current_survey, 'session_id', ''))
         }
 
-        logger.info(f"[{current_survey.user_id}] - Sending 'end' webhook for completed survey in channel {current_survey.channel_id}. Payload: {payload}") # Log before sending end webhook, include payload
+        logger.info(f"[{current_survey.session_id}] - Sending 'end' webhook for completed survey in channel {current_survey.channel_id}. Payload: {payload}") # Log before sending end webhook, include payload
         # Send completion webhook directly
         success, response = await webhook_service.send_webhook_with_retry(
             channel,
@@ -499,11 +516,11 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
             channel_id=payload["channelId"],
             session_id=payload["sessionId"]
         )
-        logger.info(f"[{current_survey.user_id}] - Webhook sending result for completed survey: success={success}, response={response}") # Log webhook result
+        logger.info(f"[{current_survey.session_id}] - Webhook sending result for completed survey: success={success}, response={response}") # Log webhook result
 
         if success and response and "output" in response:
             output_msg = response["output"]
-            logger.info(f"[{current_survey.user_id}] - Received output from webhook: {output_msg}") # Log received output
+            logger.info(f"[{current_survey.session_id}] - Received output from webhook: {output_msg}") # Log received output
 
             # Clean up the initial completion message and send the final output
             if completion_message:
@@ -511,15 +528,15 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                     # Remove "Записав! " prefix if present
                     cleaned_output_msg = output_msg.replace("Записав! ", "")
                     await completion_message.edit(content=cleaned_output_msg, view=None, attachments=[]) # Remove view/attachments
-                    logger.info(f"[{current_survey.user_id}] - Updated completion message {completion_message.id} with webhook output.")
+                    logger.info(f"[{current_survey.session_id}] - Updated completion message {completion_message.id} with webhook output.")
                 except Exception as edit_error:
-                    logger.error(f"[{current_survey.user_id}] - Error editing completion message {completion_message.id}: {edit_error}", exc_info=True)
+                    logger.error(f"[{current_survey.session_id}] - Error editing completion message {completion_message.id}: {edit_error}", exc_info=True)
             else:
-                 logger.warning(f"[{current_survey.user_id}] - Completion message not found, cannot edit.")
+                 logger.warning(f"[{current_survey.session_id}] - Completion message not found, cannot edit.")
 
             # Handle Notion ToDo fetching if URL is present
             if notion_url := response.get("url"):
-                logger.info(f"[{current_survey.user_id}] - Notion URL found: {notion_url}. Attempting to fetch ToDos for channel {current_survey.channel_id}.")
+                logger.info(f"[{current_survey.session_id}] - Notion URL found: {notion_url}. Attempting to fetch ToDos for channel {current_survey.channel_id}.")
                 try:
                     notion_service = Notion_todos(todo_url=notion_url, days=14)
                     # Assuming get_tasks_text is made async or runs in executor
@@ -530,30 +547,30 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                         tasks_text = tasks_data.get("text", "Error: Could not format Notion tasks.")
                         updated_message_content = f"{Strings.SURVEY_COMPLETE_MESSAGE}\n{tasks_text}"
                         await completion_message.edit(content=updated_message_content)
-                        logger.info(f"[{current_survey.user_id}] - Successfully updated completion message with Notion ToDos for channel {current_survey.channel_id}.")
+                        logger.info(f"[{current_survey.session_id}] - Successfully updated completion message with Notion ToDos for channel {current_survey.channel_id}.")
                     else:
-                        logger.info(f"[{current_survey.user_id}] - No Notion ToDos found or tasks_found was false for channel {current_survey.channel_id}.")
+                        logger.info(f"[{current_survey.session_id}] - No Notion ToDos found or tasks_found was false for channel {current_survey.channel_id}.")
                         # The initial completion message is already sent, no need to send another message here.
 
                 except Exception as notion_e:
-                    logger.error(f"[{current_survey.user_id}] - Failed to fetch/process Notion tasks from URL {notion_url} for channel {current_survey.channel_id}: {notion_e}", exc_info=True)
+                    logger.error(f"[{current_survey.session_id}] - Failed to fetch/process Notion tasks from URL {notion_url} for channel {current_survey.channel_id}: {notion_e}", exc_info=True)
                     # Optionally send an error message to the channel about Notion failure
                     try:
                         await channel.send(f"<@{current_survey.user_id}> {Strings.NOTION_ERROR}")
                     except Exception as send_error:
-                        logger.error(f"[{current_survey.user_id}] - Failed to send Notion error message: {send_error}")
+                        logger.error(f"[{current_survey.session_id}] - Failed to send Notion error message: {send_error}")
 
         else:
-            logger.error(f"[{current_survey.user_id}] - Webhook sending failed or no output received for completed survey.")
+            logger.error(f"[{current_survey.session_id}] - Webhook sending failed or no output received for completed survey.")
             # Update command message with error
             if completion_message:
                 try:
                     await completion_message.edit(content=Strings.SURVEY_COMPLETE_ERROR, view=None, attachments=[])
-                    logger.info(f"[{current_survey.user_id}] - Updated completion message {completion_message.id} with error.")
+                    logger.info(f"[{current_survey.session_id}] - Updated completion message {completion_message.id} with error.")
                 except Exception as edit_error:
-                    logger.error(f"[{current_survey.user_id}] - Error editing completion message {completion_message.id} with error: {edit_error}", exc_info=True)
+                    logger.error(f"[{current_survey.session_id}] - Error editing completion message {completion_message.id} with error: {edit_error}", exc_info=True)
             else:
-                 logger.warning(f"[{current_survey.user_id}] - Completion message not found, cannot update with error.")
+                 logger.warning(f"[{current_survey.session_id}] - Completion message not found, cannot update with error.")
 
     except Exception as e:
         logger.error(f"Error during webhook sending or processing for channel {current_survey.channel_id}: {str(e)}", exc_info=True) # Added user_id and exc_info
@@ -562,10 +579,10 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
             try:
                 await channel.send(f"<@{current_survey.user_id}> {Strings.GENERAL_ERROR}")
             except Exception as send_error:
-                logger.error(f"[{current_survey.user_id}] - Failed to send general error message in finish_survey: {send_error}")
+                logger.error(f"[{current_survey.session_id}] - Failed to send general error message in finish_survey: {send_error}")
 
     finally:
         # Clean up the survey session regardless of success or failure
         if current_survey and current_survey.channel_id:
             survey_manager.remove_survey(current_survey.channel_id)
-            logger.info(f"[{current_survey.user_id}] - Cleaned up survey session for channel {current_survey.channel_id}.")
+            logger.info(f"[{current_survey.session_id}] - Cleaned up survey session for channel {current_survey.channel_id}.")

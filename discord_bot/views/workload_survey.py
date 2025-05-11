@@ -112,11 +112,8 @@ class WorkloadButton_survey(discord.ui.Button):
         #     await interaction.response.defer(ephemeral=False)
         # logger.debug(f"[{view.user_id}] - Interaction response deferred")
 
-        logger.info(f"Processing workload selection for channel {view.session_id.split('_')[0]}")
+        logger.info(f"Processing workload selection for channel {{view.session_id.split('_')[0]}}")
 
-        except Exception as e:
-            logger.error(f"Error in WorkloadButton_survey callback: {str(e)}")
-            return
 
         try:
             # Ensure we have a valid view
@@ -311,7 +308,7 @@ class WorkloadButton_survey(discord.ui.Button):
                              except Exception as e:
                                  logger.warning(f"[Channel {view.session_id.split('_')[0]}] - Failed to delete buttons message after expired survey message: {e}")
 
-                     else: # Original else block for non-survey commands
+                    else: # Original else block for non-survey commands
                         logger.info(f"[Channel {view.session_id.split('_')[0]}] - Processing as regular command: {view.cmd_or_step}")
                         # Regular slash command
                         webhook_payload = { # Payload for regular command webhook
