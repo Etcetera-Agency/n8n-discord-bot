@@ -272,147 +272,163 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
 
             logger.info(f"Button callback triggered for step: {step_name} in channel {interaction.channel.id} by user {interaction.user.id}") # Added log with user ID
 
-            # Verify user matches survey user
-            # Retrieve the survey using channel_id
-            current_survey = survey_manager.get_survey(str(interaction.channel.id))
-            if not current_survey or str(interaction.user.id) != str(current_survey.user_id):
-                logger.warning(f"User {interaction.user.id} attempted to interact with survey in channel {interaction.channel.id} but it belongs to user {current_survey.user_id if current_survey else 'N/A'}")
-                # Use send_message as this is the initial response
-                await interaction.response.send_message(Strings.SURVEY_NOT_FOR_YOU, ephemeral=False)
-                return # Exit if user/channel mismatch
+            try: # Added try block for survey retrieval and initial validation
+                # Verify user matches survey user
+                # Retrieve the survey using channel_id
+                current_survey = survey_manager.get_survey(str(interaction.channel.id))
+                if not current_survey or str(interaction.user.id) != str(current_survey.user_id):
+                    logger.warning(f"User {interaction.user.id} attempted to interact with survey in channel {interaction.channel.id} but it belongs to user {current_survey.user_id if current_survey else 'N/A'}")
+                    # Use send_message as this is the initial response
+                    await interaction.response.send_message(Strings.SURVEY_NOT_FOR_YOU, ephemeral=False)
+                    return # Exit if user/channel mismatch
 
-            # Disable the button on the original message
-            try:
-                original_msg = await interaction.channel.fetch_message(current_survey.current_question_message_id)
-                if original_msg:
-                    view = discord.ui.View.from_message(original_msg)
-                    if view:
-                        for item in view.children:
-                            if isinstance(item, discord.ui.Button) and item.custom_id == f"survey_step_{current_survey.session_id}_{step_name}":
-                                item.disabled = True
+                # Disable the button on the original message
+                try:
+                    original_msg = await interaction.channel.fetch_message(current_survey.current_question_message_id)
+                    if original_msg:
+                        view = discord.ui.View.from_message(original_msg)
+                        if view:
+                            changed = False # Initialize changed flag
+                            for item in view.children:
+                                if isinstance(item, discord.ui.Button) and item.custom_id == f"survey_step_{current_survey.session_id}_{step_name}":
+                                    item.disabled = True
+                                    changed = True # Set changed flag
+                                    break # Found and disabled the button, no need to continue loop
+                            if changed: # Only edit if a button was disabled
                                 await original_msg.edit(view=view)
                                 logger.debug(f"Disabled button on message {original_msg.id} for step {step_name}")
-                                break # Found and disabled the button, no need to continue loop
 
-            except Exception as disable_error:
-                logger.warning(f"Could not disable button on message {current_survey.current_question_message_id} for step {step_name}: {disable_error}")
+                except Exception as disable_error:
+                    logger.warning(f"Could not disable button on message {current_survey.current_question_message_id} for step {step_name}: {disable_error}")
 
-            # Add "⏳" reaction to the original message
-            try:
-                # original_msg is already fetched above, reuse it if available
-                if 'original_msg' in locals() and original_msg and not any(r.emoji == "⏳" for r in original_msg.reactions): # Avoid adding reaction if already present
-                    await original_msg.add_reaction(Strings.PROCESSING) # Add reaction to the original message
-                    # logger.debug(f"Added {Strings.PROCESSING} reaction to message {original_msg.id} in channel {interaction.channel.id}")
-            except Exception as reaction_error:
-                logger.warning(f"Could not add {Strings.PROCESSING} reaction to message {current_survey.current_question_message_id} in channel {interaction.channel.id}: {reaction_error}")
-
-            # Identify the correct view or modal based on step_name
-            if step_name in ["workload_today", "workload_nextweek"]:
-                # Defer interaction for workload view as it's a followup message
+                # Add "⏳" reaction to the original message
                 try:
-                    if not interaction.response.is_done():
-                        await interaction.response.defer(ephemeral=False) # Defer publicly
-                except Exception as defer_error:
-                    logger.error(f"Error deferring interaction for workload step {step_name}: {defer_error}", exc_info=True)
+                    # original_msg is already fetched above, reuse it if available
+                    if 'original_msg' in locals() and original_msg and not any(r.emoji == "⏳" for r in original_msg.reactions): # Avoid adding reaction if already present
+                        await original_msg.add_reaction(Strings.PROCESSING) # Add reaction to the original message
+                        # logger.debug(f"Added {Strings.PROCESSING} reaction to message {original_msg.id} in channel {interaction.channel.id}")
+                except Exception as reaction_error:
+                    logger.warning(f"Could not add {Strings.PROCESSING} reaction to message {current_survey.current_question_message_id} in channel {interaction.channel.id}: {reaction_error}")
+
+                # Identify the correct view or modal based on step_name
+                if step_name in ["workload_today", "workload_nextweek"]:
+                    # Defer interaction for workload view as it's a followup message
                     try:
-                        await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=False)
-                    except:
-                        pass
-                    return
-
-                logger.info(f"Button callback for workload survey step: {step_name}. Creating workload view.")
-                # Create the multi-button workload view
-                # Pass the current_survey object and continue_survey function to the view factory
-                workload_view = create_workload_view(bot, step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey, command_msg=original_msg) # Pass bot instance to continue_survey and the original message, added bot instance
-                logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Workload view created: {workload_view}") # Keep debug
-
-                logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Debugging current_survey before followup.send. current_survey: {current_survey}, session_id: {getattr(current_survey, 'session_id', 'N/A')}") # Added debug log
-
-                # Send the workload view as a new message instead of editing the original
-                logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Attempting to send workload view via followup.send") # Added log
-                try:
-                    buttons_msg = await interaction.followup.send(
-                        content=Strings.SELECT_HOURS,
-                        view=workload_view,
-                        ephemeral=False
-                    )
-                    logger.info(f"[{current_survey.session_id.split('_')[0]}] - Sent workload view as new message {buttons_msg.id}.") # Modified log
-                    # Store the message object reference on the view for the callback to use
-                    workload_view.buttons_msg = buttons_msg # Store the new message object
-
-                except Exception as e:
-                    logger.error(f"[{current_survey.session_id.split('_')[0]}] - Error sending workload view as new message: {e}", exc_info=True) # Modified log
-                    # Attempt to send error message via followup if sending failed
-                    try:
-                        logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Attempting to send error message via followup.send after failure") # Added log
-                        await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
-                        logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Sent error message via followup.send") # Added log
-                    except Exception as e_send_error: # Added specific exception for error sending
-                        logger.error(f"[{current_survey.session_id.split('_')[0]}] - Failed to send error message after workload view send failure: {e_send_error}", exc_info=True) # Added log
-
-            elif step_name == "connects_thisweek":
-                try:
-                    logger.info(f"Button callback for connects_thisweek survey step: {step_name}")
-
-                    # Create and send modal as the initial response
-                    # Pass the current_survey object and dependencies
-                    modal_to_send = ConnectsModal(
-                        survey=current_survey,
-                        step_name=step_name,
-                        finish_survey_func=lambda c, s: finish_survey(bot, c, s), # Pass bot instance to finish_survey
-                        webhook_service_instance=webhook_service, # Pass webhook_service instance
-                        bot_instance=bot # Pass bot instance
-                    )
-                    # Send modal as the initial response
-                    await interaction.response.send_modal(modal_to_send)
-
-                except discord.errors.InteractionResponded:
-                    logger.error("Interaction already responded to when trying to send modal")
-                    return
-                except Exception as e:
-                    logger.error(f"Error in connects_thisweek button callback: {e}", exc_info=True)
-                    try:
-                        # Use send_message as this is the initial response
                         if not interaction.response.is_done():
-                            await interaction.response.send_message(
-                                Strings.GENERAL_ERROR,
-                                ephemeral=False
-                            )
-                    except Exception as e:
-                        logger.error(f"Error sending error response in connects_thisweek button callback: {e}")
+                            await interaction.response.defer(ephemeral=False) # Defer publicly
+                    except Exception as defer_error:
+                        logger.error(f"Error deferring interaction for workload step {step_name}: {defer_error}", exc_info=True)
+                        try:
+                            await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=False)
+                        except:
+                            pass
+                        return
 
-            elif step_name == "dayoff_nextweek":
-                # Defer interaction for day off view as it's a followup message
-                logger.info(f"Button callback for dayoff_nextweek survey step: {step_name}. Creating day off view.")
-                from discord_bot.views.day_off_survey import create_day_off_view # Use survey-specific view
-                # Pass the current_survey object and continue_survey function to the view factory
-                day_off_view = create_day_off_view(bot, step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey, command_msg=original_msg) # Pass bot instance and original_msg to create_day_off_view
-                # logger.debug(f"Day off view created: {day_off_view}")
+                    logger.info(f"Button callback for workload survey step: {step_name}. Creating workload view.")
+                    # Create the multi-button workload view
+                    # Pass the current_survey object and continue_survey function to the view factory
+                    workload_view = create_workload_view(bot, step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey, command_msg=original_msg) # Pass bot instance to continue_survey and the original message, added bot instance
+                    logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Workload view created: {workload_view}") # Keep debug
 
-                # Send the day off view as a new message instead of editing the original
-                try:
-                    buttons_msg = await interaction.followup.send(
-                        Strings.DAY_OFF_NEXTWEEK,
-                        view=day_off_view,
-                        ephemeral=False
-                    )
-                    logger.info(f"Sent day off view as new message {buttons_msg.id}.")
-                    # Store the message object reference on the view for the callback to use
-                    day_off_view.buttons_msg = buttons_msg # Store the new message object
-
-                except Exception as e:
-                    logger.error(f"Error sending day off view as new message: {e}", exc_info=True)
-                    # Attempt to send error message via followup if sending failed
+                    # Send the workload view as a new message instead of editing the original
+                    logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Attempting to send workload view via followup.send") # Added log
                     try:
-                        await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
-                    except:
-                        pass
+                        buttons_msg = await interaction.followup.send(
+                            content=Strings.SELECT_HOURS,
+                            view=workload_view,
+                            ephemeral=False
+                        )
+                        logger.info(f"[{current_survey.session_id.split('_')[0]}] - Sent workload view as new message {buttons_msg.id}.") # Modified log
+                        # Store the message object reference on the view for the callback to use
+                        workload_view.buttons_msg = buttons_msg # Store the new message object
 
-            else:
-                logger.error(f"Button callback triggered for unknown survey step: {step_name}")
-                # Use send_message as this is the initial response
-                await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=False)
-                return
+                    except Exception as e:
+                        logger.error(f"[{current_survey.session_id.split('_')[0]}] - Error sending workload view as new message: {e}", exc_info=True) # Modified log
+                        # Attempt to send error message via followup if sending failed
+                        try:
+                            logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Attempting to send error message via followup.send after failure") # Added log
+                            await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
+                            logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Sent error message via followup.send") # Added log
+                        except Exception as e_send_error: # Added specific exception for error sending
+                            logger.error(f"[{current_survey.session_id.split('_')[0]}] - Failed to send error message after workload view send failure: {e_send_error}", exc_info=True) # Added log
+
+                elif step_name == "connects_thisweek":
+                    try:
+                        logger.info(f"Button callback for connects_thisweek survey step: {step_name}")
+
+                        # Create and send modal as the initial response
+                        # Pass the current_survey object and dependencies
+                        modal_to_send = ConnectsModal(
+                            survey=current_survey,
+                            step_name=step_name,
+                            finish_survey_func=lambda c, s: finish_survey(bot, c, s), # Pass bot instance to finish_survey
+                            webhook_service_instance=webhook_service, # Pass webhook_service instance
+                            bot_instance=bot # Pass bot instance
+                        )
+                        # Send modal as the initial response
+                        await interaction.response.send_modal(modal_to_send)
+
+                    except discord.errors.InteractionResponded:
+                        logger.error("Interaction already responded to when trying to send modal")
+                        return
+                    except Exception as e:
+                        logger.error(f"Error in connects_thisweek button callback: {e}", exc_info=True)
+                        try:
+                            # Use send_message as this is the initial response
+                            if not interaction.response.is_done():
+                                await interaction.response.send_message(
+                                    Strings.GENERAL_ERROR,
+                                    ephemeral=False
+                                )
+                        except Exception as e:
+                            logger.error(f"Error sending error response in connects_thisweek button callback: {e}")
+
+                elif step_name == "dayoff_nextweek":
+                    # Defer interaction for day off view as it's a followup message
+                    logger.info(f"Button callback for dayoff_nextweek survey step: {step_name}. Creating day off view.")
+                    from discord_bot.views.day_off_survey import create_day_off_view # Use survey-specific view
+                    # Pass the current_survey object and continue_survey function to the view factory
+                    day_off_view = create_day_off_view(bot, step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey, command_msg=original_msg) # Pass bot instance and original_msg to create_day_off_view
+                    # logger.debug(f"Day off view created: {day_off_view}")
+
+                    # Send the day off view as a new message instead of editing the original
+                    logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Attempting to send day off view via followup.send") # Added log
+                    try:
+                        buttons_msg = await interaction.followup.send(
+                            Strings.DAY_OFF_NEXTWEEK,
+                            view=day_off_view,
+                            ephemeral=False
+                        )
+                        logger.info(f"Sent day off view as new message {buttons_msg.id}.")
+                        # Store the message object reference on the view for the callback to use
+                        day_off_view.buttons_msg = buttons_msg # Store the new message object
+
+                    except Exception as e:
+                        logger.error(f"Error sending day off view as new message: {e}", exc_info=True)
+                        # Attempt to send error message via followup if sending failed
+                        try:
+                            logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Attempting to send error message via followup.send after failure") # Added log
+                            await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
+                            logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Sent error message via followup.send") # Added log
+                        except Exception as e_send_error: # Added specific exception for error sending
+                            logger.error(f"[{current_survey.session_id.split('_')[0]}] - Failed to send error message after day off view send failure: {e_send_error}", exc_info=True) # Added log
+
+                else:
+                    logger.error(f"Button callback triggered for unknown survey step: {step_name}")
+                    # Use send_message as this is the initial response
+                    await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=False)
+                    return
+
+            except Exception as e: # Catch any exception during survey retrieval or initial handling
+                logger.error(f"Error during survey retrieval or initial handling in button_callback: {e}", exc_info=True)
+                try:
+                    # Attempt to send an error message to the user
+                    if not interaction.response.is_done():
+                        await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=False)
+                    else:
+                        await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
+                except Exception as send_error:
+                    logger.error(f"Failed to send error message in button_callback exception handler: {send_error}")
 
         # Assign callback and create view
         button.callback = button_callback
