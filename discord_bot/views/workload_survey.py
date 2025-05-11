@@ -106,13 +106,13 @@ class WorkloadButton_survey(discord.ui.Button):
             logger.error(f"Error in WorkloadButton_survey callback: {str(e)}")
             return
 
-            # Defer response to prevent timeout (redundant block, removed)
-            # logger.debug(f"[{view.user_id}] - Attempting to defer interaction response")
-            # if not interaction.response.is_done():
-            #     await interaction.response.defer(ephemeral=False)
-            # logger.debug(f"[{view.user_id}] - Interaction response deferred")
+        # Defer response to prevent timeout (redundant block, removed)
+        # logger.debug(f"[{view.user_id}] - Attempting to defer interaction response")
+        # if not interaction.response.is_done():
+        #     await interaction.response.defer(ephemeral=False)
+        # logger.debug(f"[{view.user_id}] - Interaction response deferred")
 
-            logger.info(f"Processing workload selection for channel {view.session_id.split('_')[0]}")
+        logger.info(f"Processing workload selection for channel {view.session_id.split('_')[0]}")
 
         except Exception as e:
             logger.error(f"Error in WorkloadButton_survey callback: {str(e)}")
@@ -124,11 +124,11 @@ class WorkloadButton_survey(discord.ui.Button):
                 return
 
             view = self.view # Get the parent view
-            logger.debug(f"[{view.session_id.split('_')[0]}] - [DEBUG] Pre-deferral check at line 106")
+            logger.debug(f"[Channel {view.session_id.split('_')[0]}] - [DEBUG] Pre-deferral check at line 106")
             if not interaction.response.is_done():
                 await self._safe_defer_response(interaction, getattr(view, 'user_id', 'unknown'))
             else:
-                logger.warning(f"[{view.session_id.split('_')[0]}] - Skipping deferral at line 106 (already deferred)")
+                logger.warning(f"[Channel {view.session_id.split('_')[0]}] - Skipping deferral at line 106 (already deferred)")
 
         except Exception as e:
             logger.error(f"Interaction handling failed: {e}")
@@ -196,7 +196,7 @@ class WorkloadButton_survey(discord.ui.Button):
                 # Check if a survey exists for this channel
                 try: # Get survey state
                     state = survey_manager.get_survey(str(interaction.channel.id)) # Get by channel_id
-                    logger.debug(f"[{view.session_id.split('_')[0]}] - survey_manager.get_survey returned: {state}.") # Added log
+                    logger.debug(f"[Channel {view.session_id.split('_')[0]}] - survey_manager.get_survey returned: {state}.") # Added log
                 except Exception as e:
                     logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error getting survey state: {e}", exc_info=True) # Added error handling
                     # If getting survey state fails, we cannot proceed with the survey flow.
@@ -217,8 +217,8 @@ class WorkloadButton_survey(discord.ui.Button):
                     except Exception as delete_error:
                         logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')}: {delete_error}", exc_info=True)
                 else:
-                    else:
-                       logger.warning(f"[Channel {view.session_id.split('_')[0]}] - view.buttons_msg is None or False, cannot delete.")
+                    logger.warning(f"[Channel {view.session_id.split('_')[0]}] - view.buttons_msg is None or False, cannot delete.")
+
                 if state: # Proceed if a survey state is found
                     logger.info(f"Found survey for channel {view.session_id.split('_')[0]}, current step: {state.current_step()}")
 
@@ -289,7 +289,7 @@ class WorkloadButton_survey(discord.ui.Button):
 
                 else: # If survey state is not found
                     logger.warning(f"[Channel {view.session_id.split('_')[0]}] - No active survey state found for user in workload button callback. Treating as non-survey command or expired survey.")
- 
+
                     if view.has_survey: # This indicates it was initiated as a survey step
                          logger.error(f"[Channel {view.session_id.split('_')[0]}] - Survey initiated but state not found in callback for step {view.cmd_or_step}.")
                          # Inform the user that the survey might have expired
@@ -311,7 +311,7 @@ class WorkloadButton_survey(discord.ui.Button):
                              except Exception as e:
                                  logger.warning(f"[Channel {view.session_id.split('_')[0]}] - Failed to delete buttons message after expired survey message: {e}")
 
-                    else: # Original else block for non-survey commands
+                     else: # Original else block for non-survey commands
                         logger.info(f"[Channel {view.session_id.split('_')[0]}] - Processing as regular command: {view.cmd_or_step}")
                         # Regular slash command
                         webhook_payload = { # Payload for regular command webhook
@@ -364,18 +364,18 @@ class WorkloadButton_survey(discord.ui.Button):
                                         logger.debug("Buttons message already deleted")
 
         except Exception as e:
-            except Exception as e:
-               logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error in workload button callback: {e}", exc_info=True) # Modified log to include user_id and exc_info
-               if view and view.command_msg: # Check if view and command_msg exist before accessing
-                   await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                   value = 0 if self.label == "Нічого немає" else self.label
-                   error_msg = Strings.WORKLOAD_ERROR.format(
-                       hours=value,
-                       error=Strings.UNEXPECTED_ERROR
-                   )
-                   await view.command_msg.edit(content=error_msg)
-                   await view.command_msg.add_reaction(Strings.ERROR)
-               logger.error(f"[Channel {view.session_id.split('_')[0]}] - Failed to send error response in workload callback: {e}") # Modified log to include user_id
+            logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error in workload button callback: {e}", exc_info=True) # Modified log to include user_id and exc_info
+            if view and view.command_msg: # Check if view and command_msg exist before accessing
+                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                value = 0 if self.label == "Нічого немає" else self.label
+                error_msg = Strings.WORKLOAD_ERROR.format(
+                    hours=value,
+                    error=Strings.UNEXPECTED_ERROR
+                )
+                await view.command_msg.edit(content=error_msg)
+                await view.command_msg.add_reaction(Strings.ERROR)
+            logger.error(f"[Channel {view.session_id.split('_')[0]}] - Failed to send error response in workload callback: {e}") # Modified log to include user_id
+        finally:
             # Ensure buttons message is deleted in all cases
             if view and view.buttons_msg: # Check if view and buttons_msg exist before accessing
                 try:
@@ -410,8 +410,7 @@ def create_workload_view(bot_instance, cmd: str, user_id: str, timeout: Optional
                 logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Adding button with label: {hour}, custom_id: {custom_id}")
                 view.add_item(button)
     except Exception as e:
-        except Exception as e:
-           logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error adding workload buttons: {e}")
-           raise # Re-raise the exception after logging
-       logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Returning workload view") # Keep debug
-       return view
+        logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error adding workload buttons: {e}")
+        raise # Re-raise the exception after logging
+    logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Returning workload view") # Keep debug
+    return view
