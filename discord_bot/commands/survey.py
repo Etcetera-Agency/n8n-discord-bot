@@ -391,6 +391,7 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
 
             elif step_name == "dayoff_nextweek":
                 # Defer interaction for day off view as it's a followup message
+                await interaction.response.defer()
                 logger.info(f"Button callback for dayoff_nextweek survey step: {step_name}. Creating day off view.")
                 from discord_bot.views.day_off_survey import create_day_off_view # Use survey-specific view
                 logger.debug(f"[{interaction.user.id}] - Calling create_day_off_view for step: {step_name}")
@@ -402,7 +403,6 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                     # Send the day off view as a new message instead of editing the original
                     logger.debug(f"[{interaction.user.id}] - Attempting to send day off view via followup.send")
                     try:
-                        logger.debug(f"[{interaction.user.id}] - Calling interaction.followup.send with day_off_view")
                         buttons_msg = await interaction.followup.send(
                             Strings.DAY_OFF_NEXTWEEK,
                             view=day_off_view,
@@ -413,15 +413,20 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                         # Store the message object reference on the view for the callback to use
                         day_off_view.buttons_msg = buttons_msg # Store the new message object
 
+                    except discord.errors.NotFound:
+                        logger.error(f"[Channel {current_survey.session_id.split('_')[0]}] - Webhook not found when sending day off view. Interaction might be stale.", exc_info=True)
+                        # Inform the user that the interaction might be stale
+                        try:
+                            await interaction.followup.send("It seems there was an issue with the interaction. Please try starting the survey again.", ephemeral=True)
+                        except Exception as e_send_error:
+                            logger.error(f"[Channel {current_survey.session_id.split('_')[0]}] - Failed to send stale interaction message: {e_send_error}", exc_info=True)
                     except Exception as e:
                         logger.error(f"[Channel {current_survey.session_id.split('_')[0]}] - Error sending day off view as new message: {e}", exc_info=True)
-                        # Attempt to send error message via followup if sending failed
+                        # Attempt to send a generic error message via followup if sending failed
                         try:
-                            # logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Attempting to send error message via followup.send after failure") # Added log
                             await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
-                            # logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Sent error message via followup.send") # Added log
-                        except Exception as e_send_error: # Added specific exception for error sending
-                            logger.error(f"[Channel {current_survey.session_id.split('_')[0]}] - Failed to send error message after day off view send failure: {e_send_error}", exc_info=True) # Added log
+                        except Exception as e_send_error:
+                            logger.error(f"[Channel {current_survey.session_id.split('_')[0]}] - Failed to send generic error message after day off view send failure: {e_send_error}", exc_info=True)
 
                 except Exception as e:
                     logger.error(f"[{interaction.user.id}] - Error creating day off view for step {step_name}: {e}", exc_info=True)
