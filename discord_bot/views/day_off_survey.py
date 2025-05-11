@@ -16,6 +16,7 @@ class DayOffButton_survey(discord.ui.Button):
         self.is_selected = False
 
     async def callback(self, interaction: discord.Interaction):
+        logger.info(f"[{interaction.user.id}] - DayOffButton_survey callback triggered for button: {self.label}")
         from config import Strings # Import Strings locally
         # First, acknowledge the interaction to prevent timeout
         logger.debug(f"[{interaction.user.id}] - Attempting to defer interaction response for DayOffButton_survey")
@@ -37,20 +38,24 @@ class DayOffButton_survey(discord.ui.Button):
         try:
             # Toggle selection
             self.is_selected = not self.is_selected
+            logger.debug(f"[{interaction.user.id}] - Button {self.label} selection toggled to: {self.is_selected}")
             self.style = discord.ButtonStyle.primary if self.is_selected else discord.ButtonStyle.secondary
 
             # Get parent view and update selected days
             view = self.view
             if isinstance(view, DayOffView_survey):
+                logger.debug(f"[{interaction.user.id}] - View is DayOffView_survey instance.")
                 if self.is_selected:
                     if self.label not in view.selected_days:
                         view.selected_days.append(self.label)
+                        logger.debug(f"[{interaction.user.id}] - Added {self.label} to selected_days. Current selected_days: {view.selected_days}")
                 else:
                     if self.label in view.selected_days:
                         view.selected_days.remove(self.label)
+                        logger.debug(f"[{interaction.user.id}] - Removed {self.label} from selected_days. Current selected_days: {view.selected_days}")
 
             # Update the message with the new button states
-            logger.debug(f"[{interaction.user.id}] - Attempting to edit message {interaction.message.id} with updated view")
+            logger.debug(f"[{interaction.user.id}] - Attempting to edit message {interaction.message.id} with updated view. Selected days before edit: {view.selected_days}")
             await interaction.message.edit(view=self.view)
             logger.debug(f"[{interaction.user.id}] - Message {interaction.message.id} edited with updated view")
 
@@ -61,10 +66,10 @@ class DayOffButton_survey(discord.ui.Button):
                 logger.debug(f"[{interaction.user.id}] - Removed processing reaction from message {message.id}")
 
         except Exception as e:
-            logger.error(f"Error in day off button callback: {e}")
-            logger.debug(f"Error details - custom_id: {self.custom_id}, interaction: {interaction.data if interaction else None}")
+            logger.error(f"[{interaction.user.id}] - Error in day off button callback for button {self.label}: {e}", exc_info=True)
+            logger.debug(f"[{interaction.user.id}] - Error details - custom_id: {self.custom_id}, interaction: {interaction.data if interaction else None}")
             if message:
-                await message.add_reaction("Strings.ERROR")
+                await message.add_reaction(Strings.ERROR)
                 await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
                 error_msg = Strings.DAYOFF_ERROR.format(
                     days=self.label,
@@ -82,6 +87,7 @@ class ConfirmButton_survey(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
+        logger.info(f"[{interaction.user.id}] - ConfirmButton_survey callback triggered")
         from config import Strings # Import Strings locally
         from services import webhook_service
         view = self.view
@@ -108,6 +114,7 @@ class ConfirmButton_survey(discord.ui.Button):
                     date = view.get_date_for_day(day)
                     if date:
                         dates.append(date)
+                logger.debug(f"[{interaction.user.id}] - Selected dates: {dates}")
 
                 if view.has_survey:
                     # Dynamic survey flow
@@ -142,7 +149,7 @@ class ConfirmButton_survey(discord.ui.Button):
                         if view.command_msg:
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                             error_msg = Strings.DAYOFF_ERROR.format(
-                                days=', '.join(dates),
+                                days=', '.join([date.strftime("%Y-%m-%d") for date in dates]),
                                 error=Strings.GENERAL_ERROR
                             )
                             await view.command_msg.edit(content=error_msg)
@@ -165,7 +172,7 @@ class ConfirmButton_survey(discord.ui.Button):
                             pass # Ignore if reaction wasn't there or couldn't be removed
 
                         # Update message content with n8n output or default success message
-                        output_content = data.get("output", f"Дякую! Вихідні: {', '.join(dates)} записані.")
+                        output_content = data.get("output", f"Дякую! Вихідні: {', '.join([date.strftime('%Y-%m-%d') for date in dates])} записані.")
                         logger.debug(f"[{interaction.user.id}] - Attempting to edit command message {view.command_msg.id} with output: {output_content}")
                         await view.command_msg.edit(content=output_content, view=None, attachments=[]) # Remove view/attachments
                         logger.info(f"[{interaction.user.id}] - Updated command message {view.command_msg.id} with response")
@@ -220,7 +227,7 @@ class ConfirmButton_survey(discord.ui.Button):
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                             error_msg = Strings.DAYOFF_ERROR.format(
-                                days=', '.join(dates),
+                                days=', '.join(formatted_dates),
                                 error=Strings.GENERAL_ERROR
                             )
                             await view.command_msg.edit(content=error_msg)
@@ -229,7 +236,7 @@ class ConfirmButton_survey(discord.ui.Button):
                             await view.buttons_msg.delete()
 
             except Exception as e:
-                logger.error(f"Error in confirm button: {e}")
+                logger.error(f"[{interaction.user.id}] - Error in confirm button: {e}", exc_info=True)
                 if view.command_msg:
                     if view.command_msg:
                         await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
@@ -442,7 +449,7 @@ class DeclineButton_survey(discord.ui.Button):
                             await view.buttons_msg.delete()
 
             except Exception as e:
-                logger.error(f"[{interaction.user.id}] - Error in decline button: {e}")
+                logger.error(f"[{interaction.user.id}] - Error in decline button: {e}", exc_info=True)
                 if view.command_msg:
                     await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                     error_msg = Strings.DAYOFF_ERROR.format(
@@ -498,65 +505,76 @@ class DayOffView_survey(discord.ui.View):
 
     async def on_timeout(self):
         logger.warning(f"DayOffView_survey timed out for user {self.user_id}")
-        # Attempt to clean up the buttons message on timeout
+        # Attempt to remove the buttons message if it exists
         if self.buttons_msg:
             try:
                 await self.buttons_msg.delete()
-                logger.info(f"Deleted timed out DayOffView_survey buttons message {self.buttons_msg.id}")
-            except discord.NotFound:
-                logger.debug("Timed out DayOffView_survey buttons message already deleted")
+                logger.debug(f"Deleted timed out buttons message {self.buttons_msg.id}")
+            except discord.errors.NotFound:
+                logger.debug(f"Buttons message {self.buttons_msg.id} already deleted.")
             except Exception as e:
-                logger.error(f"Error deleting timed out DayOffView_survey buttons message: {e}")
+                logger.error(f"Error deleting timed out buttons message {self.buttons_msg.id}: {e}")
 
-        # Handle survey incomplete on timeout if it was a survey
-        if self.has_survey and self.survey and self.bot_instance and self.session_id: # Added checks for bot_instance and session_id
-             from discord_bot.commands.survey import handle_survey_incomplete # Corrected import
-             logger.info(f"Handling survey incomplete for session {self.session_id} due to timeout.") # Use stored session_id
-             await handle_survey_incomplete(self.bot_instance, self.session_id) # Pass bot_instance and session_id
+        # Optionally, update the command message to indicate timeout
+        if self.command_msg:
+            try:
+                await self.command_msg.edit(content="Ця взаємодія вичерпала час очікування.", view=None)
+                logger.debug(f"Updated command message {self.command_msg.id} with timeout message.")
+            except Exception as e:
+                logger.error(f"Error updating command message {self.command_msg.id} on timeout: {e}")
 
 
 def create_day_off_view(
-    bot_instance, # Added bot_instance
+    bot_instance,
     cmd_or_step: str,
     user_id: str,
-    timeout: Optional[float] = None,
     has_survey: bool = False,
     continue_survey_func=None,
-    survey=None # Add survey parameter
-) -> DayOffView_survey:
-    """Create a day off view with buttons."""
-    logger.debug(f"Creating DayOffView_survey for {cmd_or_step}, user {user_id}")
-    view = DayOffView_survey(bot_instance, cmd_or_step, user_id, has_survey=has_survey, continue_survey_func=continue_survey_func, survey=survey, session_id=survey.session_id if survey else None) # Pass bot_instance, survey, and session_id
+    survey=None,
+    session_id: Optional[str] = None, # Added session_id
+    command_msg: Optional[discord.Message] = None, # Added command_msg
+    buttons_msg: Optional[discord.Message] = None # Added buttons_msg
+):
+    """Creates a DayOffView_survey with buttons for each day of the week."""
+    view = DayOffView_survey(
+        bot_instance,
+        cmd_or_step,
+        user_id,
+        has_survey,
+        continue_survey_func,
+        survey,
+        session_id # Pass session_id
+    )
+    view.command_msg = command_msg # Set command_msg
+    view.buttons_msg = buttons_msg # Set buttons_msg
 
-    # Get current weekday (0 = Monday, 6 = Sunday)
-    current_date = datetime.datetime.now(constants.KYIV_TIMEZONE) # Use Kyiv timezone
-    current_weekday = current_date.weekday()
+    # Get the current date in Kyiv time
+    current_date = datetime.datetime.now(constants.KYIV_TIMEZONE)
+    current_weekday = current_date.weekday() # Monday is 0, Sunday is 6
 
-    logger.debug(f"Creating day off buttons for cmd_or_step: {cmd_or_step}")
-    logger.debug(f"Creating day off buttons for command: {cmd_or_step}")
-    # Add day off buttons
-    days = [
-        "Понеділок",
-        "Вівторок",
-        "Середа",
-        "Четвер",
-        "П'ятниця",
-        "Субота",
-        "Неділя"
-    ]
+    # Determine the start date for the view
+    if "day_off_nextweek" in cmd_or_step:
+        # Start from the next Monday
+        days_until_next_monday = (7 - current_weekday) % 7
+        if days_until_next_monday == 0: # If today is Monday, next Monday is in 7 days
+             days_until_next_monday = 7
+        start_date = current_date + datetime.timedelta(days=days_until_next_monday)
+    else: # Assuming "day_off_thisweek" or similar
+        # Start from today
+        start_date = current_date
 
-    for day in days:
-        # For thisweek command, skip days that have already passed
-        logger.debug(f"Processing day: {day}")
-        if "day_off_thisweek" in cmd_or_step and view.weekday_map[day] < current_weekday:
-            logger.debug(f"Skipping {day} - already passed this week")
-            continue
-
-        custom_id = f"day_off_button_{day}_{cmd_or_step}_{user_id}"
-        button = DayOffButton_survey(label=day, custom_id=custom_id, cmd_or_step=cmd_or_step)
+    # Create buttons for the next 7 days starting from start_date
+    for i in range(7):
+        date_to_show = start_date + datetime.timedelta(days=i)
+        day_name = constants.WEEKDAY_NAMES[date_to_show.weekday()]
+        button = DayOffButton_survey(
+            label=day_name,
+            custom_id=f"day_off_{day_name.lower()}_{user_id}",
+            cmd_or_step=cmd_or_step
+        )
         view.add_item(button)
 
-    # Add confirm and decline buttons
+    # Add Confirm and Decline buttons
     view.add_item(ConfirmButton_survey())
     view.add_item(DeclineButton_survey())
 
