@@ -324,9 +324,10 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                 # Create the multi-button workload view
                 # Pass the current_survey object and continue_survey function to the view factory
                 workload_view = create_workload_view(bot, step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey, command_msg=original_msg) # Pass bot instance to continue_survey and the original message, added bot instance
-                # logger.debug(f"Workload view created: {workload_view}")
+                logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Workload view created: {workload_view}") # Keep debug
 
-                # Send the workload view as a new message instead of editing the original
+                logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Debugging current_survey before followup.send. current_survey: {current_survey}, session_id: {getattr(current_survey, 'session_id', 'N/A')}") # Added debug log
+
                 # Send the workload view as a new message instead of editing the original
                 logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Attempting to send workload view via followup.send") # Added log
                 try:
@@ -348,6 +349,7 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                         logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Sent error message via followup.send") # Added log
                     except Exception as e_send_error: # Added specific exception for error sending
                         logger.error(f"[{current_survey.session_id.split('_')[0]}] - Failed to send error message after workload view send failure: {e_send_error}", exc_info=True) # Added log
+
             elif step_name == "connects_thisweek":
                 try:
                     logger.info(f"Button callback for connects_thisweek survey step: {step_name}")
@@ -437,7 +439,6 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                 await continue_survey(bot, channel, survey) # Pass bot instance
             except Exception as e2:
                 logger.error(f"Error continuing survey after step failure: {e2}")
-
 async def continue_survey(bot: commands.Bot, channel: discord.TextChannel, survey: SurveyFlow) -> None: # Added bot parameter, Type hint updated
     """Continues the survey to the next step or finishes it."""
     logger.info(f"[{survey.user_id}] - Entering continue_survey. is_done(): {survey.is_done()}, Current index: {survey.current_index}, Total steps: {len(survey.steps)}") # Added log
