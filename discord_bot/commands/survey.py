@@ -551,7 +551,7 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
             logger.info(f"[{current_survey.session_id}] - Notion URL found: {notion_url}. Attempting to fetch ToDos for channel {current_survey.channel_id}.")
             try:
                 notion_todos_instance = Notion_todos(notion_url)
-                todos_data = await notion_todos_instance.fetch_and_process_tasks()
+                todos_data = await notion_todos_instance.get_tasks_text(user_id=current_survey.user_id)
                 logger.info(f"[{current_survey.session_id}] - Fetched Notion ToDos: {todos_data}")
 
                 if todos_data:
