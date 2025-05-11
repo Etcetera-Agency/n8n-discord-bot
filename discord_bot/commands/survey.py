@@ -327,24 +327,27 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                 # logger.debug(f"Workload view created: {workload_view}")
 
                 # Send the workload view as a new message instead of editing the original
+                # Send the workload view as a new message instead of editing the original
+                logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Attempting to send workload view via followup.send") # Added log
                 try:
                     buttons_msg = await interaction.followup.send(
                         content=Strings.SELECT_HOURS,
                         view=workload_view,
                         ephemeral=False
                     )
-                    logger.info(f"Sent workload view as new message {buttons_msg.id}.")
+                    logger.info(f"[{current_survey.session_id.split('_')[0]}] - Sent workload view as new message {buttons_msg.id}.") # Modified log
                     # Store the message object reference on the view for the callback to use
                     workload_view.buttons_msg = buttons_msg # Store the new message object
 
                 except Exception as e:
-                    logger.error(f"Error sending workload view as new message: {e}", exc_info=True)
+                    logger.error(f"[{current_survey.session_id.split('_')[0]}] - Error sending workload view as new message: {e}", exc_info=True) # Modified log
                     # Attempt to send error message via followup if sending failed
                     try:
+                        logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Attempting to send error message via followup.send after failure") # Added log
                         await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
-                    except:
-                        pass
-
+                        logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Sent error message via followup.send") # Added log
+                    except Exception as e_send_error: # Added specific exception for error sending
+                        logger.error(f"[{current_survey.session_id.split('_')[0]}] - Failed to send error message after workload view send failure: {e_send_error}", exc_info=True) # Added log
             elif step_name == "connects_thisweek":
                 try:
                     logger.info(f"Button callback for connects_thisweek survey step: {step_name}")
