@@ -132,7 +132,7 @@ class ConfirmButton_survey(discord.ui.Button):
                         command="survey",
                         status="step",
                         result={
-                            "stepName": view.cmd_or_step,ate
+                            "stepName": view.cmd_or_step,
                             "daysSelected": [date.strftime("%Y-%m-%d") for date in dates]
                         }
                     )
