@@ -165,7 +165,7 @@ class ConfirmButton_survey(discord.ui.Button):
                         return
 
                     # Update survey state
-                    state.results[view.cmd_or_step] = dates_for_log
+                    state.results[view.cmd_or_step] = formatted_dates
                     state.next_step()
                     next_step = state.current_step()
 
