@@ -434,19 +434,19 @@ class DeclineButton_survey(discord.ui.Button):
                             logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
                             await view.buttons_msg.delete()
                             logger.debug(f"[{interaction.user.id}] - Deleted buttons message {view.buttons_msg.id}")
-                    else:
-                        if view.command_msg:
-                            logger.debug(f"[{interaction.user.id}] - Attempting to remove processing reaction from command message {view.command_msg.id}")
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            error_msg = Strings.DAYOFF_ERROR.format(
-                                days="Відмова від вихідних",
-                                error=Strings.GENERAL_ERROR
-                            )
-                            await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction(Strings.ERROR)
-                        if view.buttons_msg:
-                            logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
-                            await view.buttons_msg.delete()
+                        else:
+                            if view.command_msg:
+                                logger.debug(f"[{interaction.user.id}] - Attempting to remove processing reaction from command message {view.command_msg.id}")
+                                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                                error_msg = Strings.DAYOFF_ERROR.format(
+                                    days="Відмова від вихідних",
+                                    error=Strings.GENERAL_ERROR
+                                )
+                                await view.command_msg.edit(content=error_msg)
+                                await view.command_msg.add_reaction(Strings.ERROR)
+                            if view.buttons_msg:
+                                logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
+                                await view.buttons_msg.delete()
 
             except Exception as e:
                 logger.error(f"[{interaction.user.id}] - Error in decline button: {e}", exc_info=True)
@@ -566,7 +566,7 @@ def create_day_off_view(
     # Create buttons for the next 7 days starting from start_date
     for i in range(7):
         date_to_show = start_date + datetime.timedelta(days=i)
-        day_name = constants.WEEKDAY_NAMES[date_to_show.weekday()]
+        day_name = constants.WEEKDAY_OPTIONS[date_to_show.weekday()].label
         button = DayOffButton_survey(
             label=day_name,
             custom_id=f"day_off_{day_name.lower()}_{user_id}",
