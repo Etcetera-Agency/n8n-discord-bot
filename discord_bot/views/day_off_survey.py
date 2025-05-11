@@ -87,163 +87,169 @@ class ConfirmButton_survey(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        logger.info(f"[{interaction.user.id}] - ConfirmButton_survey callback triggered")
-        from config import Strings # Import Strings locally
-        from services import webhook_service
-        view = self.view
-        if isinstance(view, DayOffView_survey):
-            # First, acknowledge the interaction to prevent timeout
-            logger.debug(f"[{interaction.user.id}] - Attempting to defer interaction response for ConfirmButton_survey")
-            if not interaction.response.is_done(): # Check if already responded
-                await interaction.response.defer(ephemeral=False)
-            logger.debug(f"[{interaction.user.id}] - Interaction response deferred for ConfirmButton_survey")
-
-            # Add processing reaction to command message
-            if view.command_msg:
+        async def callback(self, interaction: discord.Interaction):
+            channel_id = str(interaction.channel.id)
+            user_id = str(interaction.user.id)
+            logger.info(f"[Channel {channel_id}] - ConfirmButton_survey callback triggered by user {user_id}")
+            from config import Strings # Import Strings locally
+            from services import webhook_service
+            view = self.view
+            if isinstance(view, DayOffView_survey):
+                # First, acknowledge the interaction to prevent timeout
+                logger.debug(f"[Channel {channel_id}] - Attempting to defer interaction response for ConfirmButton_survey by user {user_id}")
+                if not interaction.response.is_done(): # Check if already responded
+                    await interaction.response.defer(ephemeral=False)
+                logger.debug(f"[Channel {channel_id}] - Interaction response deferred for ConfirmButton_survey by user {user_id}")
+   
+                # Add processing reaction to command message
+                if view.command_msg:
+                    try:
+                        logger.debug(f"[Channel {channel_id}] - Attempting to add processing reaction to command message {view.command_msg.id} by user {user_id}")
+                        await view.command_msg.add_reaction(Strings.PROCESSING)
+                        logger.debug(f"[Channel {channel_id}] - Added processing reaction to command message {view.command_msg.id} by user {user_id}")
+                    except Exception as e:
+                        logger.error(f"[Channel {channel_id}] - Error adding processing reaction to command message {view.command_msg.id} by user {user_id}: {e}")
+   
                 try:
-                    logger.debug(f"[{interaction.user.id}] - Attempting to add processing reaction to command message {view.command_msg.id}")
-                    await view.command_msg.add_reaction(Strings.PROCESSING)
-                    logger.debug(f"[{interaction.user.id}] - Added processing reaction to command message {view.command_msg.id}")
-                except Exception as e:
-                    logger.error(f"[{interaction.user.id}] - Error adding processing reaction to command message {view.command_msg.id}: {e}")
-
-            try:
-                # Convert selected days to dates
-                dates = []
-                for day in sorted(view.selected_days, key=lambda x: view.weekday_map[x]):
-                    date = view.get_date_for_day(day)
-                    if date:
-                        dates.append(date)
-                logger.debug(f"[{interaction.user.id}] - Selected dates: {dates}")
-
-                if view.has_survey:
-                    # Dynamic survey flow
-                    state = survey_manager.get_survey(str(interaction.channel.id)) # Get by channel_id
-                    if not state:
+                    # Convert selected days to dates
+                    # Convert selected days to dates and format as strings
+                    formatted_dates = []
+                    dates_for_log = [] # Keep original datetime objects for logging if needed
+                    for day in sorted(view.selected_days, key=lambda x: view.weekday_map[x]):
+                        date = view.get_date_for_day(day)
+                        if date:
+                            formatted_dates.append(date.strftime("%Y-%m-%d")) # Format as YYYY-MM-DD
+                            dates_for_log.append(date) # Append original datetime for logging
+                    logger.debug(f"[Channel {channel_id}] - Selected dates (formatted) by user {user_id}: {formatted_dates}")
+                    logger.debug(f"[Channel {channel_id}] - Selected dates (datetime objects) by user {user_id}: {dates_for_log}")
+   
+   
+                    if view.has_survey:
+                        # Dynamic survey flow
+                        state = survey_manager.get_survey(str(interaction.channel.id)) # Get by channel_id
+                        if not state:
+                            if view.command_msg:
+                                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                                error_msg = Strings.DAYOFF_ERROR.format(
+                                    days="Підтвердження вихідних",
+                                    error=Strings.NOT_YOUR_SURVEY
+                                )
+                                await view.command_msg.edit(content=error_msg)
+                                await view.command_reaction(Strings.ERROR)
+                            if view.buttons_msg:
+                                await view.buttons_msg.delete()
+                            return
+   
+                        # Send webhook for survey step
+                        logger.debug(f"[Channel {channel_id}] - Attempting to send webhook for survey step (ConfirmButton_survey) by user {user_id}: {view.cmd_or_step}")
+                        success, data = await webhook_service.send_webhook(
+                            interaction,
+                            command="survey",
+                            status="step",
+                            result={
+                                "stepName": view.cmd_or_step,
+                                "daysSelected": formatted_dates # Use the list of formatted strings
+                            }
+                        )
+                        logger.debug(f"[Channel {channel_id}] - Webhook response for survey step (ConfirmButton_survey) for user {user_id}: success={success}, data={data}")
+                        if not success:
+                            if view.command_msg:
+                                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                                error_msg = Strings.DAYOFF_ERROR.format(
+                                    days=', '.join(formatted_dates),
+                                    error=Strings.GENERAL_ERROR
+                                )
+                                await view.command_msg.edit(content=error_msg)
+                                await view.command_msg.add_reaction(Strings.ERROR)
+                            if view.buttons_msg:
+                                await view.buttons_msg.delete()
+                            return
+   
+                        # Update survey state
+                        state.results[view.cmd_or_step] = dates
+                        state.next_step()
+                        next_step = state.current_step()
+   
+                        # Update command message with response
                         if view.command_msg:
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            error_msg = Strings.DAYOFF_ERROR.format(
-                                days="Підтвердження вихідних",
-                                error=Strings.NOT_YOUR_SURVEY
-                            )
-                            await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction(Strings.ERROR)
-                        if view.buttons_msg:
-                            await view.buttons_msg.delete()
-                        return
-
-                    # Send webhook for survey step
-                    logger.debug(f"[{interaction.user.id}] - Attempting to send webhook for survey step (ConfirmButton_survey): {view.cmd_or_step}")
-                    success, data = await webhook_service.send_webhook(
-                        interaction,
-                        command="survey",
-                        status="step",
-                        result={
-                            "stepName": view.cmd_or_step,
-                            "daysSelected": [date.strftime("%Y-%m-%d") for date in dates]
-                        }
-                    )
-                    logger.debug(f"[{interaction.user.id}] - Webhook response for survey step (ConfirmButton_survey): success={success}, data={data}")
-
-                    if not success:
-                        if view.command_msg:
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            error_msg = Strings.DAYOFF_ERROR.format(
-                                days=', '.join([date.strftime("%Y-%m-%d") for date in dates]),
-                                error=Strings.GENERAL_ERROR
-                            )
-                            await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction(Strings.ERROR)
-                        if view.buttons_msg:
-                            await view.buttons_msg.delete()
-                        return
-
-                    # Update survey state
-                    state.results[view.cmd_or_step] = dates
-                    state.next_step()
-                    next_step = state.current_step()
-
-                    # Update command message with response
-                    if view.command_msg:
-                        # Remove processing reaction
-                        try:
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                        except:
-                            pass # Ignore if reaction wasn't there or couldn't be removed
-
-                        # Update message content with n8n output or default success message
-                        output_content = data.get("output", f"Дякую! Вихідні: {', '.join([date.strftime('%Y-%m-%d') for date in dates])} записані.")
-                        logger.debug(f"[{interaction.user.id}] - Attempting to edit command message {view.command_msg.id} with output: {output_content}")
-                        await view.command_msg.edit(content=output_content, view=None, attachments=[]) # Remove view/attachments
-                        logger.info(f"[{interaction.user.id}] - Updated command message {view.command_msg.id} with response")
-
-                    # Delete buttons message
-                    if view.buttons_msg:
-                        logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
-                        await view.buttons_msg.delete()
-                        logger.debug(f"[{interaction.user.id}] - Deleted buttons message {view.buttons_msg.id}")
-
-                    # Continue survey
-                    if next_step:
-                        from discord_bot.commands.survey import ask_dynamic_step # Corrected import
-                        await ask_dynamic_step(self.view.bot_instance, interaction.channel, state, next_step) # Pass bot_instance from view
-                    else:
-                        from discord_bot.commands.survey import finish_survey # Corrected import
-                        await finish_survey(self.view.bot_instance, interaction.channel, state) # Pass bot_instance from view
-
-                else:
-                    # Regular slash command
-                    # Format dates for n8n (YYYY-MM-DD) in Kyiv time
-                    formatted_dates = [
-                        view.get_date_for_day(day).strftime("%Y-%m-%d")
-                        for day in sorted(view.selected_days, key=lambda x: view.weekday_map[x])
-                        if view.get_date_for_day(day) is not None
-                    ]
-
-                    logger.debug(f"[{interaction.user.id}] - Attempting to send webhook for regular command (ConfirmButton_survey): {view.cmd_or_step}")
-                    success, data = await webhook_service.send_webhook(
-                         interaction,
-                         command=view.cmd_or_step,
-                         status="ok",
-                         result={"value": formatted_dates}
-                     )
-                    logger.debug(f"[{interaction.user.id}] - Webhook response for regular command (ConfirmButton_survey): success={success}, data={data}")
-
-                    if success and data and "output" in data:
-                        # Update command message with success
-                        if view.command_msg:
-                            logger.debug(f"[{interaction.user.id}] - Attempting to remove processing reaction from command message {view.command_msg.id}")
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            logger.debug(f"[{interaction.user.id}] - Attempting to edit command message {view.command_msg.id} with output: {data['output']}")
-                            await view.command_msg.edit(content=data["output"])
-
+                            # Remove processing reaction
+                            try:
+                                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                            except:
+                                pass # Ignore if reaction wasn't there or couldn't be removed
+   
+                            # Update message content with n8n output or default success message
+                            output_content = data.get("output", f"Дякую! Вихідні: {', '.join(formatted_dates)} записані.")
+                            logger.debug(f"[Channel {channel_id}] - Attempting to edit command message {view.command_msg.id} with output for user {user_id}: {output_content}")
+                            await view.command_msg.edit(content=output_content, view=None, attachments=[]) # Remove view/attachments
+                            logger.info(f"[Channel {channel_id}] - Updated command message {view.command_msg.id} with response for user {user_id}")
+   
                         # Delete buttons message
                         if view.buttons_msg:
-                            logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
+                            logger.debug(f"[Channel {channel_id}] - Attempting to delete buttons message {view.buttons_msg.id} for user {user_id}")
                             await view.buttons_msg.delete()
-                            logger.debug(f"[{interaction.user.id}] - Deleted buttons message {view.buttons_msg.id}")
+                            logger.debug(f"[Channel {channel_id}] - Deleted buttons message {view.buttons_msg.id} for user {user_id}")
+   
+                        # Continue survey
+                        if next_step:
+                            from discord_bot.commands.survey import ask_dynamic_step # Corrected import
+                            await ask_dynamic_step(self.view.bot_instance, interaction.channel, state, next_step) # Pass bot_instance from view
+                        else:
+                            from discord_bot.commands.survey import finish_survey # Corrected import
+                            await finish_survey(self.view.bot_instance, interaction.channel, state) # Pass bot_instance from view
+   
                     else:
+                        # Regular slash command
+                        # Format dates for n8n (YYYY-MM-DD) in Kyiv time
+                        formatted_dates = [
+                            view.get_date_for_day(day).strftime("%Y-%m-%d") # Format dates as YYYY-MM-DD
+                            for day in sorted(view.selected_days, key=lambda x: view.weekday_map[x])
+                            if view.get_date_for_day(day) is not None
+                        ]
+                        logger.debug(f"[Channel {channel_id}] - Attempting to send webhook for regular command (ConfirmButton_survey) by user {user_id}: {view.cmd_or_step}")
+                        success, data = await webhook_service.send_webhook(
+                             interaction,
+                             command=view.cmd_or_step,
+                             status="ok",
+                             result={"value": formatted_dates}
+                         )
+                        logger.debug(f"[Channel {channel_id}] - Webhook response for regular command (ConfirmButton_survey) for user {user_id}: success={success}, data={data}")
+   
+                        if success and data and "output" in data:
+                            # Update command message with success
+                            if view.command_msg:
+                                logger.debug(f"[Channel {channel_id}] - Attempting to remove processing reaction from command message {view.command_msg.id} by user {user_id}")
+                                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                                logger.debug(f"[Channel {channel_id}] - Attempting to edit command message {view.command_msg.id} with output for user {user_id}: {data['output']}")
+                                await view.command_msg.edit(content=data["output"])
+   
+                            # Delete buttons message
+                            if view.buttons_msg:
+                                logger.debug(f"[Channel {channel_id}] - Attempting to delete buttons message {view.buttons_msg.id} for user {user_id}")
+                                await view.buttons_msg.delete()
+                                logger.debug(f"[Channel {channel_id}] - Deleted buttons message {view.buttons_msg.id} for user {user_id}")
+                        else:
+                            if view.command_msg:
+                                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                                error_msg = Strings.DAYOFF_ERROR.format(
+                                    days=', '.join(formatted_dates),
+                                    error=Strings.GENERAL_ERROR
+                                )
+                                await view.command_msg.edit(content=error_msg)
+                                await view.command_msg.add_reaction(Strings.ERROR)
+                            if view.buttons_msg:
+                                await view.buttons_msg.delete()
+   
+                except Exception as e:
+                    logger.error(f"[Channel {channel_id}] - Error in confirm button for user {user_id}: {e}", exc_info=True)
+                    if view.command_msg:
                         if view.command_msg:
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            error_msg = Strings.DAYOFF_ERROR.format(
-                                days=', '.join(formatted_dates),
-                                error=Strings.GENERAL_ERROR
-                            )
-                            await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction(Strings.ERROR)
-                        if view.buttons_msg:
-                            await view.buttons_msg.delete()
-
-            except Exception as e:
-                logger.error(f"[{interaction.user.id}] - Error in confirm button: {e}", exc_info=True)
-                if view.command_msg:
-                    if view.command_msg:
-                        await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                    error_msg = Strings.DAYOFF_ERROR.format(
-                        days=', '.join(view.selected_days),
-                        error=Strings.UNEXPECTED_ERROR
-                    )
+                        error_msg = Strings.DAYOFF_ERROR.format(
+                            days=', '.join(view.selected_days),
+                            error=Strings.UNEXPECTED_ERROR
+                        )
                     await view.command_msg.edit(content=error_msg)
                     await view.command_msg.add_reaction(Strings.ERROR)
                 if view.buttons_msg:
