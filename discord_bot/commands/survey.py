@@ -532,10 +532,10 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
         success, data = await webhook_service.send_webhook_with_retry(channel, payload, headers)
         logger.info(f"[{current_survey.session_id}] - 'end' status webhook response: success={success}, data={data}")
 
-        if success and data and "output" in data:
+        if success and data and "url" in data: # Check for 'url' key in response data
             # Edit the completion message with the output from n8n
-            output_content = data.get("output", Strings.SURVEY_COMPLETE_MESSAGE) # Use default if output is missing
-            logger.info(f"[{current_survey.session_id}] - Editing completion message {completion_message.id} with output from n8n.")
+            output_content = data.get("url", Strings.SURVEY_COMPLETE_MESSAGE) # Use default if url is missing
+            logger.info(f"[{current_survey.session_id}] - Editing completion message {completion_message.id} with URL from n8n.")
             await completion_message.edit(content=output_content)
         else:
             logger.warning(f"[{current_survey.session_id}] - 'end' status webhook failed or returned no output. Keeping default completion message.")
@@ -546,8 +546,8 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
         logger.info(f"[{current_survey.session_id}] - Survey session removed for channel {current_survey.channel_id}.")
 
         # Fetch and send Notion ToDos if available
-        if data and "notion_url" in data:
-            notion_url = data["notion_url"]
+        if data and "url" in data: # Check for 'url' key
+            notion_url = data["url"] # Use 'url' key
             logger.info(f"[{current_survey.session_id}] - Notion URL found: {notion_url}. Attempting to fetch ToDos for channel {current_survey.channel_id}.")
             try:
                 notion_todos_instance = Notion_todos(notion_url)
