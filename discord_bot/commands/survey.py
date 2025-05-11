@@ -394,33 +394,43 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                 logger.info(f"Button callback for dayoff_nextweek survey step: {step_name}. Creating day off view.")
                 from discord_bot.views.day_off_survey import create_day_off_view # Use survey-specific view
                 logger.debug(f"[{interaction.user.id}] - Calling create_day_off_view for step: {step_name}")
-                # Pass the current_survey object and continue_survey function to the view factory
-                day_off_view = create_day_off_view(bot, step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey, command_msg=original_msg) # Pass bot instance and original_msg to create_day_off_view
-                logger.debug(f"[{interaction.user.id}] - create_day_off_view returned: {day_off_view}")
-
-                # Send the day off view as a new message instead of editing the original
-                logger.debug(f"[{interaction.user.id}] - Attempting to send day off view via followup.send")
                 try:
-                    logger.debug(f"[{interaction.user.id}] - Calling interaction.followup.send with day_off_view")
-                    buttons_msg = await interaction.followup.send(
-                        Strings.DAY_OFF_NEXTWEEK,
-                        view=day_off_view,
-                        ephemeral=False
-                    )
-                    logger.debug(f"[{interaction.user.id}] - interaction.followup.send returned message ID: {buttons_msg.id}")
-                    logger.info(f"[Channel {current_survey.session_id.split('_')[0]}] - Sent day off view as new message {buttons_msg.id}.")
-                    # Store the message object reference on the view for the callback to use
-                    day_off_view.buttons_msg = buttons_msg # Store the new message object
+                    # Pass the current_survey object and continue_survey function to the view factory
+                    day_off_view = create_day_off_view(bot, step_name, str(interaction.user.id), has_survey=True, continue_survey_func=lambda c, s: continue_survey(bot, c, s), survey=current_survey, command_msg=original_msg) # Pass bot instance and original_msg to create_day_off_view
+                    logger.debug(f"[{interaction.user.id}] - create_day_off_view returned: {day_off_view}")
+
+                    # Send the day off view as a new message instead of editing the original
+                    logger.debug(f"[{interaction.user.id}] - Attempting to send day off view via followup.send")
+                    try:
+                        logger.debug(f"[{interaction.user.id}] - Calling interaction.followup.send with day_off_view")
+                        buttons_msg = await interaction.followup.send(
+                            Strings.DAY_OFF_NEXTWEEK,
+                            view=day_off_view,
+                            ephemeral=False
+                        )
+                        logger.debug(f"[{interaction.user.id}] - interaction.followup.send returned message ID: {buttons_msg.id}")
+                        logger.info(f"[Channel {current_survey.session_id.split('_')[0]}] - Sent day off view as new message {buttons_msg.id}.")
+                        # Store the message object reference on the view for the callback to use
+                        day_off_view.buttons_msg = buttons_msg # Store the new message object
+
+                    except Exception as e:
+                        logger.error(f"[Channel {current_survey.session_id.split('_')[0]}] - Error sending day off view as new message: {e}", exc_info=True)
+                        # Attempt to send error message via followup if sending failed
+                        try:
+                            # logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Attempting to send error message via followup.send after failure") # Added log
+                            await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
+                            # logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Sent error message via followup.send") # Added log
+                        except Exception as e_send_error: # Added specific exception for error sending
+                            logger.error(f"[Channel {current_survey.session_id.split('_')[0]}] - Failed to send error message after day off view send failure: {e_send_error}", exc_info=True) # Added log
 
                 except Exception as e:
-                    logger.error(f"[Channel {current_survey.session_id.split('_')[0]}] - Error sending day off view as new message: {e}", exc_info=True)
-                    # Attempt to send error message via followup if sending failed
+                    logger.error(f"[{interaction.user.id}] - Error creating day off view for step {step_name}: {e}", exc_info=True)
+                    # Attempt to send a generic error message to the user
                     try:
-                        # logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Attempting to send error message via followup.send after failure") # Added log
                         await interaction.followup.send(Strings.GENERAL_ERROR, ephemeral=False)
-                        # logger.debug(f"[{current_survey.session_id.split('_')[0]}] - Sent error message via followup.send") # Added log
-                    except Exception as e_send_error: # Added specific exception for error sending
-                        logger.error(f"[Channel {current_survey.session_id.split('_')[0]}] - Failed to send error message after day off view send failure: {e_send_error}", exc_info=True) # Added log
+                    except Exception as e_send_error:
+                        logger.error(f"[{interaction.user.id}] - Failed to send error message after view creation failure: {e_send_error}", exc_info=True)
+
 
             else:
                 logger.error(f"Button callback triggered for unknown survey step: {step_name}")
@@ -461,7 +471,7 @@ async def continue_survey(bot: commands.Bot, channel: discord.TextChannel, surve
     # Fetch the latest survey state using channel_id
     current_survey = survey_manager.get_survey(str(channel.id))
     if not current_survey:
-        logger.warning(f"[{survey.user_id}] - Survey not found in continue_survey for channel {channel.id}. Aborting.")
+        logger.warning(f"[{survey.user.id}] - Survey not found in continue_survey for channel {channel.id}. Aborting.")
         return
 
     if current_survey.is_done():
