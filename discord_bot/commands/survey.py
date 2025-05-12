@@ -547,10 +547,15 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                 logger.info(f"[{current_survey.session_id}] - Type of todos_data: {type(todos_data)}") # Added log for type
                 logger.info(f"[{current_survey.session_id}] - Content of todos_data: {todos_data}") # Added log for content
 
-                if isinstance(todos_data, dict) and 'text' in todos_data and isinstance(todos_data['text'], str):
+                # Check if todos_data is a dictionary with a non-empty 'text' key
+                if isinstance(todos_data, dict) and todos_data.get('text') and isinstance(todos_data['text'], str):
+                    formatted_todos = todos_data['text'] # Use the pre-formatted string directly
+
                     # Append Notion tasks to the initial completion message
-                    updated_content = f"{completion_message.content}\n\n{todos_data['text']}"
+                    updated_content = f"{completion_message.content}\n\n{formatted_todos}"
+                    logger.info(f"[{current_survey.session_id}] - Attempting to edit completion message {completion_message.id} with content: {updated_content}") # Added log before edit
                     await completion_message.edit(content=updated_content)
+                    logger.info(f"[{current_survey.session_id}] - completion_message.edit() call made for message {completion_message.id}.") # Added log after edit
                     logger.info(f"[{current_survey.session_id}] - Appended Notion ToDos to completion message {completion_message.id} in channel {current_survey.channel_id}.")
                 else:
                     logger.info(f"[{current_survey.session_id}] - No Notion ToDos found or unexpected format for the specified URL.")
@@ -591,6 +596,12 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
 
     finally:
         # Clean up the survey session
+        if current_survey: # Ensure current_survey exists before trying to remove
+             survey_manager.remove_survey(current_survey.channel_id)
+             logger.info(f"[{current_survey.session_id}] - Survey session removed for channel {current_survey.channel_id}.")
+        if current_survey: # Ensure current_survey exists before trying to remove
+             survey_manager.remove_survey(current_survey.channel_id)
+             logger.info(f"[{current_survey.session_id}] - Survey session removed for channel {current_survey.channel_id}.")
         if current_survey: # Ensure current_survey exists before trying to remove
              survey_manager.remove_survey(current_survey.channel_id)
              logger.info(f"[{current_survey.session_id}] - Survey session removed for channel {current_survey.channel_id}.")
