@@ -179,7 +179,8 @@ class ConfirmButton_survey(discord.ui.Button):
 
                         # Update message content with n8n output or default success message
                         output_content = data.get("output", f"Дякую! Вихідні: {', '.join(formatted_dates)} записані.")
-                        logger.debug(f"[Channel {channel_id}] - Attempting to edit command message {view.command_msg.id} with output for user {user_id}: {output_content}")
+                        if view.selected_days and Strings.MENTION_MESSAGE not in output_content: # Check if any days were selected AND message is not already present
+                            output_content += Strings.MENTION_MESSAGE
                         await view.command_msg.edit(content=output_content, view=None, attachments=[]) # Remove view/attachments
                         logger.info(f"[Channel {channel_id}] - Updated command message {view.command_msg.id} with response for user {user_id}")
 
@@ -220,7 +221,10 @@ class ConfirmButton_survey(discord.ui.Button):
                             logger.debug(f"[Channel {channel_id}] - Attempting to remove processing reaction from command message {view.command_msg.id} by user {user_id}")
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                             logger.debug(f"[Channel {channel_id}] - Attempting to edit command message {view.command_msg.id} with output for user {user_id}: {data['output']}")
-                            await view.command_msg.edit(content=data["output"])
+                            output_content = data["output"]
+                            if view.selected_days and Strings.MENTION_MESSAGE not in output_content: # Check if any days were selected AND message is not already present
+                                output_content += Strings.MENTION_MESSAGE
+                            await view.command_msg.edit(content=output_content)
 
                         # Delete buttons message
                         if view.buttons_msg:
