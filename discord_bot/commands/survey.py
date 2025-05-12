@@ -534,10 +534,8 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
 
         # Process n8n Response & Handle Notion ToDo Fetching
         if success and data and "url" in data: # Check for 'url' key in response data
-            # Edit the completion message with the output from n8n
-            output_content = data.get("url", Strings.SURVEY_COMPLETE_MESSAGE) # Use default if url is missing
-            logger.info(f"[{current_survey.session_id}] - Editing completion message {completion_message.id} with URL from n8n.")
-            await completion_message.edit(content=output_content)
+            # The URL from n8n should not be sent to the user in the completion message.
+            # The initial completion message will remain unless Notion tasks are found and appended.
 
             # Notion handling block
             notion_url = data["url"] # Use 'url' key
@@ -550,8 +548,10 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                 if todos_data:
                     # Format and send the ToDos to the channel
                     formatted_todos = "Ваші завдання:\n" + "\n".join([f"- {task['text']} (Due: {task['due_date']})" for task in todos_data])
-                    await channel.send(formatted_todos)
-                    logger.info(f"[{current_survey.session_id}] - Sent Notion ToDos to channel {current_survey.channel_id}.")
+                    # Append Notion tasks to the initial completion message
+                    updated_content = f"{completion_message.content}\n\n{formatted_todos}"
+                    await completion_message.edit(content=updated_content)
+                    logger.info(f"[{current_survey.session_id}] - Appended Notion ToDos to completion message {completion_message.id} in channel {current_survey.channel_id}.")
                 else:
                     logger.info(f"[{current_survey.session_id}] - No Notion ToDos found for the specified URL.")
 
@@ -564,8 +564,8 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                     logger.error(f"Failed to send Notion error message: {send_error}")
 
         else:
-            logger.warning(f"[{current_survey.session_id}] - 'end' status webhook failed or returned no output. Keeping default completion message.")
-            # Optionally edit the message to indicate a partial failure or just keep the default success message
+            logger.warning(f"[{current_survey.session_id}] - 'end' status webhook failed or returned no output or no URL. Keeping default completion message.")
+            # The initial completion message remains as is.
 
         # Log completion processing finished
         logger.info(f"[{current_survey.session_id}] - Survey completion processing finished for channel {current_survey.channel_id}. Results: {current_survey.results}")
