@@ -208,6 +208,7 @@ class WorkloadButton_survey(discord.ui.Button):
                         await view.buttons_msg.delete()
                         logger.info(f"[Channel {view.session_id.split('_')[0]}] - Successfully deleted buttons message ID: {view.buttons_msg.id}")
                         view.buttons_msg = None # Clear reference after successful deletion
+                        view.stop() # Stop the view since buttons are gone
                     except discord.NotFound:
                         logger.warning(f"[Channel {view.session_id.split('_')[0]}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found.")
                         view.buttons_msg = None # Clear reference if not found
@@ -322,6 +323,7 @@ class WorkloadButton_survey(discord.ui.Button):
                         if view.buttons_msg:
                             await view.buttons_msg.delete()
                             logger.info(f"[Channel {view.session_id.split('_')[0]}] - Deleted buttons message")
+                            view.stop() # Stop the view since buttons are gone
 
                         logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Attempting to send webhook for command: {view.cmd_or_step}")
                         success, data = await webhook_service.send_webhook(
@@ -378,6 +380,7 @@ class WorkloadButton_survey(discord.ui.Button):
                 try:
                     await view.buttons_msg.delete()
                     logger.info(f"[Channel {view.session_id.split('_')[0]}] - Successfully deleted buttons message in finally block.")
+                    view.stop() # Stop the view since buttons are gone
                 except discord.NotFound:
                     logger.warning(f"[Channel {view.session_id.split('_')[0]}] - Buttons message already deleted or not found in finally block.")
                 except Exception as e:

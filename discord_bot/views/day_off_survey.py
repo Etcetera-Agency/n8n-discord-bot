@@ -189,6 +189,7 @@ class ConfirmButton_survey(discord.ui.Button):
                         logger.debug(f"[Channel {channel_id}] - Attempting to delete buttons message {view.buttons_msg.id} for user {user_id}")
                         await view.buttons_msg.delete()
                         logger.debug(f"[Channel {channel_id}] - Deleted buttons message {view.buttons_msg.id} for user {user_id}")
+                        view.stop() # Stop the view since buttons are gone
 
                     # Continue survey
                     if next_step:
@@ -366,6 +367,7 @@ class DeclineButton_survey(discord.ui.Button):
                         logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
                         await view.buttons_msg.delete()
                         logger.debug(f"[{interaction.user.id}] - Deleted buttons message {view.buttons_msg.id}")
+                        view.stop() # Stop the view since buttons are gone
 
                     # Continue survey
                     if next_step:
@@ -517,6 +519,7 @@ class DayOffView_survey(discord.ui.View):
             try:
                 await self.buttons_msg.delete()
                 logger.debug(f"Deleted timed out buttons message {self.buttons_msg.id}")
+                self.stop() # Stop the view since it timed out
             except discord.errors.NotFound:
                 logger.debug(f"Buttons message {self.buttons_msg.id} already deleted.")
             except Exception as e:

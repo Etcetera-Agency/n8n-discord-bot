@@ -102,6 +102,7 @@ class ConfirmButton_slash(discord.ui.Button):
                     logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
                     await view.buttons_msg.delete()
                     logger.debug(f"[{interaction.user.id}] - Deleted buttons message {view.buttons_msg.id}")
+                    view.stop() # Stop the view since buttons are gone
                 except Exception as e:
                     logger.error(f"[{interaction.user.id}] - Error deleting buttons message {view.buttons_msg.id}: {e}")
 
@@ -205,6 +206,7 @@ class DeclineButton_slash(discord.ui.Button):
                     logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
                     await view.buttons_msg.delete()
                     logger.debug(f"[{interaction.user.id}] - Deleted buttons message {view.buttons_msg.id}")
+                    view.stop() # Stop the view since buttons are gone
                 except Exception as e:
                     logger.error(f"[{interaction.user.id}] - Error deleting buttons message {view.buttons_msg.id}: {e}")
 
@@ -264,7 +266,7 @@ class DeclineButton_slash(discord.ui.Button):
 
 class DayOffView_slash(discord.ui.View):
     def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False):
-        super().__init__()  # No timeout
+        super().__init__(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"])
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
         self.has_survey = has_survey
@@ -298,6 +300,15 @@ class DayOffView_slash(discord.ui.View):
         # Calculate target date in Kyiv time
         target_date = current_date + datetime.timedelta(days=days_ahead)
         return target_date
+    
+        async def on_timeout(self):
+            logger.warning(f"DayOffView_slash timed out for user {self.user_id}")
+            if self.buttons_msg:
+                try:
+                    await self.buttons_msg.delete()
+                except:
+                    pass # Ignore if already deleted
+            self.stop() # Stop the view since it timed out
 
 def create_day_off_view(
     cmd_or_step: str,

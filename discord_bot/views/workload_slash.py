@@ -16,6 +16,12 @@ class WorkloadView_slash(discord.ui.View):
         
     async def on_timeout(self):
         logger.warning(f"WorkloadView_slash timed out for user {self.user_id}")
+        if self.buttons_msg:
+            try:
+                await self.buttons_msg.delete()
+            except:
+                pass # Ignore if already deleted
+        self.stop() # Stop the view since it timed out
 
 class WorkloadButton_slash(discord.ui.Button):
     def __init__(self, *, label: str, custom_id: str, cmd_or_step: str):
@@ -67,6 +73,7 @@ class WorkloadButton_slash(discord.ui.Button):
                     await view.buttons_msg.delete()
                     logger.info(f"[{view.user_id}] - Successfully deleted buttons message ID: {getattr(view.buttons_msg, 'id', 'N/A')} immediately after input.")
                     view.buttons_msg = None # Clear reference after deletion
+                    view.stop() # Stop the view since buttons are gone
                 except discord.NotFound:
                     logger.warning(f"[{view.user_id}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found immediately after input.")
                     view.buttons_msg = None # Clear reference if not found
