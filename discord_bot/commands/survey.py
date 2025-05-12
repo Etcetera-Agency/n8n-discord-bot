@@ -544,16 +544,16 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                 notion_todos_instance = Notion_todos(notion_url)
                 todos_data = await notion_todos_instance.get_tasks_text(user_id=current_survey.user_id)
                 logger.info(f"[{current_survey.session_id}] - Fetched Notion ToDos: {todos_data}")
+                logger.info(f"[{current_survey.session_id}] - Type of todos_data: {type(todos_data)}") # Added log for type
+                logger.info(f"[{current_survey.session_id}] - Content of todos_data: {todos_data}") # Added log for content
 
-                if todos_data:
-                    # Format and send the ToDos to the channel
-                    formatted_todos = "Ваші завдання:\n" + "\n".join([f"- {task['text']} (Due: {task['due_date']})" for task in todos_data])
+                if isinstance(todos_data, dict) and 'text' in todos_data and isinstance(todos_data['text'], str):
                     # Append Notion tasks to the initial completion message
-                    updated_content = f"{completion_message.content}\n\n{formatted_todos}"
+                    updated_content = f"{completion_message.content}\n\n{todos_data['text']}"
                     await completion_message.edit(content=updated_content)
                     logger.info(f"[{current_survey.session_id}] - Appended Notion ToDos to completion message {completion_message.id} in channel {current_survey.channel_id}.")
                 else:
-                    logger.info(f"[{current_survey.session_id}] - No Notion ToDos found for the specified URL.")
+                    logger.info(f"[{current_survey.session_id}] - No Notion ToDos found or unexpected format for the specified URL.")
 
             except Exception as notion_e:
                 logger.error(f"[{current_survey.session_id}] - Failed to fetch/process Notion tasks from URL {notion_url} for channel {current_survey.channel_id}: {notion_e}", exc_info=True)
