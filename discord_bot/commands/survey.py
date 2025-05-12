@@ -86,7 +86,7 @@ async def handle_survey_incomplete(bot: commands.Bot, session_id: str) -> None: 
     if not survey:
         # logger.debug(f"No survey found for session_id {session_id} during incomplete handling.")
         return
-    
+
     # Fetch channel using the provided bot instance
     channel = None
     try:
@@ -532,21 +532,14 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
         success, data = await webhook_service.send_webhook_with_retry(channel, payload, headers)
         logger.info(f"[{current_survey.session_id}] - 'end' status webhook response: success={success}, data={data}")
 
+        # Process n8n Response & Handle Notion ToDo Fetching
         if success and data and "url" in data: # Check for 'url' key in response data
             # Edit the completion message with the output from n8n
             output_content = data.get("url", Strings.SURVEY_COMPLETE_MESSAGE) # Use default if url is missing
             logger.info(f"[{current_survey.session_id}] - Editing completion message {completion_message.id} with URL from n8n.")
             await completion_message.edit(content=output_content)
-        else:
-            logger.warning(f"[{current_survey.session_id}] - 'end' status webhook failed or returned no output. Keeping default completion message.")
-            # Optionally edit the message to indicate a partial failure or just keep the default success message
 
-        # Clean up the survey session
-        survey_manager.remove_survey(current_survey.channel_id) # Remove by channel_id
-        logger.info(f"[{current_survey.session_id}] - Survey session removed for channel {current_survey.channel_id}.")
-
-        # Fetch and send Notion ToDos if available
-        if data and "url" in data: # Check for 'url' key
+            # Notion handling block
             notion_url = data["url"] # Use 'url' key
             logger.info(f"[{current_survey.session_id}] - Notion URL found: {notion_url}. Attempting to fetch ToDos for channel {current_survey.channel_id}.")
             try:
@@ -570,6 +563,13 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                 except Exception as send_error:
                     logger.error(f"Failed to send Notion error message: {send_error}")
 
+        else:
+            logger.warning(f"[{current_survey.session_id}] - 'end' status webhook failed or returned no output. Keeping default completion message.")
+            # Optionally edit the message to indicate a partial failure or just keep the default success message
+
+        # Log completion processing finished
+        logger.info(f"[{current_survey.session_id}] - Survey completion processing finished for channel {current_survey.channel_id}. Results: {current_survey.results}")
+
 
     except ValueError as ve:
         logger.error(f"[{current_survey.session_id if current_survey else 'N/A'}] - Data validation error during finish_survey: {ve}")
@@ -579,10 +579,6 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                 await channel.send(f"<@{current_survey.user_id if current_survey else 'N/A'}> {Strings.SURVEY_FINISH_ERROR}: Invalid data.")
             except Exception as send_error:
                 logger.error(f"Failed to send validation error message: {send_error}")
-        # Still attempt to remove the survey session
-        if current_survey:
-             survey_manager.remove_survey(current_survey.channel_id)
-             logger.info(f"[{current_survey.session_id}] - Survey session removed after validation error.")
 
     except Exception as e:
         logger.error(f"[{current_survey.session_id if current_survey else 'N/A'}] - Unexpected error during finish_survey: {e}", exc_info=True)
@@ -592,7 +588,9 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                 await channel.send(f"<@{current_survey.user_id if current_survey else 'N/A'}> {Strings.SURVEY_FINISH_ERROR}: Unexpected error.")
             except Exception as send_error:
                 logger.error(f"Failed to send unexpected error message: {send_error}")
-        # Still attempt to remove the survey session
-        if current_survey:
+
+    finally:
+        # Clean up the survey session
+        if current_survey: # Ensure current_survey exists before trying to remove
              survey_manager.remove_survey(current_survey.channel_id)
-             logger.info(f"[{current_survey.session_id}] - Survey session removed after unexpected error.")
+             logger.info(f"[{current_survey.session_id}] - Survey session removed for channel {current_survey.channel_id}.")

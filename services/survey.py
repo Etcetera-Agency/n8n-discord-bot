@@ -170,9 +170,6 @@ class SurveyManager:
 
         Args:
             channel_id: Discord channel ID to lookup
-
-        Returns:
-            Matching SurveyFlow or None if not found
         """
         # Removed user_id parameter as survey is channel-bound
         survey = self.surveys.get(str(channel_id))
