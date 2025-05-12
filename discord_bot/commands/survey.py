@@ -556,8 +556,8 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                     formatted_todos = todos_data['text'] # Use the pre-formatted string directly
 
                     # Calculate remaining allowed characters for the appended tasks
-                    # Discord message limit is 4000 characters
-                    max_append_length = 4000 - len(completion_message.content) - 2 # 2 for the \n\n
+                    # Discord message limit is 2000 characters
+                    max_append_length = 2000 - len(completion_message.content) - 2 # 2 for the \n\n
 
                     # Truncate formatted_todos if it exceeds the limit
                     if len(formatted_todos) > max_append_length:
