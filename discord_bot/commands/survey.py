@@ -542,7 +542,9 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
             logger.info(f"[{current_survey.session_id}] - Notion URL found: {notion_url}. Attempting to fetch ToDos for channel {current_survey.channel_id}.")
             try:
                 notion_todos_instance = Notion_todos(notion_url)
+                logger.info(f"[{current_survey.session_id}] - Calling get_tasks_text for URL: {notion_url}") # Added log before call
                 todos_data = await notion_todos_instance.get_tasks_text(user_id=current_survey.user_id)
+                logger.info(f"[{current_survey.session_id}] - get_tasks_text call completed.") # Added log after call
                 logger.info(f"[{current_survey.session_id}] - Fetched Notion ToDos: {todos_data}")
                 logger.info(f"[{current_survey.session_id}] - Type of todos_data: {type(todos_data)}") # Added log for type
                 logger.info(f"[{current_survey.session_id}] - Content of todos_data: {todos_data}") # Added log for content
@@ -596,12 +598,6 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
 
     finally:
         # Clean up the survey session
-        if current_survey: # Ensure current_survey exists before trying to remove
-             survey_manager.remove_survey(current_survey.channel_id)
-             logger.info(f"[{current_survey.session_id}] - Survey session removed for channel {current_survey.channel_id}.")
-        if current_survey: # Ensure current_survey exists before trying to remove
-             survey_manager.remove_survey(current_survey.channel_id)
-             logger.info(f"[{current_survey.session_id}] - Survey session removed for channel {current_survey.channel_id}.")
         if current_survey: # Ensure current_survey exists before trying to remove
              survey_manager.remove_survey(current_survey.channel_id)
              logger.info(f"[{current_survey.session_id}] - Survey session removed for channel {current_survey.channel_id}.")
