@@ -531,6 +531,7 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
         logger.info(f"[{current_survey.session_id}] - 'end' status webhook response: success={success}, data={data}")
 
         # Process n8n Response & Handle Notion ToDo Fetching
+        # Process n8n Response & Handle Notion ToDo Fetching
         if success and data and "url" in data: # Check for 'url' key in response data
             # The URL from n8n should not be sent to the user in the completion message.
             # The initial completion message will remain unless Notion tasks are found and appended.
@@ -545,27 +546,26 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                 
                 # Parse the JSON string into a dictionary
                 todos_data = json.loads(todos_data_str) # Added JSON parsing
-                # Check if todos_data is a dictionary with a non-empty 'text' key
-                if isinstance(todos_data, dict) and todos_data.get('text') and isinstance(todos_data['text'], str):
-                    formatted_todos = todos_data['text'] # Use the pre-formatted string directly
+                # Only update message if tasks were found
+                if isinstance(todos_data, dict) and todos_data.get('tasks_found', False):
+                    formatted_todos = todos_data.get('text', '')
+                    if formatted_todos:
+                        # Calculate remaining allowed characters for the appended tasks
+                        # Discord message limit is 2000 characters
+                        max_append_length = 2000 - len(completion_message.content) - 2 # 2 for the \n\n
 
-                    # Calculate remaining allowed characters for the appended tasks
-                    # Discord message limit is 2000 characters
-                    max_append_length = 2000 - len(completion_message.content) - 2 # 2 for the \n\n
-
-                    # Truncate formatted_todos if it exceeds the limit
-                    if len(formatted_todos) > max_append_length:
-                        # Leave space for a truncation message
-                        truncated_length = max_append_length - len("... (truncated)")
-                        if truncated_length < 0: # Ensure truncated_length is not negative
-                            truncated_length = 0
-                        formatted_todos = formatted_todos[:truncated_length] + "... (truncated)"
-                    # Append Notion tasks to the initial completion message
-                    updated_content = f"{completion_message.content}\n{formatted_todos}"
-                    await completion_message.edit(content=updated_content)
-                    logger.info(f"[{current_survey.session_id}] - Appended Notion ToDos to completion message {completion_message.id} in channel {current_survey.channel_id}.")
-                else:
-                    logger.info(f"[{current_survey.session_id}] - No Notion ToDos found or unexpected format for the specified URL.")
+                        # Truncate formatted_todos if it exceeds the limit
+                        if len(formatted_todos) > max_append_length:
+                            # Leave space for a truncation message
+                            truncated_length = max_append_length - len("... (truncated)")
+                            if truncated_length < 0: # Ensure truncated_length is not negative
+                                truncated_length = 0
+                            formatted_todos = formatted_todos[:truncated_length] + "... (truncated)"
+                        # Append Notion tasks to the initial completion message
+                        updated_content = f"{completion_message.content}\n{formatted_todos}"
+                        await completion_message.edit(content=updated_content)
+                        logger.info(f"[{current_survey.session_id}] - Appended Notion ToDos to completion message {completion_message.id} in channel {current_survey.channel_id}.")
+                    logger.info(f"[{current_survey.session_id}] - No Notion ToDos found.")
 
             except Exception as inner_notion_e: # Catch specific errors from fetching/processing
                 logger.error(f"[{current_survey.session_id}] - Error during Notion task fetching/processing: {inner_notion_e}", exc_info=True)
