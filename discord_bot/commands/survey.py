@@ -345,7 +345,6 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                     logger.info(f"[Channel {current_survey.session_id.split('_')[0]}] - Sent workload view as new message {buttons_msg.id}.") # Modified log
                     # Store the message object reference on the view for the callback to use
                     workload_view.buttons_msg = buttons_msg # Store the new message object
-
                 except Exception as e:
                     logger.error(f"[Channel {current_survey.session_id.split('_')[0]}] - Error sending workload view as new message: {e}", exc_info=True) # Modified log
                     # Attempt to send error message via followup if sending failed
@@ -540,7 +539,7 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
             # Notion handling block
             notion_url = data["url"] # Use 'url' key
             logger.info(f"[{current_survey.session_id}] - Notion URL found: {notion_url}. Attempting to fetch ToDos for channel {current_survey.channel_id}.")
-            try:
+            try: # Nested try block for specific Notion task fetching/processing errors
                 notion_todos_instance = Notion_todos(notion_url)
                 logger.info(f"[{current_survey.session_id}] - Calling get_tasks_text for URL: {notion_url}") # Added log before call
                 todos_data = await notion_todos_instance.get_tasks_text(user_id=current_survey.user_id)
@@ -562,13 +561,14 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                 else:
                     logger.info(f"[{current_survey.session_id}] - No Notion ToDos found or unexpected format for the specified URL.")
 
-            except Exception as notion_e:
-                logger.error(f"[{current_survey.session_id}] - Failed to fetch/process Notion tasks from URL {notion_url} for channel {current_survey.channel_id}: {notion_e}", exc_info=True)
-                # Optionally send an error message to the channel about the Notion failure
+            except Exception as inner_notion_e: # Catch specific errors from fetching/processing
+                logger.error(f"[{current_survey.session_id}] - Error during Notion task fetching/processing: {inner_notion_e}", exc_info=True)
+                # Optionally send a more specific error message to the channel
                 try:
-                    await channel.send(f"Помилка при отриманні завдань з Notion: {notion_e}")
+                    await channel.send(f"Помилка при обробці завдань з Notion: {inner_notion_e}")
                 except Exception as send_error:
-                    logger.error(f"Failed to send Notion error message: {send_error}")
+                    logger.error(f"Failed to send inner Notion error message: {send_error}")
+
 
         else:
             logger.warning(f"[{current_survey.session_id}] - 'end' status webhook failed or returned no output or no URL. Keeping default completion message.")
