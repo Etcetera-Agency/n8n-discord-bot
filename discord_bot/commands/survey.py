@@ -152,7 +152,6 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
     logger.info(f"First check_channel call for channel {channel_id} with payload: {payload}")
     success, data = await webhook_service.send_webhook_with_retry(None, payload, headers)
     # logger.debug(f"First check_channel webhook response: success={success}, raw_data={data}") # Log raw data at debug level
-
     if not success or str(data.get("output", "false")).lower() != "true":
         logger.info(f"First check_channel webhook response: success={success}, raw_data={data}") # Log raw data
         logger.warning(f"Channel {channel_id} not registered for surveys")
@@ -555,6 +554,19 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                 # Check if todos_data is a dictionary with a non-empty 'text' key
                 if isinstance(todos_data, dict) and todos_data.get('text') and isinstance(todos_data['text'], str):
                     formatted_todos = todos_data['text'] # Use the pre-formatted string directly
+
+                    # Calculate remaining allowed characters for the appended tasks
+                    # Discord message limit is 4000 characters
+                    max_append_length = 4000 - len(completion_message.content) - 2 # 2 for the \n\n
+
+                    # Truncate formatted_todos if it exceeds the limit
+                    if len(formatted_todos) > max_append_length:
+                        # Leave space for a truncation message
+                        truncated_length = max_append_length - len("... (truncated)")
+                        if truncated_length < 0: # Ensure truncated_length is not negative
+                            truncated_length = 0
+                        formatted_todos = formatted_todos[:truncated_length] + "... (truncated)"
+
 
                     # Append Notion tasks to the initial completion message
                     updated_content = f"{completion_message.content}\n\n{formatted_todos}"
