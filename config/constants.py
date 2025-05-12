@@ -45,4 +45,4 @@ VIEW_CONFIGS: Dict[ViewType, Dict[str, Any]] = {
 KYIV_TIMEZONE = pytz.timezone('Europe/Kiev')  # Uses EEST (UTC+3) with DST
 
 # Required survey steps in exact order
-SURVEY_FLOW = ["workload_today", "workload_nextweek", "connects_thisweek","dayoff_nextweek"]
+SURVEY_FLOW = ["workload_today", "workload_nextweek", "connects_thisweek","day_off_nextweek"]

@@ -248,7 +248,7 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
             "workload_today": Strings.WORKLOAD_TODAY,
             "workload_nextweek": Strings.WORKLOAD_NEXTWEEK,
             "connects_thisweek": Strings.CONNECTS,
-            "dayoff_nextweek": Strings.DAY_OFF_NEXTWEEK
+            "day_off_nextweek": Strings.DAY_OFF_NEXTWEEK
         }
         question_text = step_questions.get(step_name)
 
@@ -387,10 +387,10 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                     except Exception as e:
                         logger.error(f"Error sending error response in connects_thisweek button callback: {e}")
 
-            elif step_name == "dayoff_nextweek":
+            elif step_name == "day_off_nextweek":
                 # Defer interaction for day off view as it's a followup message
                 await interaction.response.defer()
-                logger.info(f"Button callback for dayoff_nextweek survey step: {step_name}. Creating day off view.")
+                logger.info(f"Button callback for day_off_nextweek survey step: {step_name}. Creating day off view.")
                 from discord_bot.views.day_off_survey import create_day_off_view # Use survey-specific view
                 logger.debug(f"[{interaction.user.id}] - Calling create_day_off_view for step: {step_name}")
                 try:
