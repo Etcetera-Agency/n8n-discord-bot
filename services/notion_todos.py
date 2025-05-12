@@ -68,27 +68,31 @@ class Notion_todos:
             lines.append(f" * *{block.title}*")
         return json.dumps({"tasks_found": True, "text": "\n".join(lines)}, ensure_ascii=False)
 
-    async def _extract_todos(self, block_id: str, only_unchecked: bool = True, start_date: str = None, end_date: str = None) -> List[ToDoBlock]:
+    async def _extract_todos(self, block_id: str, only_unchecked: bool = True, start_date: str = None, end_date: str = str) -> List[ToDoBlock]: # Corrected type hint for end_date
         todos = []
         # Run blocking Notion API call in a separate thread
         children = await asyncio.to_thread(self.client.blocks.children.list, block_id)
         for child in children.get('results', []):
-            if child['type'] == 'to_do':
-                checked = child['to_do'].get('checked', False)
-                created_time = child.get('created_time', '')
-                # Date filtering
-                if start_date and created_time < start_date:
-                    continue
-                if end_date and created_time >= end_date:
-                    continue
-                if only_unchecked and checked:
-                    continue
-                title = "".join([t['plain_text'] for t in child['to_do']['rich_text']])
-                todo = ToDoBlock(title=title, todo_date=created_time, id=child['id'])
-                setattr(todo, 'checked', checked)
-                todos.append(todo)
-            # Recursively check children
-            if child.get('has_children'):
-                # Recursively call the async version
-                todos.extend(await self._extract_todos(child['id'], only_unchecked=only_unchecked, start_date=start_date, end_date=end_date))
+            try: # Added try block for processing individual blocks
+                if child['type'] == 'to_do':
+                    checked = child['to_do'].get('checked', False)
+                    created_time = child.get('created_time', '')
+                    # Date filtering
+                    if start_date and created_time < start_date:
+                        continue
+                    if end_date and created_time >= end_date:
+                        continue
+                    if only_unchecked and checked:
+                        continue
+                    title = "".join([t['plain_text'] for t in child['to_do']['rich_text']])
+                    todo = ToDoBlock(title=title, todo_date=created_time, id=child['id'])
+                    setattr(todo, 'checked', checked)
+                    todos.append(todo)
+                # Recursively check children
+                if child.get('has_children'):
+                    # Recursively call the async version
+                    todos.extend(await self._extract_todos(child['id'], only_unchecked=only_unchecked, start_date=start_date, end_date=end_date))
+            except Exception as block_process_e: # Catch exceptions during block processing
+                logger.warning(f"[{block_id}] - Failed to process block {child.get('id', 'N/A')}: {block_process_e}", exc_info=True)
+                continue # Continue to the next block on error
         return todos
