@@ -542,8 +542,12 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
             try: # Nested try block for specific Notion task fetching/processing errors
                 notion_todos_instance = Notion_todos(notion_url)
                 logger.info(f"[{current_survey.session_id}] - Calling get_tasks_text for URL: {notion_url}") # Added log before call
-                todos_data = await notion_todos_instance.get_tasks_text(user_id=current_survey.user_id)
+                todos_data_str = await notion_todos_instance.get_tasks_text(user_id=current_survey.user_id) # Renamed variable to indicate it's a string
                 logger.info(f"[{current_survey.session_id}] - get_tasks_text call completed.") # Added log after call
+                
+                # Parse the JSON string into a dictionary
+                todos_data = json.loads(todos_data_str) # Added JSON parsing
+
                 logger.info(f"[{current_survey.session_id}] - Fetched Notion ToDos: {todos_data}")
                 logger.info(f"[{current_survey.session_id}] - Type of todos_data: {type(todos_data)}") # Added log for type
                 logger.info(f"[{current_survey.session_id}] - Content of todos_data: {todos_data}") # Added log for content
