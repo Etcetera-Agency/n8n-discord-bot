@@ -542,15 +542,9 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                 notion_todos_instance = Notion_todos(notion_url)
                 logger.info(f"[{current_survey.session_id}] - Calling get_tasks_text for URL: {notion_url}") # Added log before call
                 todos_data_str = await notion_todos_instance.get_tasks_text(user_id=current_survey.user_id) # Renamed variable to indicate it's a string
-                logger.info(f"[{current_survey.session_id}] - get_tasks_text call completed.") # Added log after call
                 
                 # Parse the JSON string into a dictionary
                 todos_data = json.loads(todos_data_str) # Added JSON parsing
-
-                logger.info(f"[{current_survey.session_id}] - Fetched Notion ToDos: {todos_data}")
-                logger.info(f"[{current_survey.session_id}] - Type of todos_data: {type(todos_data)}") # Added log for type
-                logger.info(f"[{current_survey.session_id}] - Content of todos_data: {todos_data}") # Added log for content
-
                 # Check if todos_data is a dictionary with a non-empty 'text' key
                 if isinstance(todos_data, dict) and todos_data.get('text') and isinstance(todos_data['text'], str):
                     formatted_todos = todos_data['text'] # Use the pre-formatted string directly
@@ -566,13 +560,9 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                         if truncated_length < 0: # Ensure truncated_length is not negative
                             truncated_length = 0
                         formatted_todos = formatted_todos[:truncated_length] + "... (truncated)"
-
-
                     # Append Notion tasks to the initial completion message
-                    updated_content = f"{completion_message.content}\n\n{formatted_todos}"
-                    logger.info(f"[{current_survey.session_id}] - Attempting to edit completion message {completion_message.id} with content: {updated_content}") # Added log before edit
+                    updated_content = f"{completion_message.content}\n{formatted_todos}"
                     await completion_message.edit(content=updated_content)
-                    logger.info(f"[{current_survey.session_id}] - completion_message.edit() call made for message {completion_message.id}.") # Added log after edit
                     logger.info(f"[{current_survey.session_id}] - Appended Notion ToDos to completion message {completion_message.id} in channel {current_survey.channel_id}.")
                 else:
                     logger.info(f"[{current_survey.session_id}] - No Notion ToDos found or unexpected format for the specified URL.")
@@ -581,7 +571,7 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
                 logger.error(f"[{current_survey.session_id}] - Error during Notion task fetching/processing: {inner_notion_e}", exc_info=True)
                 # Optionally send a more specific error message to the channel
                 try:
-                    await channel.send(f"Помилка при обробці завдань з Notion: {inner_notion_e}")
+                    logger.warning(f"[{current_survey.session_id}] - Помилка при обробці завдань з Notion: {inner_notion_e}")
                 except Exception as send_error:
                     logger.error(f"Failed to send inner Notion error message: {send_error}")
 
