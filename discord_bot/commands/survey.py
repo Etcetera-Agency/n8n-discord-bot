@@ -539,7 +539,7 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
             notion_url = data["url"] # Use 'url' key
             logger.info(f"[{current_survey.session_id}] - Notion URL found: {notion_url}. Attempting to fetch ToDos for channel {current_survey.channel_id}.")
             try: # Nested try block for specific Notion task fetching/processing errors
-                notion_todos_instance = Notion_todos(notion_url)
+                notion_todos_instance = Notion_todos(notion_url, 21)
                 logger.info(f"[{current_survey.session_id}] - Calling get_tasks_text for URL: {notion_url}") # Added log before call
                 todos_data_str = await notion_todos_instance.get_tasks_text(user_id=current_survey.user_id) # Renamed variable to indicate it's a string
                 
