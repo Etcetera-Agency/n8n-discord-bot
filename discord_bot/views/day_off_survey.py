@@ -372,10 +372,10 @@ class DeclineButton_survey(discord.ui.Button):
                     # Continue survey
                     if next_step:
                         from discord_bot.commands.survey import ask_dynamic_step # Corrected import
-                        await ask_dynamic_step(self.bot_instance, interaction.channel, state, next_step) # Pass bot_instance
+                        await ask_dynamic_step(self.view.bot_instance, interaction.channel, state, next_step) # Pass bot_instance
                     else:
                         from discord_bot.commands.survey import finish_survey # Corrected import
-                        await finish_survey(self.bot_instance, interaction.channel, state) # Pass bot_instance
+                        await finish_survey(self.view.bot_instance, interaction.channel, state) # Pass bot_instance
 
                 else:
                     # Regular slash command
