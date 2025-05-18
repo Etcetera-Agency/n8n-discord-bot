@@ -309,58 +309,20 @@ class WorkloadButton_survey(discord.ui.Button):
                              except Exception as e:
                                  logger.warning(f"[Channel {view.session_id.split('_')[0]}] - Failed to delete buttons message after expired survey message: {e}")
 
-                    else: # Original else block for non-survey commands
-                        logger.info(f"[Channel {view.session_id.split('_')[0]}] - Processing as regular command: {view.cmd_or_step}")
-                        # Regular slash command
-                        webhook_payload = { # Payload for regular command webhook
-                            "command": view.cmd_or_step,
-                            "status": "ok",
-                            "result": {"workload": value}
-                        }
-                        logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Preparing to send webhook for regular command. Payload: {webhook_payload}")
-
-                        # Delete buttons message FIRST as per user request
+                    else: # Handle the case where has_survey is False and state is not found
+                        logger.error(f"[Channel {view.session_id.split('_')[0]}] - Workload button clicked in non-survey context (has_survey=False) for command: {view.cmd_or_step}. No active survey state found.")
+                        # Optionally, send a message to the user indicating an unexpected error
+                        if view.command_msg:
+                            try:
+                                await view.command_msg.edit(content=Strings.GENERAL_ERROR, view=None)
+                            except Exception as e:
+                                logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error editing command message with general error: {e}")
                         if view.buttons_msg:
-                            await view.buttons_msg.delete()
-                            logger.info(f"[Channel {view.session_id.split('_')[0]}] - Deleted buttons message")
-                            view.stop() # Stop the view since buttons are gone
-
-                        logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Attempting to send webhook for command: {view.cmd_or_step}")
-                        success, data = await webhook_service.send_webhook(
-                            interaction,
-                            command=webhook_payload["command"],
-                            status=webhook_payload["status"], # Send webhook for regular command
-                            result=webhook_payload["result"]
-                        )
-                        logger.info(f"[Channel {view.session_id.split('_')[0]}] - Webhook response for command: success={success}, data={data}")
-
-                        if success and data and "output" in data:
-                            # Update command message with success
-                            if view.command_msg:
-                                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                                await view.command_msg.edit(content=data["output"])
-                                logger.info(f"[Channel {view.session_id.split('_')[0]}] - Updated command message with success: {data['output']}")
-
-                            # Delete buttons message
-                            if view.buttons_msg:
+                            try:
                                 await view.buttons_msg.delete()
-                                logger.info(f"[Channel {view.session_id.split('_')[0]}] - Deleted buttons message")
-                        else:
-                            logger.error(f"Failed to send webhook for command: {view.cmd_or_step}")
-                            if view.command_msg:
-                                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                                error_msg = Strings.WORKLOAD_ERROR.format( # Format error message
-                                    hours=value,
-                                    error=Strings.GENERAL_ERROR
-                                )
-                                await view.command_msg.edit(content=error_msg)
-                                await view.command_msg.add_reaction(Strings.ERROR)
-                            if view.buttons_msg:
-                                if view.buttons_msg:
-                                    try:
-                                        await view.buttons_msg.delete()
-                                    except discord.NotFound:
-                                        logger.debug("Buttons message already deleted")
+                            except Exception as e:
+                                logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error deleting buttons message: {e}")
+                        view.stop() # Stop the view
 
         except Exception as e:
             logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error in workload button callback: {e}", exc_info=True) # Modified log to include user_id and exc_info

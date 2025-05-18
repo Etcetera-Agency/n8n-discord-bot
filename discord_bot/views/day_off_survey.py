@@ -292,14 +292,12 @@ class DeclineButton_survey(discord.ui.Button):
                 except Exception as e:
                     logger.error(f"[{interaction.user.id}] - Error adding processing reaction to command message {view.command_msg.id}: {e}")
             else:
-                logger.debug(f"[{interaction.user.id}] - No command_msg available")
-
                 # Verify webhook service configuration
                 logger.debug(f"Preparing to send webhook for decline action")
                 logger.debug(f"Webhook service initialized: {'yes' if webhook_service.url else 'no'}")
                 logger.debug(f"Webhook URL: {webhook_service.url if webhook_service.url else 'NOT CONFIGURED'}")
                 logger.debug(f"Auth token: {'set' if webhook_service.auth_token else 'not set'}")
-
+    
                 if view.has_survey:
                     logger.debug("Handling decline action as survey step")
                     state = survey_manager.get_survey(str(interaction.channel.id)) # Get by channel_id
@@ -316,7 +314,7 @@ class DeclineButton_survey(discord.ui.Button):
                         if view.buttons_msg:
                             await view.buttons_msg.delete()
                         return
-
+    
                     # Send webhook for survey step
                     logger.debug(f"[{interaction.user.id}] - Attempting to send webhook for survey step (DeclineButton_survey): {view.cmd_or_step}")
                     success, data = await webhook_service.send_webhook(
@@ -329,7 +327,7 @@ class DeclineButton_survey(discord.ui.Button):
                         }
                     )
                     logger.debug(f"[{interaction.user.id}] - Webhook response for survey step (DeclineButton_survey): success={success}, data={data}")
-
+    
                     if not success:
                         if view.command_msg:
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
@@ -342,12 +340,12 @@ class DeclineButton_survey(discord.ui.Button):
                         if view.buttons_msg:
                             await view.buttons_msg.delete()
                         return
-
+    
                     # Update survey state
                     state.results[view.cmd_or_step] = ["Nothing"]  # Keep as "Nothing" for backward compatibility
                     state.next_step()
                     next_step = state.current_step()
-
+    
                     # Update command message with success
                     if view.command_msg:
                         # Remove processing reaction
@@ -355,19 +353,19 @@ class DeclineButton_survey(discord.ui.Button):
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                         except:
                             pass # Ignore if reaction wasn't there or couldn't be removed
-
+    
                         # Update message content with n8n output or default success message
                         output_content = data.get("output", "Дякую! Не плануєш вихідні.")
                         logger.debug(f"[{interaction.user.id}] - Attempting to edit command message {view.command_msg.id} with output: {output_content}")
                         await view.command_msg.edit(content=output_content, view=None, attachments=[]) # Remove view/attachments
-
+    
                     # Delete buttons message
                     if view.buttons_msg:
                         logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
                         await view.buttons_msg.delete()
                         logger.debug(f"[{interaction.user.id}] - Deleted buttons message {view.buttons_msg.id}")
                         view.stop() # Stop the view since buttons are gone
-
+    
                     # Continue survey
                     if next_step:
                         from discord_bot.commands.survey import ask_dynamic_step # Corrected import
@@ -375,61 +373,24 @@ class DeclineButton_survey(discord.ui.Button):
                     else:
                         from discord_bot.commands.survey import finish_survey # Corrected import
                         await finish_survey(self.view.bot_instance, interaction.channel, state) # Pass bot_instance
-
+    
                 else:
-                    # Regular slash command
-                    logger.info("Processing regular command (non-survey) decline")
-                    logger.debug("Entering regular command branch")
-
+                    # This case should not be reached in the current survey flow,
+                    # but log an error for unexpected scenarios.
+                    logger.error(f"[{interaction.user.id}] - Decline button clicked in non-survey context for command: {view.cmd_or_step}")
+                    # Optionally, send a message to the user indicating an unexpected error
                     if view.command_msg:
-                        logger.info("Adding processing reaction to command message")
-                        await view.command_msg.add_reaction(Strings.PROCESSING)
-
-                    logger.debug("Sending webhook for declined days")
-                    # Use follow-up for webhook since interaction was deferred
-                    logger.debug(f"Sending webhook to command: {view.cmd_or_step}")
-                    logger.debug(f"Payload: { {'command': view.cmd_or_step, 'status': 'ok', 'result': {'value': 'Nothing'}} }")
-
-                    try:
-                        logger.debug(f"[{interaction.user.id}] - Attempting to send webhook for declined days (regular command)")
-                        success, data = await webhook_service.send_webhook(
-                            interaction.followup,
-                            command=view.cmd_or_step,
-                            status="ok",
-                            result={"value": "Nothing"}
-                        )
-                        logger.debug(f"[{interaction.user.id}] - Webhook completed. Success: {success}, Data: {data if data else 'None'}")
-                        if not success:
-                            logger.error(f"[{interaction.user.id}] - Webhook failed for command: {view.cmd_or_step}")
-                    except Exception as webhook_error:
-                        logger.error(f"[{interaction.user.id}] - Webhook exception: {str(webhook_error)}", exc_info=True)
-                        success = False
-                        data = None
-
-                    if success and data and "output" in data:
-                        logger.debug(f"[{interaction.user.id}] - Webhook response contains output")
-                        if view.command_msg:
-                            logger.debug(f"[{interaction.user.id}] - Attempting to update command message with response")
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            await view.command_msg.edit(content=data["output"])
-                    else:
-                        logger.warning(f"[{interaction.user.id}] - Webhook response indicates failure")
-
-                    if view.command_msg:
-                        error_msg = Strings.DAYOFF_ERROR.format(
-                            days="Не планує вихідних",
-                            error=Strings.UNEXPECTED_ERROR
-                        )
-                        await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                        await view.command_msg.edit(content=error_msg)
-
+                        try:
+                            await view.command_msg.edit(content=Strings.GENERAL_ERROR, view=None)
+                        except Exception as e:
+                            logger.error(f"[{interaction.user.id}] - Error editing command message with general error: {e}")
                     if view.buttons_msg:
-                        logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
-                        await view.buttons_msg.delete()
-                        logger.debug(f"[{interaction.user.id}] - Deleted buttons message {view.buttons_msg.id}")
-
-
-class DayOffView_survey(discord.ui.View):
+                        try:
+                            await view.buttons_msg.delete()
+                        except Exception as e:
+                            logger.error(f"[{interaction.user.id}] - Error deleting buttons message: {e}")
+                    view.stop() # Stop the view
+    
     def __init__(self, bot_instance, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None, survey=None, session_id: Optional[str] = None): # Added bot_instance and session_id
         super().__init__(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"]) # Use configured timeout
         self.bot_instance = bot_instance # Store bot instance
