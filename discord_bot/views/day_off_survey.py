@@ -294,7 +294,6 @@ class DeclineButton_survey(discord.ui.Button):
             else:
                 logger.debug(f"[{interaction.user.id}] - No command_msg available")
 
-            try:
                 # Verify webhook service configuration
                 logger.debug(f"Preparing to send webhook for decline action")
                 logger.debug(f"Webhook service initialized: {'yes' if webhook_service.url else 'no'}")
@@ -386,89 +385,49 @@ class DeclineButton_survey(discord.ui.Button):
                         logger.info("Adding processing reaction to command message")
                         await view.command_msg.add_reaction(Strings.PROCESSING)
 
+                    logger.debug("Sending webhook for declined days")
+                    # Use follow-up for webhook since interaction was deferred
+                    logger.debug(f"Sending webhook to command: {view.cmd_or_step}")
+                    logger.debug(f"Payload: { {'command': view.cmd_or_step, 'status': 'ok', 'result': {'value': 'Nothing'}} }")
+
                     try:
-                        logger.debug("Sending webhook for declined days")
-                        # Use follow-up for webhook since interaction was deferred
-                        logger.debug(f"Sending webhook to command: {view.cmd_or_step}")
-                        logger.debug(f"Payload: { {'command': view.cmd_or_step, 'status': 'ok', 'result': {'value': 'Nothing'}} }")
-
-                        try:
-                            logger.debug(f"[{interaction.user.id}] - Attempting to send webhook for declined days (regular command)")
-                            success, data = await webhook_service.send_webhook(
-                                interaction.followup,
-                                command=view.cmd_or_step,
-                                status="ok",
-                                result={"value": "Nothing"}
-                            )
-                            logger.debug(f"[{interaction.user.id}] - Webhook completed. Success: {success}, Data: {data if data else 'None'}")
-                            if not success:
-                                logger.error(f"[{interaction.user.id}] - Webhook failed for command: {view.cmd_or_step}")
-                        except Exception as webhook_error:
-                            logger.error(f"[{interaction.user.id}] - Webhook exception: {str(webhook_error)}", exc_info=True)
-                            success = False
-                            data = None
-
-                        if success and data and "output" in data:
-                            logger.debug(f"[{interaction.user.id}] - Webhook response contains output")
-                            if view.command_msg:
-                                logger.debug(f"[{interaction.user.id}] - Attempting to update command message with response")
-                                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                                await view.command_msg.edit(content=data["output"])
-                        else:
-                            logger.warning(f"[{interaction.user.id}] - Webhook response indicates failure")
-
-                    except Exception as e:
-                        logger.error(f"[{interaction.user.id}] - Webhook send failed: {str(e)}", exc_info=True)
+                        logger.debug(f"[{interaction.user.id}] - Attempting to send webhook for declined days (regular command)")
+                        success, data = await webhook_service.send_webhook(
+                            interaction.followup,
+                            command=view.cmd_or_step,
+                            status="ok",
+                            result={"value": "Nothing"}
+                        )
+                        logger.debug(f"[{interaction.user.id}] - Webhook completed. Success: {success}, Data: {data if data else 'None'}")
+                        if not success:
+                            logger.error(f"[{interaction.user.id}] - Webhook failed for command: {view.cmd_or_step}")
+                    except Exception as webhook_error:
+                        logger.error(f"[{interaction.user.id}] - Webhook exception: {str(webhook_error)}", exc_info=True)
                         success = False
                         data = None
 
-                        if view.command_msg:
-                            error_msg = Strings.DAYOFF_ERROR.format(
-                                days="Відмова від вихідних",
-                                error=Strings.UNEXPECTED_ERROR
-                            )
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            await view.command_msg.edit(content=error_msg)
-
                     if success and data and "output" in data:
-                        # Update command message with success
+                        logger.debug(f"[{interaction.user.id}] - Webhook response contains output")
                         if view.command_msg:
-                            logger.debug(f"[{interaction.user.id}] - Attempting to remove processing reaction from command message {view.command_msg.id}")
+                            logger.debug(f"[{interaction.user.id}] - Attempting to update command message with response")
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            logger.debug(f"[{interaction.user.id}] - Attempting to edit command message {view.command_msg.id} with output: {data['output']}")
                             await view.command_msg.edit(content=data["output"])
+                    else:
+                        logger.warning(f"[{interaction.user.id}] - Webhook response indicates failure")
 
-                        # Delete buttons message
-                        if view.buttons_msg:
-                            logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
-                            await view.buttons_msg.delete()
-                            logger.debug(f"[{interaction.user.id}] - Deleted buttons message {view.buttons_msg.id}")
-                        else:
-                            if view.command_msg:
-                                logger.debug(f"[{interaction.user.id}] - Attempting to remove processing reaction from command message {view.command_msg.id}")
-                                await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                                error_msg = Strings.DAYOFF_ERROR.format(
-                                    days="Відмова від вихідних",
-                                    error=Strings.GENERAL_ERROR
-                                )
-                                await view.command_msg.edit(content=error_msg)
-                                await view.command_msg.add_reaction(Strings.ERROR)
-                            if view.buttons_msg:
-                                logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
-                                await view.buttons_msg.delete()
+                    if view.command_msg:
+                        error_msg = Strings.DAYOFF_ERROR.format(
+                            days="Не планує вихідних",
+                            error=Strings.UNEXPECTED_ERROR
+                        )
+                        await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                        await view.command_msg.edit(content=error_msg)
 
-            except Exception as e:
-                logger.error(f"[{interaction.user.id}] - Error in decline button: {e}", exc_info=True)
-                if view.command_msg:
-                    await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                    error_msg = Strings.DAYOFF_ERROR.format(
-                        days="Відмова від вихідних",
-                        error=Strings.UNEXPECTED_ERROR
-                    )
-                    await view.command_msg.edit(content=error_msg)
-                    await view.command_msg.add_reaction(Strings.ERROR)
-                if view.buttons_msg:
-                    await view.buttons_msg.delete()
+                    if view.buttons_msg:
+                        logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
+                        await view.buttons_msg.delete()
+                        logger.debug(f"[{interaction.user.id}] - Deleted buttons message {view.buttons_msg.id}")
+
 
 class DayOffView_survey(discord.ui.View):
     def __init__(self, bot_instance, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None, survey=None, session_id: Optional[str] = None): # Added bot_instance and session_id
