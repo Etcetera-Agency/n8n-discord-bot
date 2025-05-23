@@ -102,7 +102,7 @@ class WorkloadButton_survey(discord.ui.Button):
 
         logger.info(f"Processing workload selection for channel {{view.session_id.split('_')[0]}}")
 
-        try:
+        try: # New main try block
             # Ensure we have a valid view
             if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView_survey):
                 return
@@ -110,12 +110,12 @@ class WorkloadButton_survey(discord.ui.Button):
             view = self.view # Get the parent view
             logger.info(f"Processing WorkloadView_survey callback - view user: {view.user_id}, interaction user: {interaction.user.id}")
 
-            try: # Main try block to ensure button message deletion in finally
-                if isinstance(view, WorkloadView_survey):
-                    # Removed deferral calls as per user request.
-                    # If interaction is not responded to within 3 seconds, Discord will show "Interaction failed".
+            if isinstance(view, WorkloadView_survey):
+                # Removed deferral calls as per user request.
+                # If interaction is not responded to within 3 seconds, Discord will show "Interaction failed".
 
-                    logger.info(f"Workload button clicked: {self.label} by user {view.user_id} for step {view.cmd_or_step} in channel {view.session_id.split('_')[0]}")
+                logger.info(f"Workload button clicked: {self.label} by user {view.user_id} for step {view.cmd_or_step} in channel {view.session_id.split('_')[0]}")
+                if view.command_msg: # Add check for None
                     try:
                         logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Attempting to add processing reaction to command message {view.command_msg.id}")
                         await view.command_msg.add_reaction(Strings.PROCESSING)
@@ -123,169 +123,168 @@ class WorkloadButton_survey(discord.ui.Button):
                     except Exception as e:
                         logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error adding processing reaction to command message {getattr(view.command_msg, 'id', 'N/A')}: {e}", exc_info=True) # Added exc_info and safe access
 
+            try:
+                # Set value based on button label and convert to integer
+                # Handle "Нічого немає" button specifically
+                if self.label == "Нічого немає":
+                    if not interaction or not interaction.channel:
+                        logger.error("Missing interaction data for Нічого немає button")
+                        return
+                    value = 0
+                    logger.debug(f"Нічого немає selected in channel {interaction.channel.id}") # Change to DEBUG
+                else:
+                    value = int(self.label)
+                logger.debug(f"Parsed value: {value} from label: {self.label}") # Change to DEBUG
+            except ValueError:
+                logger.error(f"[Channel {view.session_id.split('_')[0]}] - Could not convert button label to integer: {self.label}", exc_info=True)
+                # Handle the error, perhaps send an ephemeral message to the user
+                if not interaction.response.is_done():
+                     await interaction.followup.send("Invalid button value.", ephemeral=True)
+                return # Exit callback if value is invalid
+            except Exception as e:
+                logger.error(f"[Channel {view.session_id.split('_')[0]}] - Unexpected error parsing button value: {e}", exc_info=True)
+                if not interaction.response.is_done():
+                     await interaction.followup.send("An unexpected error occurred.", ephemeral=True)
+                return # Exit callback on unexpected error
+
+
+            # Log right before the survey check
+            # Check if a survey exists for this channel
+            try: # Get survey state
+                state = survey_manager.get_survey(str(interaction.channel.id)) # Get by channel_id
+                logger.debug(f"[Channel {view.session_id.split('_')[0]}] - survey_manager.get_survey returned: {state}.") # Added log
+            except Exception as e:
+                logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error getting survey state: {e}", exc_info=True) # Added error handling
+                # If getting survey state fails, we cannot proceed with the survey flow.
+                # Log the error and return.
+                return
+
+            # Removed log: logger.info(f"[{view.user_id}] - Result of survey_manager.get_survey in callback: {state}. Interaction ID: {interaction.id}")
+
+            # Delete buttons message FIRST as per user request
+            if view.buttons_msg:
                 try:
-                    # Set value based on button label and convert to integer
-                    # Handle "Нічого немає" button specifically
-                    if self.label == "Нічого немає":
-                        if not interaction or not interaction.channel:
-                            logger.error("Missing interaction data for Нічого немає button")
-                            return
-                        value = 0
-                        logger.debug(f"Нічого немає selected in channel {interaction.channel.id}") # Change to DEBUG
+                    await view.buttons_msg.delete()
+                    logger.info(f"[Channel {view.session_id.split('_')[0]}] - Successfully deleted buttons message ID: {view.buttons_msg.id}")
+                    view.buttons_msg = None # Clear reference after successful deletion
+                    view.stop() # Stop the view since buttons are gone
+                except discord.NotFound:
+                    logger.warning(f"[Channel {view.session_id.split('_')[0]}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found.")
+                    view.buttons_msg = None # Clear reference if not found
+                except Exception as delete_error:
+                    logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')}: {delete_error}", exc_info=True)
+            else:
+                logger.warning(f"[Channel {view.session_id.split('_')[0]}] - view.buttons_msg is None or False, cannot delete.")
+
+            if state: # Proceed if a survey state is found
+                logger.info(f"Found survey for channel {view.session_id.split('_')[0]}, current step: {state.current_step()}")
+
+                # Send webhook for survey step
+                result_payload = {
+                    "stepName": view.cmd_or_step, # Include step name
+                    "value": value
+                }
+                logger.info(f"[Channel {view.session_id.split('_')[0]}] - Sending webhook for survey step: {view.cmd_or_step} with value: {value}")
+                success, data = await webhook_service.send_webhook(
+                    interaction,
+                    command="survey",
+                    status="step",
+                    result=result_payload
+                )
+                logger.info(f"[Channel {view.session_id.split('_')[0]}] - Webhook sending result for survey step: success={success}, data={data}")
+
+                logger.debug(f"Webhook response for survey step: success={success}, data={data}") # Change to DEBUG
+                try:
+                    logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Calling state.next_step()") # Change to DEBUG
+                    state.next_step()
+                except Exception as e:
+                    logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error in state.next_step(): {e}", exc_info=True)
+                try:
+                    logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Calling continue_survey_func for channel {getattr(interaction.channel, 'id', None)} and state {state}") # Change to DEBUG
+                    if self.continue_survey_func: # Check if continue_survey_func is not None
+                        await self.continue_survey_func(interaction.channel, state)
                     else:
-                        value = int(self.label)
-                    logger.debug(f"Parsed value: {value} from label: {self.label}") # Change to DEBUG
-                except ValueError:
-                    logger.error(f"[Channel {view.session_id.split('_')[0]}] - Could not convert button label to integer: {self.label}", exc_info=True)
-                    # Handle the error, perhaps send an ephemeral message to the user
-                    if not interaction.response.is_done():
-                         await interaction.followup.send("Invalid button value.", ephemeral=True)
-                    return # Exit callback if value is invalid
+                        logger.warning(f"[Channel {view.session_id.split('_')[0]}] - continue_survey_func is None, cannot call.")
                 except Exception as e:
-                    logger.error(f"[Channel {view.session_id.split('_')[0]}] - Unexpected error parsing button value: {e}", exc_info=True)
-                    if not interaction.response.is_done():
-                         await interaction.followup.send("An unexpected error occurred.", ephemeral=True)
-                    return # Exit callback on unexpected error
+                    logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error in continue_survey_func: {e}", exc_info=True)
 
-
-                # Log right before the survey check
-                # Check if a survey exists for this channel
-                try: # Get survey state
-                    state = survey_manager.get_survey(str(interaction.channel.id)) # Get by channel_id
-                    logger.debug(f"[Channel {view.session_id.split('_')[0]}] - survey_manager.get_survey returned: {state}.") # Added log
-                except Exception as e:
-                    logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error getting survey state: {e}", exc_info=True) # Added error handling
-                    # If getting survey state fails, we cannot proceed with the survey flow.
-                    # Log the error and return.
+                if not success:
+                    logger.error(f"Failed to send webhook for survey step: {view.cmd_or_step}")
+                    if view.command_msg:
+                        await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                        error_msg = Strings.WORKLOAD_ERROR.format(
+                            hours=value,
+                            error=Strings.GENERAL_ERROR
+                        )
+                        await view.command_msg.edit(content=error_msg)
+                        await view.command_msg.add_reaction(Strings.ERROR)
+                    # The buttons message is already attempted to be deleted above
                     return
 
-                # Removed log: logger.info(f"[{view.user_id}] - Result of survey_manager.get_survey in callback: {state}. Interaction ID: {interaction.id}")
+                # Update survey state
+                state.results[view.cmd_or_step] = value
+                logger.info(f"Updated survey results: {state.results}")
 
-                # Delete buttons message FIRST as per user request
-                if view.buttons_msg:
+                # Update command message with n8n output instead of deleting it
+                if view.command_msg:
                     try:
-                        await view.buttons_msg.delete()
-                        logger.info(f"[Channel {view.session_id.split('_')[0]}] - Successfully deleted buttons message ID: {view.buttons_msg.id}")
-                        view.buttons_msg = None # Clear reference after successful deletion
-                        view.stop() # Stop the view since buttons are gone
-                    except discord.NotFound:
-                        logger.warning(f"[Channel {view.session_id.split('_')[0]}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found.")
-                        view.buttons_msg = None # Clear reference if not found
-                    except Exception as delete_error:
-                        logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')}: {delete_error}", exc_info=True)
-                else:
-                    logger.warning(f"[Channel {view.session_id.split('_')[0]}] - view.buttons_msg is None or False, cannot delete.")
+                        await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                        output_content = data.get("output", f"Дякую! Робоче навантаження {value} годин записано.") if data else f"Дякую! Робоче навантаження {value} годин записано." # Default success message
+                        await view.command_msg.edit(content=output_content, view=None, attachments=[]) # Update content and remove view/attachments
+                        logger.info(f"[Channel {view.session_id.split('_')[0]}] - Updated command message {view.command_msg.id} with response")
+                    except Exception as edit_error:
+                        logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error editing command message {getattr(view.command_msg, 'id', 'N/A')}: {edit_error}", exc_info=True)
 
-                if state: # Proceed if a survey state is found
-                    logger.info(f"Found survey for channel {view.session_id.split('_')[0]}, current step: {state.current_step()}")
 
-                    # Send webhook for survey step
-                    result_payload = {
-                        "stepName": view.cmd_or_step, # Include step name
-                        "value": value
-                    }
-                    logger.info(f"[Channel {view.session_id.split('_')[0]}] - Sending webhook for survey step: {view.cmd_or_step} with value: {value}")
-                    success, data = await webhook_service.send_webhook(
-                        interaction,
-                        command="survey",
-                        status="step",
-                        result=result_payload
-                    )
-                    logger.info(f"[Channel {view.session_id.split('_')[0]}] - Webhook sending result for survey step: success={success}, data={data}")
+                # Log survey state before continuation
+                logger.info(f"Survey state before continuation - current step: {state.current_step()}, results: {state.results}")
 
-                    logger.debug(f"Webhook response for survey step: success={success}, data={data}") # Change to DEBUG
-                    try:
-                        logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Calling state.next_step()") # Change to DEBUG
-                        state.next_step()
-                    except Exception as e:
-                        logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error in state.next_step(): {e}", exc_info=True)
-                    try:
-                        logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Calling continue_survey_func for channel {getattr(interaction.channel, 'id', None)} and state {state}") # Change to DEBUG
-                        if self.continue_survey_func: # Check if continue_survey_func is not None
-                            await self.continue_survey_func(interaction.channel, state)
-                        else:
-                            logger.warning(f"[Channel {view.session_id.split('_')[0]}] - continue_survey_func is None, cannot call.")
-                    except Exception as e:
-                        logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error in continue_survey_func: {e}", exc_info=True)
+                # Survey continuation is handled by continue_survey_func
+                # Don't advance the step here, as it will be handled by the webhook service
+                # But verify we have a valid state for continuation
+                if not state or not state.user_id:
+                    logger.error("Invalid survey state for continuation")
+                    return
 
-                    if not success:
-                        logger.error(f"Failed to send webhook for survey step: {view.cmd_or_step}")
-                        if view.command_msg:
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            error_msg = Strings.WORKLOAD_ERROR.format(
-                                hours=value,
-                                error=Strings.GENERAL_ERROR
-                            )
-                            await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction(Strings.ERROR)
-                        # The buttons message is already attempted to be deleted above
-                        return
 
-                    # Update survey state
-                    state.results[view.cmd_or_step] = value
-                    logger.info(f"Updated survey results: {state.results}")
+            else: # If survey state is not found
+                logger.warning(f"[Channel {view.session_id.split('_')[0]}] - No active survey state found for user in workload button callback. Treating as non-survey command or expired survey.")
 
-                    # Update command message with n8n output instead of deleting it
+                if view.has_survey: # This indicates it was initiated as a survey step
+                     logger.error(f"[Channel {view.session_id.split('_')[0]}] - Survey initiated but state not found in callback for step {view.cmd_or_step}.")
+                     # Inform the user that the survey might have expired
+                     try:
+                         # Use followup if interaction was deferred
+                         if interaction.response.is_done():
+                             logger.debug(f"[Channel {view.session_id.split('_')[0]}] - interaction.response.is_done()=True, using followup.send for expired survey")
+                             await interaction.followup.send(Strings.SURVEY_EXPIRED_OR_NOT_FOUND, ephemeral=True)
+                         else:
+                             logger.debug(f"[Channel {view.session_id.split('_')[0]}] - interaction.response.is_done()=False, using response.send_message for expired survey")
+                             await interaction.response.send_message(Strings.SURVEY_EXPIRED_OR_NOT_FOUND, ephemeral=True)
+                     except Exception as e:
+                         logger.error(f"[Channel {view.session_id.split('_')[0]}] - Failed to send survey expired message: {e}")
+
+                     # Attempt to clean up the buttons message
+                     if view.buttons_msg:
+                         try:
+                             await view.buttons_msg.delete()
+                         except Exception as e:
+                             logger.warning(f"[Channel {view.session_id.split('_')[0]}] - Failed to delete buttons message after expired survey message: {e}")
+
+                else: # Handle the case where has_survey is False and state is not found
+                    logger.error(f"[Channel {view.session_id.split('_')[0]}] - Workload button clicked in non-survey context (has_survey=False) for command: {view.cmd_or_step}. No active survey state found.")
+                    # Optionally, send a message to the user indicating an unexpected error
                     if view.command_msg:
                         try:
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            output_content = data.get("output", f"Дякую! Робоче навантаження {value} годин записано.") if data else f"Дякую! Робоче навантаження {value} годин записано." # Default success message
-                            await view.command_msg.edit(content=output_content, view=None, attachments=[]) # Update content and remove view/attachments
-                            logger.info(f"[Channel {view.session_id.split('_')[0]}] - Updated command message {view.command_msg.id} with response")
-                        except Exception as edit_error:
-                            logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error editing command message {getattr(view.command_msg, 'id', 'N/A')}: {edit_error}", exc_info=True)
-
-
-                    # Log survey state before continuation
-                    logger.info(f"Survey state before continuation - current step: {state.current_step()}, results: {state.results}")
-
-                    # Survey continuation is handled by continue_survey_func
-                    # Don't advance the step here, as it will be handled by the webhook service
-                    # But verify we have a valid state for continuation
-                    if not state or not state.user_id:
-                        logger.error("Invalid survey state for continuation")
-                        return
-
-
-                else: # If survey state is not found
-                    logger.warning(f"[Channel {view.session_id.split('_')[0]}] - No active survey state found for user in workload button callback. Treating as non-survey command or expired survey.")
-
-                    if view.has_survey: # This indicates it was initiated as a survey step
-                         logger.error(f"[Channel {view.session_id.split('_')[0]}] - Survey initiated but state not found in callback for step {view.cmd_or_step}.")
-                         # Inform the user that the survey might have expired
-                         try:
-                             # Use followup if interaction was deferred
-                             if interaction.response.is_done():
-                                 logger.debug(f"[Channel {view.session_id.split('_')[0]}] - interaction.response.is_done()=True, using followup.send for expired survey")
-                                 await interaction.followup.send(Strings.SURVEY_EXPIRED_OR_NOT_FOUND, ephemeral=True)
-                             else:
-                                 logger.debug(f"[Channel {view.session_id.split('_')[0]}] - interaction.response.is_done()=False, using response.send_message for expired survey")
-                                 await interaction.response.send_message(Strings.SURVEY_EXPIRED_OR_NOT_FOUND, ephemeral=True)
-                         except Exception as e:
-                             logger.error(f"[Channel {view.session_id.split('_')[0]}] - Failed to send survey expired message: {e}")
-
-                         # Attempt to clean up the buttons message
-                         if view.buttons_msg:
-                             try:
-                                 await view.buttons_msg.delete()
-                             except Exception as e:
-                                 logger.warning(f"[Channel {view.session_id.split('_')[0]}] - Failed to delete buttons message after expired survey message: {e}")
-
-                    else: # Handle the case where has_survey is False and state is not found
-                        logger.error(f"[Channel {view.session_id.split('_')[0]}] - Workload button clicked in non-survey context (has_survey=False) for command: {view.cmd_or_step}. No active survey state found.")
-                        # Optionally, send a message to the user indicating an unexpected error
-                        if view.command_msg:
-                            try:
-                                await view.command_msg.edit(content=Strings.GENERAL_ERROR, view=None)
-                            except Exception as e:
-                                logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error editing command message with general error: {e}")
-                        if view.buttons_msg:
-                            try:
-                                await view.buttons_msg.delete()
-                            except Exception as e:
-                                logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error deleting buttons message: {e}")
-                        view.stop() # Stop the view
-
+                            await view.command_msg.edit(content=Strings.GENERAL_ERROR, view=None)
+                        except Exception as e:
+                            logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error editing command message with general error: {e}")
+                    if view.buttons_msg:
+                        try:
+                            await view.buttons_msg.delete()
+                        except Exception as e:
+                            logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error deleting buttons message: {e}")
+                    view.stop() # Stop the view
         except Exception as e:
             logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error in workload button callback: {e}", exc_info=True) # Modified log to include user_id and exc_info
             if view and view.command_msg: # Check if view and command_msg exist before accessing
