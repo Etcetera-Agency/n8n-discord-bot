@@ -1,6 +1,6 @@
 import asyncio
-import discord
-from discord.ext import commands # Import commands for bot type hinting
+import discord # type: ignore
+from discord.ext import commands # type: ignore # Import commands for bot type hinting
 import json # Added for Notion ToDo JSON parsing
 from typing import Optional, List, Any # Added Any
 from config import ViewType, logger, Strings, Config, constants # Added constants
@@ -102,7 +102,7 @@ async def handle_survey_incomplete(bot: commands.Bot, session_id: str) -> None: 
     incomplete = survey.incomplete_steps()
     # Validate IDs before webhook call
     if not survey.user_id or not survey.channel_id or not survey.session_id:
-        logger.error(f"Missing required IDs for incomplete survey - user: {survey.user_id}, channel: {survey.channel_id}")
+        logger.error(f"Missing required IDs for incomplete survey - user: {survey.session_id}, channel: {survey.channel_id}")
         return
 
     await webhook_service.send_webhook(
@@ -113,7 +113,7 @@ async def handle_survey_incomplete(bot: commands.Bot, session_id: str) -> None: 
     )
 
     survey_manager.remove_survey(survey.channel_id) # Remove by channel_id
-    logger.info(f"Survey for user {survey.user_id} (session {session_id}) timed out with incomplete steps: {incomplete}")
+    logger.info(f"Survey for user {survey.session_id} (session {session_id}) timed out with incomplete steps: {incomplete}")
 
 async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id: str, session_id: str) -> None: # Added bot parameter
     """Initiates or resumes the daily survey for a channel.
@@ -149,19 +149,19 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
         "sessionId": session_id # Added session_id
     }
     headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
+    headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
     logger.info(f"First check_channel call for channel {channel_id} with payload: {payload}")
     success, data = await webhook_service.send_webhook_with_retry(None, payload, headers)
     # logger.debug(f"First check_channel webhook response: success={success}, raw_data={data}") # Log raw data at debug level
-    if not success or str(data.get("output", "false")).lower() != "true":
+    if not success or not data or str(data.get("output", "false")).lower() != "true":
         logger.info(f"First check_channel webhook response: success={success}, raw_data={data}") # Log raw data
         logger.warning(f"Channel {channel_id} not registered for surveys")
         return
 
     # Check channel response data
-    steps = data.get("steps", [])
+    steps = data.get("steps", []) if data else []
     # logger.debug(f"Extracted steps from webhook data: {steps}") # Log extracted steps at debug level
     channel = await bot.fetch_channel(channel_id)
-
     if not channel:
         logger.warning(f"Channel {channel_id} not found")
         return
@@ -239,7 +239,7 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
 
     # Validate survey state
     if not survey.user_id or not survey.channel_id:
-        logger.error(f"Invalid survey state - user_id: {survey.user_id}, channel_id: {survey.channel_id}")
+        logger.error(f"Invalid survey state - user_id: {survey.session_id}, channel_id: {survey.channel_id}")
         return
 
     try:
@@ -269,6 +269,7 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
 
         async def button_callback(interaction: discord.Interaction):
             """Callback for the 'Ввести' button."""
+            original_msg = None # Initialize original_msg to None
             logger.info(f"[{interaction.user.id}] - Button callback triggered for step: {step_name} in channel {interaction.channel.id}") # Added log with user ID
 
             # No defer needed here, we will edit the original response directly.
@@ -306,8 +307,8 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
 
             # Add "⏳" reaction to the original message
             try:
-                # original_msg is already fetched above, reuse it if available
-                if 'original_msg' in locals() and original_msg and not any(r.emoji == "⏳" for r in original_msg.reactions): # Avoid adding reaction if already present
+                # original_msg is fetched above, reuse it if available
+                if original_msg and not any(r.emoji == "⏳" for r in original_msg.reactions): # Avoid adding reaction if already present
                     await original_msg.add_reaction(Strings.PROCESSING) # Add reaction to the original message
                     # logger.debug(f"Added {Strings.PROCESSING} reaction to message {original_msg.id} in channel {interaction.channel.id}")
             except Exception as reaction_error:
@@ -344,6 +345,14 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                     logger.info(f"[Channel {current_survey.session_id.split('_')[0]}] - Sent workload view as new message {buttons_msg.id}.") # Modified log
                     # Store the message object reference on the view for the callback to use
                     workload_view.buttons_msg = buttons_msg # Store the new message object
+
+                    # Remove the processing reaction from the original command message
+                    if original_msg:
+                        try:
+                            await original_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                            logger.debug(f"Removed {Strings.PROCESSING} reaction from original command message {original_msg.id}")
+                        except Exception as remove_reaction_error:
+                            logger.warning(f"Could not remove {Strings.PROCESSING} reaction from original command message {original_msg.id}: {remove_reaction_error}")
                 except Exception as e:
                     logger.error(f"[Channel {current_survey.session_id.split('_')[0]}] - Error sending workload view as new message: {e}", exc_info=True) # Modified log
                     # Attempt to send error message via followup if sending failed
@@ -469,16 +478,16 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
 
 async def continue_survey(bot: commands.Bot, channel: discord.TextChannel, survey: SurveyFlow) -> None: # Added bot parameter, Type hint updated
     """Continues the survey to the next step or finishes it."""
-    logger.info(f"[{survey.user_id}] - Entering continue_survey. is_done(): {survey.is_done()}, Current index: {survey.current_index}, Total steps: {len(survey.steps)}") # Added log
+    logger.info(f"[{survey.session_id}] - Entering continue_survey. is_done(): {survey.is_done()}, Current index: {survey.current_index}, Total steps: {len(survey.steps)}") # Added log
 
     # Fetch the latest survey state using channel_id
     current_survey = survey_manager.get_survey(str(channel.id))
     if not current_survey:
-        logger.warning(f"[{survey.user.id}] - Survey not found in continue_survey for channel {channel.id}. Aborting.")
+        logger.warning(f"[{survey.session_id}] - Survey not found in continue_survey for channel {channel.id}. Aborting.")
         return
 
     if current_survey.is_done():
-        logger.info(f"[{survey.user_id}] - Survey is done, calling finish_survey.") # Added log
+        logger.info(f"[{survey.session_id}] - Survey is done, calling finish_survey.") # Added log
         await finish_survey(bot, channel, current_survey) # Pass bot instance
     else:
         # Remove reaction from the previous message before asking the next step
@@ -490,11 +499,11 @@ async def continue_survey(bot: commands.Bot, channel: discord.TextChannel, surve
 
         next_step = current_survey.current_step()
         if next_step:
-            logger.info(f"[{survey.user_id}] - Asking next step: {next_step}") # Added log
+            logger.info(f"[{survey.session_id}] - Asking next step: {next_step}") # Added log
             await ask_dynamic_step(bot, channel, current_survey, next_step) # Pass bot instance
         else:
             # This case should ideally not be reached if is_done() is False but current_step() is None
-            logger.error(f"[{survey.user_id}] - Survey not done but no next step found. Finishing survey.") # Added log
+            logger.error(f"[{survey.session_id}] - Survey not done but no next step found. Finishing survey.") # Added log
             await finish_survey(bot, channel, current_survey) # Pass bot instance
 
 async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey: SurveyFlow) -> None: # Added bot parameter, Type hint updated

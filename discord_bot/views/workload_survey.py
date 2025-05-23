@@ -46,18 +46,6 @@ class WorkloadButton_survey(discord.ui.Button):
         self.cmd_or_step = cmd_or_step
         self.continue_survey_func = continue_survey_func # Add this line
 
-    async def _safe_defer_response(self, interaction, user_id):
-        logger.debug(f"[{user_id}] - Entering _safe_defer_response") # Keep debug for helper function entry
-        logger.debug(f"[{user_id}] - Interaction response state: is_done={interaction.response.is_done()}") # Keep debug for state check
-
-        if not interaction.response.is_done(): # Check if response is already done
-            logger.info(f"[{user_id}] - Deferring interaction response (not done)")
-            await interaction.response.defer(ephemeral=False)
-            logger.debug(f"[{user_id}] - Successfully deferred")
-        else:
-            logger.warning(f"[{user_id}] - Interaction response already completed")
-
-        logger.debug(f"[{user_id}] - [DEBUG] Exiting _safe_defer_response")
 
     async def callback(self, interaction: discord.Interaction):
         logger.debug(f"WorkloadButton_survey.callback entered. Interaction ID: {interaction.id}, Custom ID: {self.custom_id}") # Change to DEBUG
@@ -121,42 +109,21 @@ class WorkloadButton_survey(discord.ui.Button):
                 return
 
             view = self.view # Get the parent view
-            logger.debug(f"[Channel {view.session_id.split('_')[0]}] - [DEBUG] Pre-deferral check at line 106")
-            if not interaction.response.is_done():
-                await self._safe_defer_response(interaction, getattr(view, 'user_id', 'unknown'))
-            else:
-                logger.warning(f"[Channel {view.session_id.split('_')[0]}] - Skipping deferral at line 106 (already deferred)")
 
-        except Exception as e:
-            logger.error(f"Interaction handling failed: {e}")
-            return
+        try:
+            # Ensure we have a valid view
+            if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView_survey):
+                return
 
-        if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView_survey):
-            logger.error(f"Invalid view in callback: {getattr(self, 'view', None)}")
-            return # Exit if view is invalid
+            view = self.view # Get the parent view
+            logger.info(f"Processing WorkloadView_survey callback - view user: {view.user_id}, interaction user: {interaction.user.id}")
 
-        view = self.view # Get the parent view
-        logger.info(f"Processing WorkloadView_survey callback - view user: {view.user_id}, interaction user: {interaction.user.id}")
+            try: # Main try block to ensure button message deletion in finally
+                if isinstance(view, WorkloadView_survey):
+                    # Removed deferral calls as per user request.
+                    # If interaction is not responded to within 3 seconds, Discord will show "Interaction failed".
 
-        try: # Main try block to ensure button message deletion in finally
-            if isinstance(view, WorkloadView_survey):
-                # First, acknowledge the interaction to prevent timeout
-                try:
-                    logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Attempting to defer interaction response (second check)") # Keep debug
-                    logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Pre-deferral check at line 123") # Keep debug
-                    if not interaction.response.is_done():
-                        await self._safe_defer_response(interaction, view.user_id)
-                    else:
-                        logger.warning(f"[Channel {view.session_id.split('_')[0]}] - Skipping deferral at line 123 (already deferred)")
-                    logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Interaction response deferred (second check)") # Keep debug
-                except Exception as e:
-                    logger.error(f"[Channel {view.session_id.split('_')[0]}] - Interaction response error: {e}")
-                    return
-
-                logger.info(f"Workload button clicked: {self.label} by user {view.user_id} for step {view.cmd_or_step} in channel {view.session_id.split('_')[0]}")
-
-                # Add processing reaction to command message
-                if view.command_msg:
+                    logger.info(f"Workload button clicked: {self.label} by user {view.user_id} for step {view.cmd_or_step} in channel {view.session_id.split('_')[0]}")
                     try:
                         logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Attempting to add processing reaction to command message {view.command_msg.id}")
                         await view.command_msg.add_reaction(Strings.PROCESSING)

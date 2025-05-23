@@ -31,6 +31,11 @@ class Strings:
     DAYOFF_ERROR = "Ваш запит: Вихідні дні = {days}\n{error}"
     WORKLOAD_ERROR = "Ваш запит: Навантаження = {hours}\n{error}"
     SURVEY_EXPIRED_OR_NOT_FOUND = "Помилка: Опитування не знайдено або час його дії вичерпано."
+    MODAL_SUBMIT_ERROR = "Помилка: Не вдалося обробити введення модального вікна."
+    SURVEY_START_ERROR = "Помилка: Не вдалося розпочати опитування."
+    STEP_ERROR = "Помилка: Проблема з кроком опитування."
+    SURVEY_NOT_FOR_YOU = "Це опитування не призначене для вас."
+    SURVEY_FINISH_ERROR = "Помилка: Не вдалося завершити опитування."
 
     # Success/Processing
     PROCESSING = "⏳"
