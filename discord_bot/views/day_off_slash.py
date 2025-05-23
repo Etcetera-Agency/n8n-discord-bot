@@ -99,9 +99,9 @@ class ConfirmButton_slash(discord.ui.Button):
             # Delete buttons message
             if view.buttons_msg:
                 try:
-                    logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
+                    logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
                     await view.buttons_msg.delete()
-                    logger.debug(f"[{interaction.user.id}] - Deleted buttons message {view.buttons_msg.id}")
+                    logger.debug(f"[{interaction.user.id}] - Deleted buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
                     view.stop() # Stop the view since buttons are gone
                 except Exception as e:
                     logger.error(f"[{interaction.user.id}] - Error deleting buttons message {view.buttons_msg.id}: {e}")
@@ -126,9 +126,9 @@ class ConfirmButton_slash(discord.ui.Button):
                 # Regular slash command
                 # Format dates for n8n (YYYY-MM-DD) in Kyiv time
                 formatted_dates = [
-                    view.get_date_for_day(day).strftime("%Y-%m-%d")
+                    date.strftime("%Y-%m-%d")
                     for day in sorted(view.selected_days, key=lambda x: view.weekday_map[x])
-                    if view.get_date_for_day(day) is not None
+                    if (date := view.get_date_for_day(day)) is not None
                 ]
                 logger.debug(f"[{interaction.user.id}] - Formatted dates for webhook: {formatted_dates}")
 
@@ -146,7 +146,7 @@ class ConfirmButton_slash(discord.ui.Button):
                     try:
                         await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                         if success and data and "output" in data:
-                            logger.debug(f"[{interaction.user.id}] - Attempting to edit command message {view.command_msg.id} with output: {data['output']}")
+                            logger.debug(f"[{interaction.user.id}] - Attempting to edit command message {getattr(view.command_msg, 'id', 'N/A')} with output: {data['output']}")
                             output_content = data["output"]
                             if view.selected_days and Strings.MENTION_MESSAGE not in output_content: # Check if any days were selected AND message is not already present
                                 output_content += Strings.MENTION_MESSAGE
@@ -203,9 +203,9 @@ class DeclineButton_slash(discord.ui.Button):
             # Delete buttons message
             if view.buttons_msg:
                 try:
-                    logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
+                    logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
                     await view.buttons_msg.delete()
-                    logger.debug(f"[{interaction.user.id}] - Deleted buttons message {view.buttons_msg.id}")
+                    logger.debug(f"[{interaction.user.id}] - Deleted buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
                     view.stop() # Stop the view since buttons are gone
                 except Exception as e:
                     logger.error(f"[{interaction.user.id}] - Error deleting buttons message {view.buttons_msg.id}: {e}")
@@ -236,7 +236,7 @@ class DeclineButton_slash(discord.ui.Button):
                     try:
                         await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                         if success and data and "output" in data:
-                            logger.debug(f"[{interaction.user.id}] - Attempting to edit command message {view.command_msg.id} with output: {data['output']}")
+                            logger.debug(f"[{interaction.user.id}] - Attempting to edit command message {getattr(view.command_msg, 'id', 'N/A')} with output: {data['output']}")
                             await view.command_msg.edit(content=data["output"])
                         else:
                             logger.warning(f"[{interaction.user.id}] - Webhook response indicates failure or no output. Editing command message {view.command_msg.id} with error.")
@@ -262,7 +262,7 @@ class DeclineButton_slash(discord.ui.Button):
                         await view.command_msg.add_reaction(Strings.ERROR)
                     except Exception as edit_error:
                         logger.error(f"[{interaction.user.id}] - Error editing command message {view.command_msg.id} after exception: {edit_error}")
-                    logger.debug(f"[{interaction.user.id}] - Deleted buttons message {view.buttons_msg.id}")
+                    logger.debug(f"[{interaction.user.id}] - Deleted buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
 
 class DayOffView_slash(discord.ui.View):
     def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False):
@@ -274,10 +274,10 @@ class DayOffView_slash(discord.ui.View):
         self.selected_dates = []
         # Use the map from constants
         self.weekday_map = constants.WEEKDAY_MAP
-        self.command_msg = None  # Reference to the command message
-        self.buttons_msg = None  # Reference to the buttons message
+        self.command_msg: Optional[discord.Message] = None  # Reference to the command message
+        self.buttons_msg: Optional[discord.Message] = None  # Reference to the buttons message
 
-    def get_date_for_day(self, day: str) -> datetime.datetime:
+    def get_date_for_day(self, day: str) -> Optional[datetime.datetime]:
         """Get the date for a given weekday name in Kyiv time."""
         # Get current date in Kyiv time
         current_date = datetime.datetime.now(constants.KYIV_TIMEZONE)

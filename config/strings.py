@@ -30,6 +30,7 @@ class Strings:
     WRONG_CHANNEL = "Це опитування не для цього каналу."
     DAYOFF_ERROR = "Ваш запит: Вихідні дні = {days}\n{error}"
     WORKLOAD_ERROR = "Ваш запит: Навантаження = {hours}\n{error}"
+    SURVEY_EXPIRED_OR_NOT_FOUND = "Помилка: Опитування не знайдено або час його дії вичерпано."
 
     # Success/Processing
     PROCESSING = "⏳"

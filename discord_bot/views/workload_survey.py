@@ -1,4 +1,4 @@
-import discord
+import discord # type: ignore
 from typing import Optional
 from config import logger, Strings, constants # Added Strings, constants
 from services import webhook_service, survey_manager
@@ -6,7 +6,7 @@ from services import webhook_service, survey_manager
 class WorkloadView_survey(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
     def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None, survey=None, command_msg: Optional[discord.Message] = None, bot_instance=None, session_id: Optional[str] = None): # Added bot_instance and session_id
-        self.session_id = session_id # Store session ID - Moved to the beginning
+        self.session_id = session_id if session_id is not None else "" # Ensure session_id is always a string
         logger.debug(f"[Channel {self.session_id.split('_')[0]}] - WorkloadView_survey.__init__ called for cmd_or_step: {cmd_or_step}, has_survey: {has_survey}")
         self.continue_survey_func = continue_survey_func # Store continue survey function
         self.survey = survey # Store the survey object
@@ -17,7 +17,7 @@ class WorkloadView_survey(discord.ui.View):
         self.user_id = user_id
         self.has_survey = has_survey
         self.command_msg = command_msg  # Reference to the command message
-        self.buttons_msg = None  # Reference to the buttons message
+        self.buttons_msg: Optional[discord.Message] = None  # Reference to the buttons message
         self.bot_instance = bot_instance # Store bot instance
         logger.debug(f"[Channel {self.session_id.split('_')[0]}] - WorkloadView_survey initialized. command_msg: {self.command_msg}, buttons_msg: {self.buttons_msg}") # Added log
 
@@ -242,7 +242,10 @@ class WorkloadButton_survey(discord.ui.Button):
                         logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error in state.next_step(): {e}", exc_info=True)
                     try:
                         logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Calling continue_survey_func for channel {getattr(interaction.channel, 'id', None)} and state {state}") # Change to DEBUG
-                        await self.continue_survey_func(interaction.channel, state)
+                        if self.continue_survey_func: # Check if continue_survey_func is not None
+                            await self.continue_survey_func(interaction.channel, state)
+                        else:
+                            logger.warning(f"[Channel {view.session_id.split('_')[0]}] - continue_survey_func is None, cannot call.")
                     except Exception as e:
                         logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error in continue_survey_func: {e}", exc_info=True)
 
@@ -267,7 +270,7 @@ class WorkloadButton_survey(discord.ui.Button):
                     if view.command_msg:
                         try:
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            output_content = data.get("output", f"Дякую! Робоче навантаження {value} годин записано.") # Default success message
+                            output_content = data.get("output", f"Дякую! Робоче навантаження {value} годин записано.") if data else f"Дякую! Робоче навантаження {value} годин записано." # Default success message
                             await view.command_msg.edit(content=output_content, view=None, attachments=[]) # Update content and remove view/attachments
                             logger.info(f"[Channel {view.session_id.split('_')[0]}] - Updated command message {view.command_msg.id} with response")
                         except Exception as edit_error:
@@ -351,12 +354,13 @@ class WorkloadButton_survey(discord.ui.Button):
 
 def create_workload_view(bot_instance, cmd: str, user_id: str, timeout: Optional[float] = None, has_survey: bool = False, continue_survey_func=None, survey=None, command_msg: Optional[discord.Message] = None) -> WorkloadView_survey: # Added bot_instance parameter
     """Create workload view for regular commands only"""
-    logger.info(f"[Channel {survey.session_id.split('_')[0]}] - create_workload_view called with cmd: {cmd}, user_id: {user_id}, has_survey: {has_survey}") # Change to INFO
+    logger.info(f"[Channel {survey.session_id.split('_')[0] if survey and survey.session_id else 'N/A'}] - create_workload_view called with cmd: {cmd}, user_id: {user_id}, has_survey: {has_survey}") # Change to INFO
+    view: Optional[WorkloadView_survey] = None # Initialize view to None
     try:
         view = WorkloadView_survey(cmd, user_id, has_survey=has_survey, continue_survey_func=continue_survey_func, survey=survey, command_msg=command_msg, bot_instance=bot_instance, session_id=survey.session_id if survey else None) # Pass bot_instance and session_id
         logger.debug(f"[Channel {view.session_id.split('_')[0]}] - WorkloadView_survey instantiated successfully") # Keep debug
     except Exception as e:
-        logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error instantiating WorkloadView_survey: {e}")
+        logger.error(f"[Channel {view.session_id.split('_')[0] if view and view.session_id else 'N/A'}] - Error instantiating WorkloadView_survey: {e}")
         raise # Re-raise the exception after logging
 
     from config.constants import WORKLOAD_OPTIONS

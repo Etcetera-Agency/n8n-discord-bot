@@ -1,4 +1,4 @@
-import discord
+import discord # type: ignore
 from typing import Optional, List
 import datetime
 from config import ViewType, logger, constants, Strings
@@ -178,7 +178,7 @@ class ConfirmButton_survey(discord.ui.Button):
                             pass # Ignore if reaction wasn't there or couldn't be removed
 
                         # Update message content with n8n output or default success message
-                        output_content = data.get("output", f"Дякую! Вихідні: {', '.join(formatted_dates)} записані.")
+                        output_content = data.get("output", f"Дякую! Вихідні: {', '.join(formatted_dates)} записані.") if data else f"Дякую! Вихідні: {', '.join(formatted_dates)} записані."
                         if view.selected_days and Strings.MENTION_MESSAGE not in output_content: # Check if any days were selected AND message is not already present
                             output_content += Strings.MENTION_MESSAGE
                         await view.command_msg.edit(content=output_content, view=None, attachments=[]) # Remove view/attachments
@@ -203,9 +203,9 @@ class ConfirmButton_survey(discord.ui.Button):
                     # Regular slash command
                     # Format dates for n8n (YYYY-MM-DD) in Kyiv time
                     formatted_dates = [
-                        view.get_date_for_day(day).strftime("%Y-%m-%d") # Format dates as YYYY-MM-DD
+                        date.strftime("%Y-%m-%d")
                         for day in sorted(view.selected_days, key=lambda x: view.weekday_map[x])
-                        if view.get_date_for_day(day) is not None
+                        if (date := view.get_date_for_day(day)) is not None
                     ]
                     logger.debug(f"[Channel {channel_id}] - Attempting to send webhook for regular command (ConfirmButton_survey) by user {user_id}: {view.cmd_or_step}")
                     success, data = await webhook_service.send_webhook(
@@ -355,7 +355,7 @@ class DeclineButton_survey(discord.ui.Button):
                             pass # Ignore if reaction wasn't there or couldn't be removed
     
                         # Update message content with n8n output or default success message
-                        output_content = data.get("output", "Дякую! Не плануєш вихідні.")
+                        output_content = data.get("output", "Дякую! Не плануєш вихідні.") if data else "Дякую! Не плануєш вихідні."
                         logger.debug(f"[{interaction.user.id}] - Attempting to edit command message {view.command_msg.id} with output: {output_content}")
                         await view.command_msg.edit(content=output_content, view=None, attachments=[]) # Remove view/attachments
     
@@ -391,6 +391,7 @@ class DeclineButton_survey(discord.ui.Button):
                             logger.error(f"[{interaction.user.id}] - Error deleting buttons message: {e}")
                     view.stop() # Stop the view
     
+class DayOffView_survey(discord.ui.View):
     def __init__(self, bot_instance, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None, survey=None, session_id: Optional[str] = None): # Added bot_instance and session_id
         super().__init__(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"]) # Use configured timeout
         self.bot_instance = bot_instance # Store bot instance
@@ -401,14 +402,14 @@ class DeclineButton_survey(discord.ui.Button):
         self.selected_dates = []
         # Use the map from constants
         self.weekday_map = constants.WEEKDAY_MAP
-        self.command_msg = None  # Reference to the command message
-        self.buttons_msg = None  # Reference to the buttons message
+        self.command_msg: Optional[discord.Message] = None  # Reference to the command message
+        self.buttons_msg: Optional[discord.Message] = None  # Reference to the buttons message
         self.continue_survey_func = continue_survey_func # Store continue survey function
         self.survey = survey # Store the survey object
         self.session_id = session_id # Store session ID
 
 
-    def get_date_for_day(self, day: str) -> datetime.datetime:
+    def get_date_for_day(self, day: str) -> Optional[datetime.datetime]:
         """Get the date for a given weekday name in Kyiv time."""
         # Get current date in Kyiv time
         current_date = datetime.datetime.now(constants.KYIV_TIMEZONE)
