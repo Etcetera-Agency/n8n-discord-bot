@@ -1,7 +1,7 @@
 import discord
 from typing import Optional
-from config import logger, Strings, constants # Added Strings, constants
-from services import webhook_service # Removed survey_manager
+from config import logger, Strings, constants
+from services import webhook_service
 
 class WorkloadView_slash(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
@@ -11,8 +11,8 @@ class WorkloadView_slash(discord.ui.View):
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
         # Removed self.has_survey = has_survey
-        self.command_msg: == None  # Reference to the command message
-        self.buttons_msg: == None  # Reference to the buttons message
+        self.command_msg: Optional[discord.Message] = None  # Reference to the command message
+        self.buttons_msg: Optional[discord.Message] = None  # Reference to the buttons message
         
     async def on_timeout(self):
         logger.warning(f"WorkloadView_slash timed out for user {self.user_id}")
