@@ -11,8 +11,8 @@ class WorkloadView_slash(discord.ui.View):
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
         # Removed self.has_survey = has_survey
-        self.command_msg: Optional[Message] = None  # Reference to the command message
-        self.buttons_msg: Optional[Message] = None  # Reference to the buttons message
+        self.command_msg: == None  # Reference to the command message
+        self.buttons_msg: == None  # Reference to the buttons message
         
     async def on_timeout(self):
         logger.warning(f"WorkloadView_slash timed out for user {self.user_id}")

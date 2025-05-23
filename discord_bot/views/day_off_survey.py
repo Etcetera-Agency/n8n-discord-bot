@@ -517,10 +517,8 @@ def create_day_off_view(
         )
         view.add_item(button)
 
-    # Only add Confirm and Decline buttons if cmd_or_step is NOT 'day_off_nextweek'
-    if "day_off_nextweek" not in cmd_or_step:
-        view.add_item(ConfirmButton_survey())
-        view.add_item(DeclineButton_survey())
+    view.add_item(ConfirmButton_survey())
+    view.add_item(DeclineButton_survey())
 
     logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Returning day off view")
     return view
