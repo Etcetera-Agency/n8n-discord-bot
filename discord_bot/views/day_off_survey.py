@@ -5,6 +5,59 @@ from config import ViewType, logger, constants, Strings
 from services import survey_manager, webhook_service # Import webhook_service
 import asyncio
 
+class DayOffView_survey(discord.ui.View):
+    def __init__(self, bot_instance, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None, survey=None, session_id: Optional[str] = None):
+        self.session_id = session_id if session_id is not None else "" # Ensure session_id is always a string
+        logger.debug(f"[Channel {self.session_id.split('_')[0]}] - DayOffView_survey.__init__ called for cmd_or_step: {cmd_or_step}, has_survey: {has_survey}")
+        super().__init__(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"])
+        logger.debug(f"[Channel {self.session_id.split('_')[0]}] - DayOffView_survey initialized with timeout: {self.timeout}")
+        self.bot_instance = bot_instance
+        self.cmd_or_step = cmd_or_step
+        self.user_id = user_id
+        self.has_survey = has_survey
+        self.selected_days = []
+        self.selected_dates = []
+        self.weekday_map = constants.WEEKDAY_MAP
+        self.command_msg: Optional[discord.Message] = None
+        self.buttons_msg: Optional[discord.Message] = None
+        self.continue_survey_func = continue_survey_func
+        self.survey = survey
+        logger.debug(f"[Channel {self.session_id.split('_')[0]}] - DayOffView_survey initialized. command_msg: {self.command_msg}, buttons_msg: {self.buttons_msg}")
+
+
+    def get_date_for_day(self, day: str) -> Optional[datetime.datetime]:
+        """Get the date for a given weekday name in Kyiv time."""
+        current_date = datetime.datetime.now(constants.KYIV_TIMEZONE)
+        current_weekday = current_date.weekday()
+
+        day_number = self.weekday_map[day]
+
+        if "day_off_nextweek" in self.cmd_or_step:
+            days_ahead = day_number - current_weekday + 7
+        else:
+            days_ahead = day_number - current_weekday
+            if days_ahead < 0 and "day_off_thisweek" in self.cmd_or_step:
+                return None
+
+        target_date = current_date + datetime.timedelta(days=days_ahead)
+        return target_date
+
+    async def on_timeout(self):
+        logger.warning(f"DayOffView_survey timed out for session {self.session_id}")
+        # Call handle_survey_incomplete on timeout
+        if self.has_survey and self.bot_instance and self.session_id:
+            # Check if the survey still exists before calling handle_survey_incomplete
+            active_survey = survey_manager.get_survey_by_session(self.session_id)
+            if active_survey:
+                logger.info(f"[Channel {self.session_id.split('_')[0]}] - Calling handle_survey_incomplete on timeout for session {self.session_id}")
+                from discord_bot.commands.survey import handle_survey_incomplete # Import locally to avoid circular dependency
+                await handle_survey_incomplete(self.bot_instance, self.session_id)
+            else:
+                logger.warning(f"[Channel {self.session_id.split('_')[0]}] - Survey session {self.session_id} not found in manager. Skipping handle_survey_incomplete.")
+        else:
+            logger.warning(f"[Channel {self.session_id.split('_')[0] if self.session_id else 'N/A'}] - Cannot call handle_survey_incomplete on timeout. has_survey: {self.has_survey}, bot_instance: {bool(self.bot_instance)}, session_id: {self.session_id}")
+
+
 class DayOffButton_survey(discord.ui.Button):
     def __init__(self, *, label: str, custom_id: str, cmd_or_step: str):
         super().__init__(
@@ -94,64 +147,74 @@ class ConfirmButton_survey(discord.ui.Button):
         from services import webhook_service
         view = self.view
         if isinstance(view, DayOffView_survey):
-            # First, acknowledge the interaction to prevent timeout
-            logger.debug(f"[Channel {channel_id}] - Attempting to defer interaction response for ConfirmButton_survey by user {user_id}")
-            if not interaction.response.is_done(): # Check if already responded
-                await interaction.response.defer(ephemeral=False)
-            logger.debug(f"[Channel {channel_id}] - Interaction response deferred for ConfirmButton_survey by user {user_id}")
+            logger.info(f"Processing ConfirmButton_survey callback - view user: {view.user_id}, interaction user: {interaction.user.id}")
 
-            # Add processing reaction to command message
             if view.command_msg:
                 try:
                     logger.debug(f"[Channel {channel_id}] - Attempting to add processing reaction to command message {view.command_msg.id} by user {user_id}")
                     await view.command_msg.add_reaction(Strings.PROCESSING)
                     logger.debug(f"[Channel {channel_id}] - Added processing reaction to command message {view.command_msg.id} by user {user_id}")
                 except Exception as e:
-                    logger.error(f"[Channel {channel_id}] - Error adding processing reaction to command message {view.command_msg.id} by user {user_id}: {e}")
+                    logger.error(f"[Channel {channel_id}] - Error adding processing reaction to command message {getattr(view.command_msg, 'id', 'N/A')}: {e}", exc_info=True)
 
             try:
-                # Convert selected days to dates
-                # Convert selected days to dates and format as strings
                 formatted_dates = []
-                dates_for_log = [] # Keep original datetime objects for logging if needed
                 for day in sorted(view.selected_days, key=lambda x: view.weekday_map[x]):
                     date = view.get_date_for_day(day)
                     if date:
-                        formatted_dates.append(date.strftime("%Y-%m-%d")) # Format as YYYY-MM-DD
-                        dates_for_log.append(date) # Append original datetime for logging
+                        formatted_dates.append(date.strftime("%Y-%m-%d"))
                 logger.debug(f"[Channel {channel_id}] - Selected dates (formatted) by user {user_id}: {formatted_dates}")
-                logger.debug(f"[Channel {channel_id}] - Selected dates (datetime objects) by user {user_id}: {dates_for_log}")
 
+                state = survey_manager.get_survey(str(interaction.channel.id))
+                logger.debug(f"[Channel {channel_id}] - survey_manager.get_survey returned: {state}.")
 
-                if view.has_survey:
-                    # Dynamic survey flow
-                    state = survey_manager.get_survey(str(interaction.channel.id)) # Get by channel_id
-                    if not state:
-                        if view.command_msg:
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            error_msg = Strings.DAYOFF_ERROR.format(
-                                days="Підтвердження вихідних",
-                                error=Strings.NOT_YOUR_SURVEY
-                            )
-                            await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction(Strings.ERROR)
-                        if view.buttons_msg:
-                            await view.buttons_msg.delete()
-                        return
+                if view.buttons_msg:
+                    try:
+                        await view.buttons_msg.delete()
+                        logger.info(f"[Channel {channel_id}] - Successfully deleted buttons message ID: {view.buttons_msg.id}")
+                        view.buttons_msg = None
+                        view.stop()
+                    except discord.NotFound:
+                        logger.warning(f"[Channel {channel_id}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found.")
+                        view.buttons_msg = None
+                    except Exception as delete_error:
+                        logger.error(f"[Channel {channel_id}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')}: {delete_error}", exc_info=True)
+                else:
+                    logger.warning(f"[Channel {channel_id}] - view.buttons_msg is None or False, cannot delete.")
 
-                    # Send webhook for survey step
-                    logger.debug(f"[Channel {channel_id}] - Attempting to send webhook for survey step (ConfirmButton_survey) by user {user_id}: {view.cmd_or_step}")
+                if state:
+                    logger.info(f"Found survey for channel {channel_id}, current step: {state.current_step()}")
+
+                    result_payload = {
+                        "stepName": view.cmd_or_step,
+                        "daysSelected": formatted_dates
+                    }
+                    logger.info(f"[Channel {channel_id}] - Sending webhook for survey step: {view.cmd_or_step} with value: {formatted_dates}")
                     success, data = await webhook_service.send_webhook(
                         interaction,
                         command="survey",
                         status="step",
-                        result={
-                            "stepName": view.cmd_or_step,
-                            "daysSelected": formatted_dates # Use the list of formatted strings
-                        }
+                        result=result_payload
                     )
-                    logger.debug(f"[Channel {channel_id}] - Webhook response for survey step (ConfirmButton_survey) for user {user_id}: success={success}, data={data}")
+                    logger.info(f"[Channel {channel_id}] - Webhook sending result for survey step: success={success}, data={data}")
+
+                    logger.debug(f"Webhook response for survey step: success={success}, data={data}")
+                    try:
+                        logger.debug(f"[Channel {channel_id}] - Calling state.next_step()")
+                        state.next_step()
+                    except Exception as e:
+                        logger.error(f"[Channel {channel_id}] - Error in state.next_step(): {e}", exc_info=True)
+                    try:
+                        logger.debug(f"[Channel {channel_id}] - Calling continue_survey_func for channel {getattr(interaction.channel, 'id', None)} and state {state}")
+                        if view.continue_survey_func:
+                            await view.continue_survey_func(interaction.channel, state)
+                        else:
+                            logger.warning(f"[Channel {channel_id}] - continue_survey_func is None, cannot call.")
+                    except Exception as e:
+                        logger.error(f"[Channel {channel_id}] - Error in continue_survey_func: {e}", exc_info=True)
+
                     if not success:
+                        logger.error(f"Failed to send webhook for survey step: {view.cmd_or_step}")
                         if view.command_msg:
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                             error_msg = Strings.DAYOFF_ERROR.format(
@@ -160,93 +223,66 @@ class ConfirmButton_survey(discord.ui.Button):
                             )
                             await view.command_msg.edit(content=error_msg)
                             await view.command_msg.add_reaction(Strings.ERROR)
-                        if view.buttons_msg:
-                            await view.buttons_msg.delete()
                         return
 
-                    # Update survey state
                     state.results[view.cmd_or_step] = formatted_dates
-                    state.next_step()
-                    next_step = state.current_step()
+                    logger.info(f"Updated survey results: {state.results}")
 
-                    # Update command message with response
                     if view.command_msg:
-                        # Remove processing reaction
                         try:
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                        except:
-                            pass # Ignore if reaction wasn't there or couldn't be removed
+                            output_content = data.get("output", f"Дякую! Вихідні: {', '.join(formatted_dates)} записані.") if data else f"Дякую! Вихідні: {', '.join(formatted_dates)} записані."
+                            if formatted_dates and Strings.MENTION_MESSAGE not in output_content:
+                                output_content += Strings.MENTION_MESSAGE
+                            await view.command_msg.edit(content=output_content, view=None, attachments=[])
+                            logger.info(f"[Channel {channel_id}] - Updated command message {view.command_msg.id} with response for user {user_id}")
+                        except Exception as edit_error:
+                            logger.error(f"[Channel {channel_id}] - Error editing command message {getattr(view.command_msg, 'id', 'N/A')}: {edit_error}", exc_info=True)
 
-                        # Update message content with n8n output or default success message
-                        output_content = data.get("output", f"Дякую! Вихідні: {', '.join(formatted_dates)} записані.") if data else f"Дякую! Вихідні: {', '.join(formatted_dates)} записані."
-                        if view.selected_days and Strings.MENTION_MESSAGE not in output_content: # Check if any days were selected AND message is not already present
-                            output_content += Strings.MENTION_MESSAGE
-                        await view.command_msg.edit(content=output_content, view=None, attachments=[]) # Remove view/attachments
-                        logger.info(f"[Channel {channel_id}] - Updated command message {view.command_msg.id} with response for user {user_id}")
+                    logger.info(f"Survey state before continuation - current step: {state.current_step()}, results: {state.results}")
 
-                    # Delete buttons message
-                    if view.buttons_msg:
-                        logger.debug(f"[Channel {channel_id}] - Attempting to delete buttons message {view.buttons_msg.id} for user {user_id}")
-                        await view.buttons_msg.delete()
-                        logger.debug(f"[Channel {channel_id}] - Deleted buttons message {view.buttons_msg.id} for user {user_id}")
-                        view.stop() # Stop the view since buttons are gone
-
-                    # Continue survey
-                    if next_step:
-                        from discord_bot.commands.survey import ask_dynamic_step # Corrected import
-                        await ask_dynamic_step(self.view.bot_instance, interaction.channel, state, next_step) # Pass bot_instance from view
-                    else:
-                        from discord_bot.commands.survey import finish_survey # Corrected import
-                        await finish_survey(self.view.bot_instance, interaction.channel, state) # Pass bot_instance from view
+                    if not state or not state.user_id:
+                        logger.error("Invalid survey state for continuation")
+                        return
 
                 else:
-                    # Regular slash command
-                    # Format dates for n8n (YYYY-MM-DD) in Kyiv time
-                    formatted_dates = [
-                        date.strftime("%Y-%m-%d")
-                        for day in sorted(view.selected_days, key=lambda x: view.weekday_map[x])
-                        if (date := view.get_date_for_day(day)) is not None
-                    ]
-                    logger.debug(f"[Channel {channel_id}] - Attempting to send webhook for regular command (ConfirmButton_survey) by user {user_id}: {view.cmd_or_step}")
-                    success, data = await webhook_service.send_webhook(
-                         interaction,
-                         command=view.cmd_or_step,
-                         status="ok",
-                         result={"value": formatted_dates}
-                     )
-                    logger.debug(f"[Channel {channel_id}] - Webhook response for regular command (ConfirmButton_survey) for user {user_id}: success={success}, data={data}")
+                    logger.warning(f"[Channel {channel_id}] - No active survey state found for user in confirm button callback. Treating as non-survey command or expired survey.")
 
-                    if success and data and "output" in data:
-                        # Update command message with success
-                        if view.command_msg:
-                            logger.debug(f"[Channel {channel_id}] - Attempting to remove processing reaction from command message {view.command_msg.id} by user {user_id}")
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            logger.debug(f"[Channel {channel_id}] - Attempting to edit command message {view.command_msg.id} with output for user {user_id}: {data['output']}")
-                            output_content = data["output"]
-                            if view.selected_days and Strings.MENTION_MESSAGE not in output_content: # Check if any days were selected AND message is not already present
-                                output_content += Strings.MENTION_MESSAGE
-                            await view.command_msg.edit(content=output_content)
+                    if view.has_survey:
+                        logger.error(f"[Channel {channel_id}] - Survey initiated but state not found in callback for step {view.cmd_or_step}.")
+                        try:
+                            if interaction.response.is_done():
+                                logger.debug(f"[Channel {channel_id}] - interaction.response.is_done()=True, using followup.send for expired survey")
+                                await interaction.followup.send(Strings.SURVEY_EXPIRED_OR_NOT_FOUND, ephemeral=True)
+                            else:
+                                logger.debug(f"[Channel {channel_id}] - interaction.response.is_done()=False, using response.send_message for expired survey")
+                                await interaction.response.send_message(Strings.SURVEY_EXPIRED_OR_NOT_FOUND, ephemeral=True)
+                        except Exception as e:
+                            logger.error(f"[Channel {channel_id}] - Failed to send survey expired message: {e}")
 
-                        # Delete buttons message
                         if view.buttons_msg:
-                            logger.debug(f"[Channel {channel_id}] - Attempting to delete buttons message {view.buttons_msg.id} for user {user_id}")
-                            await view.buttons_msg.delete()
-                            logger.debug(f"[Channel {channel_id}] - Deleted buttons message {view.buttons_msg.id} for user {user_id}")
+                            try:
+                                await view.buttons_msg.delete()
+                            except Exception as e:
+                                logger.warning(f"[Channel {channel_id}] - Failed to delete buttons message after expired survey message: {e}")
+
                     else:
+                        logger.error(f"[Channel {channel_id}] - Confirm button clicked in non-survey context (has_survey=False) for command: {view.cmd_or_step}. No active survey state found.")
                         if view.command_msg:
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            error_msg = Strings.DAYOFF_ERROR.format(
-                                days=', '.join(formatted_dates),
-                                error=Strings.GENERAL_ERROR
-                            )
-                            await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction(Strings.ERROR)
+                            try:
+                                await view.command_msg.edit(content=Strings.GENERAL_ERROR, view=None)
+                            except Exception as e:
+                                logger.error(f"[Channel {channel_id}] - Error editing command message with general error: {e}")
                         if view.buttons_msg:
-                            await view.buttons_msg.delete()
-
+                            try:
+                                await view.buttons_msg.delete()
+                            except Exception as e:
+                                logger.error(f"[Channel {channel_id}] - Error deleting buttons message: {e}")
+                        view.stop()
             except Exception as e:
-                logger.error(f"[Channel {channel_id}] - Error in confirm button for user {user_id}: {e}", exc_info=True)
-                if view.command_msg:
+                session_id_for_log = view.session_id.split('_')[0] if view and view.session_id else 'N/A'
+                logger.error(f"[Channel {session_id_for_log}] - Error in confirm button callback: {e}", exc_info=True)
+                if view and view.command_msg:
                     await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                     error_msg = Strings.DAYOFF_ERROR.format(
                         days=', '.join(view.selected_days),
@@ -254,8 +290,20 @@ class ConfirmButton_survey(discord.ui.Button):
                     )
                     await view.command_msg.edit(content=error_msg)
                     await view.command_msg.add_reaction(Strings.ERROR)
-                if view.buttons_msg:
-                    await view.buttons_msg.delete()
+                logger.error(f"[Channel {session_id_for_log}] - Failed to send error response in confirm callback: {e}")
+            finally:
+                if view and view.buttons_msg:
+                    try:
+                        await view.buttons_msg.delete()
+                        session_id_for_log = view.session_id.split('_')[0] if view and view.session_id else 'N/A'
+                        logger.info(f"[Channel {session_id_for_log}] - Successfully deleted buttons message in finally block.")
+                        view.stop()
+                    except discord.NotFound:
+                        session_id_for_log = view.session_id.split('_')[0] if view and view.session_id else 'N/A'
+                        logger.warning(f"[Channel {session_id_for_log}] - Buttons message already deleted or not found in finally block.")
+                    except Exception as e:
+                        session_id_for_log = view.session_id.split('_')[0] if view and view.session_id else 'N/A'
+                        logger.error(f"[Channel {session_id_for_log}] - Error deleting buttons message in finally block: {e}", exc_info=True)
 
 class DeclineButton_survey(discord.ui.Button):
     def __init__(self):
@@ -266,69 +314,74 @@ class DeclineButton_survey(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
+        channel_id = str(interaction.channel.id)
+        user_id = str(interaction.user.id)
+        logger.info(f"[Channel {channel_id}] - DeclineButton_survey callback triggered by user {user_id}")
         from config import Strings # Import Strings locally
         from services import webhook_service
         view = self.view
         if isinstance(view, DayOffView_survey):
-            logger.info(f"DECLINE BUTTON STARTED - User: {interaction.user}, Command: {view.cmd_or_step}")
-            logger.debug(f"Decline button clicked by {interaction.user}")
-            logger.debug(f"View has_survey: {view.has_survey}, cmd_or_step: {view.cmd_or_step}")
+            logger.info(f"Processing DeclineButton_survey callback - view user: {view.user_id}, interaction user: {interaction.user.id}")
 
-            # Immediately respond to interaction
-            try:
-                logger.debug(f"[{interaction.user.id}] - Attempting to defer interaction response for DeclineButton_survey")
-                await interaction.response.defer(ephemeral=False, thinking=True)
-                logger.debug(f"[{interaction.user.id}] - Interaction deferred with thinking state for DeclineButton_survey")
-            except Exception as e:
-                logger.error(f"Failed to defer interaction: {e}")
-                return
-
-            # Add processing reaction to command message
             if view.command_msg:
                 try:
-                    logger.debug(f"[{interaction.user.id}] - Attempting to add processing reaction to command message {view.command_msg.id}")
+                    logger.debug(f"[Channel {channel_id}] - Attempting to add processing reaction to command message {view.command_msg.id} by user {user_id}")
                     await view.command_msg.add_reaction(Strings.PROCESSING)
-                    logger.debug(f"[{interaction.user.id}] - Added processing reaction to command message {view.command_msg.id}")
+                    logger.debug(f"[Channel {channel_id}] - Added processing reaction to command message {view.command_msg.id} by user {user_id}")
                 except Exception as e:
-                    logger.error(f"[{interaction.user.id}] - Error adding processing reaction to command message {view.command_msg.id}: {e}")
-            else:
-                # Verify webhook service configuration
-                logger.debug(f"Preparing to send webhook for decline action")
-                logger.debug(f"Webhook service initialized: {'yes' if webhook_service.url else 'no'}")
-                logger.debug(f"Webhook URL: {webhook_service.url if webhook_service.url else 'NOT CONFIGURED'}")
-                logger.debug(f"Auth token: {'set' if webhook_service.auth_token else 'not set'}")
-    
-                if view.has_survey:
-                    logger.debug("Handling decline action as survey step")
-                    state = survey_manager.get_survey(str(interaction.channel.id)) # Get by channel_id
-                    logger.debug(f"Survey state: {'exists' if state else 'not found'}")
-                    if not state:
-                        if view.command_msg:
-                            await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                            error_msg = Strings.DAYOFF_ERROR.format(
-                                days="Відмова від вихідних",
-                                error=Strings.NOT_YOUR_SURVEY
-                            )
-                            await view.command_msg.edit(content=error_msg)
-                            await view.command_msg.add_reaction(Strings.ERROR)
-                        if view.buttons_msg:
-                            await view.buttons_msg.delete()
-                        return
-    
-                    # Send webhook for survey step
-                    logger.debug(f"[{interaction.user.id}] - Attempting to send webhook for survey step (DeclineButton_survey): {view.cmd_or_step}")
+                    logger.error(f"[Channel {channel_id}] - Error adding processing reaction to command message {getattr(view.command_msg, 'id', 'N/A')}: {e}", exc_info=True)
+
+            try:
+                state = survey_manager.get_survey(str(interaction.channel.id))
+                logger.debug(f"[Channel {channel_id}] - survey_manager.get_survey returned: {state}.")
+
+                if view.buttons_msg:
+                    try:
+                        await view.buttons_msg.delete()
+                        logger.info(f"[Channel {channel_id}] - Successfully deleted buttons message ID: {view.buttons_msg.id}")
+                        view.buttons_msg = None
+                        view.stop()
+                    except discord.NotFound:
+                        logger.warning(f"[Channel {channel_id}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found.")
+                        view.buttons_msg = None
+                    except Exception as delete_error:
+                        logger.error(f"[Channel {channel_id}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')}: {delete_error}", exc_info=True)
+                else:
+                    logger.warning(f"[Channel {channel_id}] - view.buttons_msg is None or False, cannot delete.")
+
+                if state:
+                    logger.info(f"Found survey for channel {channel_id}, current step: {state.current_step()}")
+
+                    result_payload = {
+                        "stepName": view.cmd_or_step,
+                        "daysSelected": ["Nothing"]
+                    }
+                    logger.info(f"[Channel {channel_id}] - Sending webhook for survey step: {view.cmd_or_step} with value: Nothing")
                     success, data = await webhook_service.send_webhook(
                         interaction,
                         command="survey",
                         status="step",
-                        result={
-                            "stepName": view.cmd_or_step,
-                            "daysSelected": ["Nothing"]  # Keep as "Nothing" for backward compatibility
-                        }
+                        result=result_payload
                     )
-                    logger.debug(f"[{interaction.user.id}] - Webhook response for survey step (DeclineButton_survey): success={success}, data={data}")
-    
+                    logger.info(f"[Channel {channel_id}] - Webhook sending result for survey step: success={success}, data={data}")
+
+                    logger.debug(f"Webhook response for survey step: success={success}, data={data}")
+                    try:
+                        logger.debug(f"[Channel {channel_id}] - Calling state.next_step()")
+                        state.next_step()
+                    except Exception as e:
+                        logger.error(f"[Channel {channel_id}] - Error in state.next_step(): {e}", exc_info=True)
+                    try:
+                        logger.debug(f"[Channel {channel_id}] - Calling continue_survey_func for channel {getattr(interaction.channel, 'id', None)} and state {state}")
+                        if view.continue_survey_func:
+                            await view.continue_survey_func(interaction.channel, state)
+                        else:
+                            logger.warning(f"[Channel {channel_id}] - continue_survey_func is None, cannot call.")
+                    except Exception as e:
+                        logger.error(f"[Channel {channel_id}] - Error in continue_survey_func: {e}", exc_info=True)
+
                     if not success:
+                        logger.error(f"Failed to send webhook for survey step: {view.cmd_or_step}")
                         if view.command_msg:
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                             error_msg = Strings.DAYOFF_ERROR.format(
@@ -337,124 +390,86 @@ class DeclineButton_survey(discord.ui.Button):
                             )
                             await view.command_msg.edit(content=error_msg)
                             await view.command_msg.add_reaction(Strings.ERROR)
-                        if view.buttons_msg:
-                            await view.buttons_msg.delete()
                         return
-    
-                    # Update survey state
-                    state.results[view.cmd_or_step] = ["Nothing"]  # Keep as "Nothing" for backward compatibility
-                    state.next_step()
-                    next_step = state.current_step()
-    
-                    # Update command message with success
+
+                    state.results[view.cmd_or_step] = ["Nothing"]
+                    logger.info(f"Updated survey results: {state.results}")
+
                     if view.command_msg:
-                        # Remove processing reaction
                         try:
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                        except:
-                            pass # Ignore if reaction wasn't there or couldn't be removed
-    
-                        # Update message content with n8n output or default success message
-                        output_content = data.get("output", "Дякую! Не плануєш вихідні.") if data else "Дякую! Не плануєш вихідні."
-                        logger.debug(f"[{interaction.user.id}] - Attempting to edit command message {view.command_msg.id} with output: {output_content}")
-                        await view.command_msg.edit(content=output_content, view=None, attachments=[]) # Remove view/attachments
-    
-                    # Delete buttons message
-                    if view.buttons_msg:
-                        logger.debug(f"[{interaction.user.id}] - Attempting to delete buttons message {view.buttons_msg.id}")
-                        await view.buttons_msg.delete()
-                        logger.debug(f"[{interaction.user.id}] - Deleted buttons message {view.buttons_msg.id}")
-                        view.stop() # Stop the view since buttons are gone
-    
-                    # Continue survey
-                    if next_step:
-                        from discord_bot.commands.survey import ask_dynamic_step # Corrected import
-                        await ask_dynamic_step(self.view.bot_instance, interaction.channel, state, next_step) # Pass bot_instance
-                    else:
-                        from discord_bot.commands.survey import finish_survey # Corrected import
-                        await finish_survey(self.view.bot_instance, interaction.channel, state) # Pass bot_instance
-    
+                            output_content = data.get("output", "Дякую! Не плануєш вихідні.") if data else "Дякую! Не плануєш вихідні."
+                            await view.command_msg.edit(content=output_content, view=None, attachments=[])
+                            logger.info(f"[Channel {channel_id}] - Updated command message {view.command_msg.id} with response")
+                        except Exception as edit_error:
+                            logger.error(f"[Channel {channel_id}] - Error editing command message {getattr(view.command_msg, 'id', 'N/A')}: {edit_error}", exc_info=True)
+
+                    logger.info(f"Survey state before continuation - current step: {state.current_step()}, results: {state.results}")
+
+                    if not state or not state.user_id:
+                        logger.error("Invalid survey state for continuation")
+                        return
+
                 else:
-                    # This case should not be reached in the current survey flow,
-                    # but log an error for unexpected scenarios.
-                    logger.error(f"[{interaction.user.id}] - Decline button clicked in non-survey context for command: {view.cmd_or_step}")
-                    # Optionally, send a message to the user indicating an unexpected error
-                    if view.command_msg:
+                    logger.warning(f"[Channel {channel_id}] - No active survey state found for user in decline button callback. Treating as non-survey command or expired survey.")
+
+                    if view.has_survey:
+                        logger.error(f"[Channel {channel_id}] - Survey initiated but state not found in callback for step {view.cmd_or_step}.")
                         try:
-                            await view.command_msg.edit(content=Strings.GENERAL_ERROR, view=None)
+                            if interaction.response.is_done():
+                                logger.debug(f"[Channel {channel_id}] - interaction.response.is_done()=True, using followup.send for expired survey")
+                                await interaction.followup.send(Strings.SURVEY_EXPIRED_OR_NOT_FOUND, ephemeral=True)
+                            else:
+                                logger.debug(f"[Channel {channel_id}] - interaction.response.is_done()=False, using response.send_message for expired survey")
+                                await interaction.response.send_message(Strings.SURVEY_EXPIRED_OR_NOT_FOUND, ephemeral=True)
                         except Exception as e:
-                            logger.error(f"[{interaction.user.id}] - Error editing command message with general error: {e}")
-                    if view.buttons_msg:
-                        try:
-                            await view.buttons_msg.delete()
-                        except Exception as e:
-                            logger.error(f"[{interaction.user.id}] - Error deleting buttons message: {e}")
-                    view.stop() # Stop the view
+                            logger.error(f"[Channel {channel_id}] - Failed to send survey expired message: {e}")
+
+                        if view.buttons_msg:
+                            try:
+                                await view.buttons_msg.delete()
+                            except Exception as e:
+                                logger.warning(f"[Channel {channel_id}] - Failed to delete buttons message after expired survey message: {e}")
+
+                    else:
+                        logger.error(f"[Channel {channel_id}] - Decline button clicked in non-survey context (has_survey=False) for command: {view.cmd_or_step}. No active survey state found.")
+                        if view.command_msg:
+                            try:
+                                await view.command_msg.edit(content=Strings.GENERAL_ERROR, view=None)
+                            except Exception as e:
+                                logger.error(f"[Channel {channel_id}] - Error editing command message with general error: {e}")
+                        if view.buttons_msg:
+                            try:
+                                await view.buttons_msg.delete()
+                            except Exception as e:
+                                logger.error(f"[Channel {channel_id}] - Error deleting buttons message: {e}")
+                        view.stop()
+            except Exception as e:
+                session_id_for_log = view.session_id.split('_')[0] if view and view.session_id else 'N/A'
+                logger.error(f"[Channel {session_id_for_log}] - Error in decline button callback: {e}", exc_info=True)
+                if view and view.command_msg:
+                    await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
+                    error_msg = Strings.DAYOFF_ERROR.format(
+                        days="Відмова від вихідних",
+                        error=Strings.UNEXPECTED_ERROR
+                    )
+                    await view.command_msg.edit(content=error_msg)
+                    await view.command_msg.add_reaction(Strings.ERROR)
+                logger.error(f"[Channel {session_id_for_log}] - Failed to send error response in decline callback: {e}")
+            finally:
+                if view and view.buttons_msg:
+                    try:
+                        await view.buttons_msg.delete()
+                        session_id_for_log = view.session_id.split('_')[0] if view and view.session_id else 'N/A'
+                        logger.info(f"[Channel {session_id_for_log}] - Successfully deleted buttons message in finally block.")
+                        view.stop()
+                    except discord.NotFound:
+                        session_id_for_log = view.session_id.split('_')[0] if view and view.session_id else 'N/A'
+                        logger.warning(f"[Channel {session_id_for_log}] - Buttons message already deleted or not found in finally block.")
+                    except Exception as e:
+                        session_id_for_log = view.session_id.split('_')[0] if view and view.session_id else 'N/A'
+                        logger.error(f"[Channel {session_id_for_log}] - Error deleting buttons message in finally block: {e}", exc_info=True)
     
-class DayOffView_survey(discord.ui.View):
-    def __init__(self, bot_instance, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None, survey=None, session_id: Optional[str] = None): # Added bot_instance and session_id
-        super().__init__(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"]) # Use configured timeout
-        self.bot_instance = bot_instance # Store bot instance
-        self.cmd_or_step = cmd_or_step
-        self.user_id = user_id
-        self.has_survey = has_survey
-        self.selected_days = []
-        self.selected_dates = []
-        # Use the map from constants
-        self.weekday_map = constants.WEEKDAY_MAP
-        self.command_msg: Optional[discord.Message] = None  # Reference to the command message
-        self.buttons_msg: Optional[discord.Message] = None  # Reference to the buttons message
-        self.continue_survey_func = continue_survey_func # Store continue survey function
-        self.survey = survey # Store the survey object
-        self.session_id = session_id # Store session ID
-
-
-    def get_date_for_day(self, day: str) -> Optional[datetime.datetime]:
-        """Get the date for a given weekday name in Kyiv time."""
-        # Get current date in Kyiv time
-        current_date = datetime.datetime.now(constants.KYIV_TIMEZONE)
-        current_weekday = current_date.weekday()
-
-        # Calculate target date
-        day_number = self.weekday_map[day]
-
-        if "day_off_nextweek" in self.cmd_or_step:
-            # For next week, add 7 days to get to next week
-            days_ahead = day_number - current_weekday + 7
-        else:
-            # For this week
-            days_ahead = day_number - current_weekday
-            if days_ahead < 0 and "day_off_thisweek" in self.cmd_or_step: # Corrected condition to < 0
-                # If the day has passed this week and it's thisweek command,
-                # we shouldn't include it (this is a safety check)
-                return None
-
-        # Calculate target date in Kyiv time
-        target_date = current_date + datetime.timedelta(days=days_ahead)
-        return target_date
-
-    async def on_timeout(self):
-        logger.warning(f"DayOffView_survey timed out for user {self.user_id}")
-        # Attempt to remove the buttons message if it exists
-        if self.buttons_msg:
-            try:
-                await self.buttons_msg.delete()
-                logger.debug(f"Deleted timed out buttons message {self.buttons_msg.id}")
-                self.stop() # Stop the view since it timed out
-            except discord.errors.NotFound:
-                logger.debug(f"Buttons message {self.buttons_msg.id} already deleted.")
-            except Exception as e:
-                logger.error(f"Error deleting timed out buttons message {self.buttons_msg.id}: {e}")
-
-        # Optionally, update the command message to indicate timeout
-        if self.command_msg:
-            try:
-                await self.command_msg.edit(content="Ця взаємодія вичерпала час очікування.", view=None)
-                logger.debug(f"Updated command message {self.command_msg.id} with timeout message.")
-            except Exception as e:
-                logger.error(f"Error updating command message {self.command_msg.id} on timeout: {e}")
-
-
 def create_day_off_view(
     bot_instance,
     cmd_or_step: str,
@@ -462,11 +477,12 @@ def create_day_off_view(
     has_survey: bool = False,
     continue_survey_func=None,
     survey=None,
-    session_id: Optional[str] = None, # Added session_id
-    command_msg: Optional[discord.Message] = None, # Added command_msg
-    buttons_msg: Optional[discord.Message] = None # Added buttons_msg
+    session_id: Optional[str] = None,
+    command_msg: Optional[discord.Message] = None,
+    buttons_msg: Optional[discord.Message] = None
 ):
     """Creates a DayOffView_survey with buttons for each day of the week."""
+    logger.info(f"[Channel {survey.session_id.split('_')[0] if survey and survey.session_id else 'N/A'}] - create_day_off_view called with cmd: {cmd_or_step}, user_id: {user_id}, has_survey: {has_survey}")
     view = DayOffView_survey(
         bot_instance,
         cmd_or_step,
@@ -474,27 +490,23 @@ def create_day_off_view(
         has_survey,
         continue_survey_func,
         survey,
-        session_id # Pass session_id
+        session_id
     )
-    view.command_msg = command_msg # Set command_msg
-    view.buttons_msg = buttons_msg # Set buttons_msg
+    logger.debug(f"[Channel {view.session_id.split('_')[0]}] - DayOffView_survey instantiated successfully")
+    view.command_msg = command_msg
+    view.buttons_msg = buttons_msg
 
-    # Get the current date in Kyiv time
     current_date = datetime.datetime.now(constants.KYIV_TIMEZONE)
-    current_weekday = current_date.weekday() # Monday is 0, Sunday is 6
+    current_weekday = current_date.weekday()
 
-    # Determine the start date for the view
     if "day_off_nextweek" in cmd_or_step:
-        # Start from the next Monday
         days_until_next_monday = (7 - current_weekday) % 7
-        if days_until_next_monday == 0: # If today is Monday, next Monday is in 7 days
+        if days_until_next_monday == 0:
              days_until_next_monday = 7
         start_date = current_date + datetime.timedelta(days=days_until_next_monday)
-    else: # Assuming "day_off_thisweek" or similar
-        # Start from today
+    else:
         start_date = current_date
 
-    # Create buttons for the next 7 days starting from start_date
     for i in range(7):
         date_to_show = start_date + datetime.timedelta(days=i)
         day_name = constants.WEEKDAY_OPTIONS[date_to_show.weekday()].label
@@ -505,8 +517,10 @@ def create_day_off_view(
         )
         view.add_item(button)
 
-    # Add Confirm and Decline buttons
-    view.add_item(ConfirmButton_survey())
-    view.add_item(DeclineButton_survey())
+    # Only add Confirm and Decline buttons if cmd_or_step is NOT 'day_off_nextweek'
+    if "day_off_nextweek" not in cmd_or_step:
+        view.add_item(ConfirmButton_survey())
+        view.add_item(DeclineButton_survey())
 
+    logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Returning day off view")
     return view
