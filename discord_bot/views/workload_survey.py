@@ -102,14 +102,6 @@ class WorkloadButton_survey(discord.ui.Button):
 
         logger.info(f"Processing workload selection for channel {{view.session_id.split('_')[0]}}")
 
-
-        try:
-            # Ensure we have a valid view
-            if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView_survey):
-                return
-
-            view = self.view # Get the parent view
-
         try:
             # Ensure we have a valid view
             if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView_survey):
