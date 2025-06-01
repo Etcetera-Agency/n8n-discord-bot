@@ -36,7 +36,7 @@ class ViewType(Enum):
 
 # View configurations
 VIEW_CONFIGS: Dict[ViewType, Dict[str, Any]] = {
-    ViewType.DYNAMIC: {"timeout": 140, "has_survey": True} #Notice: Should be not more than 15 minutes or 900 seconds
+    ViewType.DYNAMIC: {"timeout": 300, "has_survey": True} #Notice: Should be not more than 15 minutes or 900 seconds
 }
 
 # Timezone constants
