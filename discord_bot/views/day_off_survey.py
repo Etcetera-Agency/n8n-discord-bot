@@ -7,7 +7,12 @@ import asyncio
 
 class DayOffView_survey(discord.ui.View):
     def __init__(self, bot_instance, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None, survey=None, session_id: Optional[str] = None):
-        self.session_id = session_id if session_id is not None else "" # Ensure session_id is always a string
+        # Prioritize survey's session_id if available
+        self.session_id = ""
+        if session_id:
+            self.session_id = session_id
+        elif survey and survey.session_id:
+            self.session_id = survey.session_id
         logger.debug(f"[Channel {self.session_id.split('_')[0]}] - DayOffView_survey.__init__ called for cmd_or_step: {cmd_or_step}, has_survey: {has_survey}")
         super().__init__(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"])
         logger.debug(f"[Channel {self.session_id.split('_')[0]}] - DayOffView_survey initialized with timeout: {self.timeout}")
@@ -44,7 +49,20 @@ class DayOffView_survey(discord.ui.View):
 
     async def on_timeout(self):
         logger.warning(f"DayOffView_survey timed out for session {self.session_id}")
-        # Call handle_survey_incomplete on timeout
+        # Clean up view first
+        if self.buttons_msg:
+            try:
+                await self.buttons_msg.delete()
+                logger.info(f"[Channel {self.session_id.split('_')[0]}] - Deleted buttons message {self.buttons_msg.id} on timeout.")
+            except discord.NotFound:
+                logger.warning(f"[Channel {self.session_id.split('_')[0]}] - Buttons message {self.buttons_msg.id} already deleted on timeout.")
+            except Exception as e:
+                logger.error(f"[Channel {self.session_id.split('_')[0]}] - Error deleting buttons message on timeout: {e}")
+            finally:
+                self.buttons_msg = None
+                self.stop()
+
+        # Then handle survey timeout
         if self.has_survey and self.bot_instance and self.session_id:
             # Check if the survey still exists before calling handle_survey_incomplete
             active_survey = survey_manager.get_survey_by_session(self.session_id)
@@ -483,6 +501,8 @@ def create_day_off_view(
 ):
     """Creates a DayOffView_survey with buttons for each day of the week."""
     logger.info(f"[Channel {survey.session_id.split('_')[0] if survey and survey.session_id else 'N/A'}] - create_day_off_view called with cmd: {cmd_or_step}, user_id: {user_id}, has_survey: {has_survey}")
+    # Use survey's session_id if available
+    effective_session_id = session_id or (survey.session_id if survey else None)
     view = DayOffView_survey(
         bot_instance,
         cmd_or_step,
@@ -490,7 +510,7 @@ def create_day_off_view(
         has_survey,
         continue_survey_func,
         survey,
-        session_id
+        session_id=effective_session_id
     )
     logger.debug(f"[Channel {view.session_id.split('_')[0]}] - DayOffView_survey instantiated successfully")
     view.command_msg = command_msg

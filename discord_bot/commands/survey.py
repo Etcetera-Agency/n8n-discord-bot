@@ -107,9 +107,11 @@ async def handle_survey_incomplete(bot: commands.Bot, session_id: str) -> None: 
 
     # Notify user about timeout
     try:
+        logger.info(f"Sending timeout message to user {survey.user_id} in channel {survey.channel_id}")
         await channel.send(f"<@{survey.user_id}> {Strings.TIMEOUT_MESSAGE}")
+        logger.info(f"Successfully sent timeout message to user {survey.user_id}")
     except Exception as e:
-        logger.error(f"Failed to send timeout message: {e}")
+        logger.error(f"Failed to send timeout message to user {survey.user_id}: {e}")
 
     survey_manager.remove_survey(survey.channel_id) # Remove by channel_id
     logger.info(f"Survey for user {survey.session_id} (session {session_id}) timed out with incomplete steps: {incomplete}")

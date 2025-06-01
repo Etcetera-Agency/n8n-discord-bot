@@ -23,7 +23,20 @@ class WorkloadView_survey(discord.ui.View):
 
     async def on_timeout(self):
         logger.warning(f"WorkloadView_survey timed out for session {self.session_id}")
-        # Call handle_survey_incomplete on timeout
+        # Clean up view first
+        if self.buttons_msg:
+            try:
+                await self.buttons_msg.delete()
+                logger.info(f"[Channel {self.session_id.split('_')[0]}] - Deleted buttons message {self.buttons_msg.id} on timeout.")
+            except discord.NotFound:
+                logger.warning(f"[Channel {self.session_id.split('_')[0]}] - Buttons message {self.buttons_msg.id} already deleted on timeout.")
+            except Exception as e:
+                logger.error(f"[Channel {self.session_id.split('_')[0]}] - Error deleting buttons message on timeout: {e}")
+            finally:
+                self.buttons_msg = None
+                self.stop()
+
+        # Then handle survey timeout
         if self.has_survey and self.bot_instance and self.session_id:
             # Check if the survey still exists before calling handle_survey_incomplete
             active_survey = survey_manager.get_survey_by_session(self.session_id)
