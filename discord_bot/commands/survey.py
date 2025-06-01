@@ -470,8 +470,6 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
         
         view.add_item(button)
         survey.active_view = view  # Attach view to survey
-        # Keep a reference to prevent garbage collection
-        bot.add_view(view, message_id=survey.current_question_message_id)
 
         # Send the question message with the button
         logger.info(f"Attempting to send question for step {step_name} to channel ID={channel.id}, Name={channel.name} for user {user_id}") # Added log
