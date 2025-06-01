@@ -9,14 +9,14 @@ class SurveyFlow:
     Manages the state of a survey in progress.
     """
     def __init__(self, channel_id: str, steps: List[str], user_id: str, session_id: str):
+        # Existing properties
+        self.active_view: Optional[discord.ui.View] = None  # Add this
         """Initialize survey with required IDs:
         - channel_id: Discord channel ID where survey is running
         - steps: List of survey step names
         - user_id: Discord user ID participating in survey
         - session_id: Combined channel.user ID from initial request
-
-        Raises:
-        ValueError: If any required ID is missing or invalid"""
+        """
         logger.debug(f"[{user_id}] - SurveyFlow.__init__ called for user {user_id}, channel {channel_id}, session {session_id} with steps: {steps}") # Added log
         if not channel_id or not user_id or not session_id: # Validate required IDs
             logger.error(f"[{user_id}] - Missing required IDs during SurveyFlow initialization.") # Added log
@@ -189,13 +189,15 @@ class SurveyManager:
         return None
 
     def remove_survey(self, channel_id: str) -> None:
-        """ # Remove a survey for a channel.
-        Remove a survey for a channel.
+        """Remove a survey for a channel.
 
         Args:
             channel_id: The Discord channel ID
         """
-        if channel_id in self.surveys: # Use channel_id as key
+        survey = self.surveys.get(channel_id)
+        if survey:
+            if survey.active_view:
+                survey.active_view.stop()
             del self.surveys[channel_id]
             logger.info(f"Removed survey for channel {channel_id}") # Log survey removal
         else:

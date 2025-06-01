@@ -112,6 +112,12 @@ async def handle_survey_incomplete(bot: commands.Bot, session_id: str) -> None: 
         result={"incompleteSteps": incomplete}
     )
 
+    # Notify user about timeout
+    try:
+        await channel.send(f"<@{survey.user_id}> {Strings.TIMEOUT_MESSAGE}")
+    except Exception as e:
+        logger.error(f"Failed to send timeout message: {e}")
+
     survey_manager.remove_survey(survey.channel_id) # Remove by channel_id
     logger.info(f"Survey for user {survey.session_id} (session {session_id}) timed out with incomplete steps: {incomplete}")
 
@@ -128,6 +134,8 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
         if str(existing_survey.channel_id) == str(channel_id) and str(existing_survey.user_id) == str(user_id): # Also check user_id for session uniqueness
             logger.info(f"Resuming existing survey for user {user_id} in channel {channel_id}")
             step = existing_survey.current_step()
+            if existing_survey.active_view:
+                existing_survey.active_view.stop()
             if step:
                 channel = await bot.fetch_channel(int(existing_survey.channel_id))
                 if channel:
@@ -452,8 +460,10 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
 
         # Assign callback and create view
         button.callback = button_callback
+        button.callback = button_callback
         view = discord.ui.View(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"]) # Use timeout from constants
         view.add_item(button)
+        survey.active_view = view  # Attach view to survey
 
         # Send the question message with the button
         logger.info(f"Attempting to send question for step {step_name} to channel ID={channel.id}, Name={channel.name} for user {user_id}") # Added log
@@ -475,7 +485,6 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                 await continue_survey(bot, channel, survey) # Pass bot instance
             except Exception as e2:
                 logger.error(f"Error continuing survey after step failure: {e2}")
-
 async def continue_survey(bot: commands.Bot, channel: discord.TextChannel, survey: SurveyFlow) -> None: # Added bot parameter, Type hint updated
     """Continues the survey to the next step or finishes it."""
     logger.info(f"[{survey.session_id}] - Entering continue_survey. is_done(): {survey.is_done()}, Current index: {survey.current_index}, Total steps: {len(survey.steps)}") # Added log
