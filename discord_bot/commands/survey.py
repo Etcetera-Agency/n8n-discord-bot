@@ -105,13 +105,6 @@ async def handle_survey_incomplete(bot: commands.Bot, session_id: str) -> None: 
         logger.error(f"Missing required IDs for incomplete survey - user: {survey.session_id}, channel: {survey.channel_id}")
         return
 
-    await webhook_service.send_webhook(
-        channel,
-        command="survey",
-        status="incomplete",
-        result={"incompleteSteps": incomplete}
-    )
-
     # Notify user about timeout
     try:
         await channel.send(f"<@{survey.user_id}> {Strings.TIMEOUT_MESSAGE}")
@@ -465,8 +458,13 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
         
         # Add timeout handler to clean up and notify user
         async def on_timeout():
-            logger.info(f"Survey step {step_name} timed out for user {channel.id} {channel.name}")
-            await handle_survey_incomplete(bot, survey.session_id)
+            logger.info(f"Survey step {step_name} timed out for user {user_id}")
+            # Get the latest survey state from the manager
+            current_survey = survey_manager.get_survey(survey.channel_id)
+            if current_survey:
+                await handle_survey_incomplete(bot, current_survey.session_id)
+            else:
+                logger.error(f"Survey not found for channel {survey.channel_id} during timeout")
             
         view.on_timeout = on_timeout
         
