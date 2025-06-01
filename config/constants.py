@@ -33,12 +33,10 @@ WEEKDAY_MAP = {
 class ViewType(Enum):
     """Enum for different view types."""
     DYNAMIC = auto()
-    SLASH = auto()
 
 # View configurations
 VIEW_CONFIGS: Dict[ViewType, Dict[str, Any]] = {
-    ViewType.DYNAMIC: {"timeout": 900, "has_survey": True},
-    ViewType.SLASH: {"timeout": None, "has_survey": False}
+    ViewType.DYNAMIC: {"timeout": 840, "has_survey": True} #Notice: Should be not more than 15 minutes or 900 seconds
 }
 
 # Timezone constants
