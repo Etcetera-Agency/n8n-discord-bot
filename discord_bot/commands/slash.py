@@ -78,7 +78,7 @@ class SlashCommands:
                 await message.add_reaction(Strings.ERROR)
             return Strings.UNEXPECTED_ERROR
     
-    async def create_interactive_command(self, interaction: discord.Interaction, view_type: str, command_name: str):
+    async def create_interactive_command(self, interaction: discord.Interaction, command_name: str):
         """
         Create an interactive command with view.
         
