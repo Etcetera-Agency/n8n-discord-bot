@@ -15,7 +15,21 @@ class WorkloadView_slash(discord.ui.View):
         self.buttons_msg: Optional[discord.Message] = None  # Reference to the buttons message
         
     async def on_timeout(self):
+        from config import Strings  # Import locally to avoid circular imports
         logger.warning(f"WorkloadView_slash timed out for user {self.user_id}")
+        
+        # Update original command message with timeout notification
+        if self.command_msg:
+            try:
+                # Get first 13 characters of timeout message
+                timeout_msg = Strings.TIMEOUT_MESSAGE[:13]
+                await self.command_msg.edit(
+                    content=f"{self.command_msg.content}\n{timeout_msg}"
+                )
+            except Exception as e:
+                logger.error(f"Failed to update command message on timeout: {e}")
+        
+        # Clean up buttons message
         if self.buttons_msg:
             try:
                 await self.buttons_msg.delete()

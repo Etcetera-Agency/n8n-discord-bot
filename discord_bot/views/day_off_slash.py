@@ -301,14 +301,28 @@ class DayOffView_slash(discord.ui.View):
         target_date = current_date + datetime.timedelta(days=days_ahead)
         return target_date
     
-        async def on_timeout(self):
-            logger.warning(f"DayOffView_slash timed out for user {self.user_id}")
-            if self.buttons_msg:
-                try:
-                    await self.buttons_msg.delete()
-                except:
-                    pass # Ignore if already deleted
-            self.stop() # Stop the view since it timed out
+    async def on_timeout(self):
+        logger.warning(f"DayOffView_slash timed out for user {self.user_id}")
+        
+        # Update original command message with timeout notification
+        if self.command_msg:
+            try:
+                # Get first 13 characters of timeout message
+                from config import Strings
+                timeout_msg = Strings.TIMEOUT_MESSAGE[:13]
+                await self.command_msg.edit(
+                    content=f"{self.command_msg.content}\n{timeout_msg}"
+                )
+            except Exception as e:
+                logger.error(f"Failed to update command message on timeout: {e}")
+        
+        # Clean up buttons message
+        if self.buttons_msg:
+            try:
+                await self.buttons_msg.delete()
+            except:
+                pass # Ignore if already deleted
+        self.stop() # Stop the view since it timed out
 
 def create_day_off_view(
     cmd_or_step: str,
