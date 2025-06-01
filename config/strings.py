@@ -55,3 +55,4 @@ class Strings:
     SURVEY_INPUT_BUTTON_LABEL = "Ввести"
     SURVEY_COMPLETE_MESSAGE = "Всі данні внесені. Дякую!"
     MENTION_MESSAGE = " <@&734125039955476501> зверніть увагу!"
+    TIMEOUT_MESSAGE = "⏰ Час вийшов! Будь ласка, натисніть на кнопку Гайда, щоб повторити спробу."
