@@ -2,15 +2,13 @@
 from .workload_slash import WorkloadView_slash, WorkloadButton_slash # Import from slash-specific workload
 from .day_off_slash import DayOffView_slash, DayOffButton_slash # Import from slash-specific day_off
 from .factory import create_view
-from .connects_survey import ConnectsModal
- 
+
 __all__ = [
     'WorkloadView_slash',
     'WorkloadButton_slash',
     'DayOffView_slash',
     'DayOffButton_slash',
-    'create_view',
-    'ConnectsModal'
+    'create_view'
 ]
 
 DEPRECATION_NOTICE = """
