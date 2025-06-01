@@ -62,16 +62,17 @@ class DayOffView_survey(discord.ui.View):
                 self.buttons_msg = None
                 self.stop()
 
-        # Then handle survey timeout
+        # Skip survey timeout handling if survey was already removed
+        # This prevents duplicate cleanup and timeout messages
+        if not survey_manager.get_survey_by_session(self.session_id):
+            logger.info(f"[Channel {self.session_id.split('_')[0]}] - Survey already removed, skipping timeout handling")
+            return
+
+        # Handle survey timeout
         if self.has_survey and self.bot_instance and self.session_id:
-            # Check if the survey still exists before calling handle_survey_incomplete
-            active_survey = survey_manager.get_survey_by_session(self.session_id)
-            if active_survey:
-                logger.info(f"[Channel {self.session_id.split('_')[0]}] - Calling handle_survey_incomplete on timeout for session {self.session_id}")
-                from discord_bot.commands.survey import handle_survey_incomplete # Import locally to avoid circular dependency
-                await handle_survey_incomplete(self.bot_instance, self.session_id)
-            else:
-                logger.warning(f"[Channel {self.session_id.split('_')[0]}] - Survey session {self.session_id} not found in manager. Skipping handle_survey_incomplete.")
+            logger.info(f"[Channel {self.session_id.split('_')[0]}] - Calling handle_survey_incomplete on timeout for session {self.session_id}")
+            from discord_bot.commands.survey import handle_survey_incomplete # Import locally to avoid circular dependency
+            await handle_survey_incomplete(self.bot_instance, self.session_id)
         else:
             logger.warning(f"[Channel {self.session_id.split('_')[0] if self.session_id else 'N/A'}] - Cannot call handle_survey_incomplete on timeout. has_survey: {self.has_survey}, bot_instance: {bool(self.bot_instance)}, session_id: {self.session_id}")
 
