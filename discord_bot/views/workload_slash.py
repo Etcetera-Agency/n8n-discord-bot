@@ -6,7 +6,7 @@ from services import webhook_service
 class WorkloadView_slash(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
     def __init__(self, cmd_or_step: str, user_id: str): # Removed has_survey parameter
-        logger.debug(f"[{user_id}] - WorkloadView_slash.__init__ called for cmd_or_step: {cmd_or_step}") # Removed has_survey from log
+        logger.debug(f"[Channel {channel_id}] - WorkloadView_slash.__init__ called for cmd_or_step: {cmd_or_step}")
         super().__init__(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"])  # Use configured timeout
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
@@ -16,7 +16,8 @@ class WorkloadView_slash(discord.ui.View):
         
     async def on_timeout(self):
         from config import Strings  # Import locally to avoid circular imports
-        logger.warning(f"WorkloadView_slash timed out for user {self.user_id}")
+        channel_id = self.command_msg.channel.id if self.command_msg else "unknown"
+        logger.warning(f"[Channel {channel_id}] WorkloadView_slash timed out for user {self.user_id}")
         
         # Update original command message with timeout notification
         if self.command_msg:
@@ -47,12 +48,12 @@ class WorkloadButton_slash(discord.ui.Button):
         self.cmd_or_step = cmd_or_step
 
     async def callback(self, interaction: discord.Interaction):
-        logger.debug(f"WorkloadButton_slash.callback entered. Interaction ID: {interaction.id}, Custom ID: {self.custom_id}")
-        logger.debug(f"Button callback for step: {self.cmd_or_step}, interaction.response.is_done(): {interaction.response.is_done()}")
+        logger.debug(f"[Channel {interaction.channel.id}] WorkloadButton_slash.callback entered. Interaction ID: {interaction.id}, Custom ID: {self.custom_id}")
+        logger.debug(f"[Channel {interaction.channel.id}] Button callback for step: {self.cmd_or_step}, interaction.response.is_done(): {interaction.response.is_done()}")
         from config import Strings
 
         """Handle button press with complete validation"""
-        logger.info(f"WorkloadButton_slash callback started - interaction: {interaction.id}, user: {getattr(interaction, 'user', None)}, bot: {getattr(interaction.client, 'user', None)}")
+        logger.info(f"[Channel {interaction.channel.id}] WorkloadButton_slash callback started - interaction: {interaction.id}, user: {getattr(interaction, 'user', None)}, bot: {getattr(interaction.client, 'user', None)}")
 
         if not interaction:
             logger.error("Null interaction received in callback")
@@ -88,17 +89,17 @@ class WorkloadButton_slash(discord.ui.Button):
             logger.error(f"Error in WorkloadButton_slash callback: {str(e)}")
             return
 
-        logger.info(f"Processing workload selection for channel {getattr(interaction.channel, 'id', 'N/A')}")
+        logger.info(f"[Channel {getattr(interaction.channel, 'id', 'N/A')}] Processing workload selection")
 
         try:
             if not hasattr(self, 'view') or not isinstance(self.view, WorkloadView_slash):
                 return
 
             view = self.view
-            logger.info(f"Processing WorkloadView_slash callback - view user: {view.user_id}, interaction user: {interaction.user.id}")
+            logger.info(f"[Channel {interaction.channel.id}] Processing WorkloadView_slash callback - view user: {view.user_id}, interaction user: {interaction.user.id}")
 
             if isinstance(view, WorkloadView_slash):
-                logger.info(f"Workload button clicked: {self.label} by user {view.user_id} for step {view.cmd_or_step}")
+                logger.info(f"[Channel {interaction.channel.id}] Workload button clicked: {self.label} by user {view.user_id} for step {view.cmd_or_step}")
                 if view.command_msg:
                     try:
                         logger.debug(f"[Channel {getattr(interaction.channel, 'id', 'N/A')}] - Attempting to add processing reaction to command message {view.command_msg.id}")
@@ -113,7 +114,7 @@ class WorkloadButton_slash(discord.ui.Button):
                         logger.error("Missing interaction data for Нічого немає button")
                         return
                     value = 0
-                    logger.debug(f"Нічого немає selected in channel {interaction.channel.id}")
+                    logger.debug(f"[Channel {interaction.channel.id}] Нічого немає selected")
                 else:
                     value = int(self.label)
                 logger.debug(f"Parsed value: {value} from label: {self.label}")
@@ -142,21 +143,21 @@ class WorkloadButton_slash(discord.ui.Button):
             else:
                 logger.warning(f"[Channel {getattr(interaction.channel, 'id', 'N/A')}] - view.buttons_msg is None or False, cannot delete.")
 
-            logger.info(f"[{view.user_id}] - Processing as regular command: {view.cmd_or_step}")
+            logger.info(f"[Channel {interaction.channel.id}] [{view.user_id}] - Processing as regular command: {view.cmd_or_step}")
             webhook_payload = {
                 "command": view.cmd_or_step,
                 "status": "ok",
                 "result": {"workload": value}
             }
-            logger.debug(f"[{view.user_id}] - Preparing to send webhook for regular command. Payload: {webhook_payload}")
-            logger.debug(f"[{view.user_id}] - Attempting to send webhook for command: {view.cmd_or_step}")
+            logger.debug(f"[Channel {interaction.channel.id}] [{view.user_id}] - Preparing to send webhook for regular command. Payload: {webhook_payload}")
+            logger.debug(f"[Channel {interaction.channel.id}] [{view.user_id}] - Attempting to send webhook for command: {view.cmd_or_step}")
             success, data = await webhook_service.send_webhook(
                 interaction,
                 command=webhook_payload["command"],
                 status=webhook_payload["status"],
                 result=webhook_payload["result"]
             )
-            logger.info(f"[{view.user_id}] - Webhook response for command: success={success}, data={data}")
+            logger.info(f"[Channel {interaction.channel.id}] [{view.user_id}] - Webhook response for command: success={success}, data={data}")
 
             if success and data and "output" in data:
                 if view.command_msg:
@@ -164,7 +165,7 @@ class WorkloadButton_slash(discord.ui.Button):
                         await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                         output_content = data.get("output", f"Дякую! Робоче навантаження {value} годин записано.") if data else f"Дякую! Робоче навантаження {value} годин записано."
                         await view.command_msg.edit(content=output_content, view=None, attachments=[])
-                        logger.info(f"[{view.user_id}] - Updated command message with success: {output_content}")
+                        logger.info(f"[Channel {interaction.channel.id}] [{view.user_id}] - Updated command message with success: {output_content}")
                     except Exception as edit_error:
                         logger.error(f"[{view.user_id}] - Error editing command message with success output: {edit_error}", exc_info=True)
             else:
@@ -179,7 +180,7 @@ class WorkloadButton_slash(discord.ui.Button):
                     await view.command_msg.add_reaction(Strings.ERROR)
         except Exception as e:
             session_id_for_log = getattr(view, 'session_id', 'N/A').split('_')[0] if view and hasattr(view, 'session_id') else 'N/A'
-            logger.error(f"[Channel {session_id_for_log}] - Error in workload button callback: {e}", exc_info=True)
+            logger.error(f"[Channel {interaction.channel.id}] [Session {session_id_for_log}] - Error in workload button callback: {e}", exc_info=True)
             if view and view.command_msg:
                 await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                 value = 0 if self.label == "Нічого немає" else self.label
@@ -189,20 +190,20 @@ class WorkloadButton_slash(discord.ui.Button):
                 )
                 await view.command_msg.edit(content=error_msg)
                 await view.command_msg.add_reaction(Strings.ERROR)
-            logger.error(f"[Channel {session_id_for_log}] - Failed to send error response in workload callback: {e}")
+            logger.error(f"[Channel {interaction.channel.id}] [Session {session_id_for_log}] - Failed to send error response in workload callback: {e}")
         finally:
             if view and view.buttons_msg:
                 try:
                     await view.buttons_msg.delete()
                     session_id_for_log = getattr(view, 'session_id', 'N/A').split('_')[0] if view and hasattr(view, 'session_id') else 'N/A'
-                    logger.info(f"[Channel {session_id_for_log}] - Successfully deleted buttons message in finally block.")
+                    logger.info(f"[Channel {interaction.channel.id}] [Session {session_id_for_log}] - Successfully deleted buttons message in finally block.")
                     view.stop()
                 except discord.NotFound:
                     session_id_for_log = getattr(view, 'session_id', 'N/A').split('_')[0] if view and hasattr(view, 'session_id') else 'N/A'
-                    logger.warning(f"[Channel {session_id_for_log}] - Buttons message already deleted or not found in finally block.")
+                    logger.warning(f"[Channel {interaction.channel.id}] [Session {session_id_for_log}] - Buttons message already deleted or not found in finally block.")
                 except Exception as e:
                     session_id_for_log = getattr(view, 'session_id', 'N/A').split('_')[0] if view and hasattr(view, 'session_id') else 'N/A'
-                    logger.error(f"[Channel {session_id_for_log}] - Error deleting buttons message in finally block: {e}", exc_info=True)
+                    logger.error(f"[Channel {interaction.channel.id}] [Session {session_id_for_log}] - Error deleting buttons message in finally block: {e}", exc_info=True)
 
 def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None, has_survey: bool = False, continue_survey_func=None) -> WorkloadView_slash:
     """Create workload view for regular commands only"""

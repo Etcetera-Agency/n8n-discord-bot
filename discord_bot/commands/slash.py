@@ -92,10 +92,11 @@ class SlashCommands:
             
         command_msg = await interaction.original_response()
         view = create_view(
-            "survey",  # Force survey view type
+            self.bot,
+            "survey",
             command_name,
             str(interaction.user.id),
-            view_type=ViewType.DYNAMIC
+            survey=None
         )
         view.command_msg = command_msg
         
@@ -119,7 +120,7 @@ class SlashCommands:
             Args:
                 interaction: Discord interaction
             """
-            logger.info(f"Day off thisweek command from {interaction.user}")
+            logger.info(f"[Channel {interaction.channel.id}] Day off thisweek command from {interaction.user}")
             
             # First send the command usage message and store it
             if not interaction.response.is_done():
@@ -143,7 +144,7 @@ class SlashCommands:
             Args:
                 interaction: Discord interaction
             """
-            logger.debug(f"Day off nextweek command received from {interaction.user}")
+            logger.debug(f"[Channel {interaction.channel.id}] Day off nextweek command received from {interaction.user}")
             
             try:
                 # First send the command usage message and store it
@@ -153,7 +154,7 @@ class SlashCommands:
                 command_msg = await interaction.original_response()
                 
                 # Then send the buttons in a separate message
-                logger.debug("Creating day off view")
+                logger.debug(f"[Channel {interaction.channel.id}] Creating day off view for command: day_off_nextweek")
                 view = create_view(self.bot, "day_off", "day_off_nextweek", str(interaction.user.id), survey=None) # Pass bot_instance and survey=None
                 view.command_msg = command_msg  # Store reference to command message
                 
@@ -195,7 +196,7 @@ class SlashCommands:
                 end_day: End day
                 end_month: End month
             """
-            logger.info(f"Vacation command from {interaction.user}: {start_day}/{start_month} - {end_day}/{end_month}")
+            logger.info(f"[Channel {interaction.channel.id}] Vacation command from {interaction.user}: {start_day}/{start_month} - {end_day}/{end_month}")
             
             # Validate inputs
             if not (1 <= start_day <= 31) or not (1 <= end_day <= 31):
@@ -266,11 +267,8 @@ class SlashCommands:
                         else:
                             await interaction.followup.send(output_content, allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
                 else:
-                    error_msg = Strings.VACATION_ERROR.format(
-                        start_day=start_day,
-                        start_month=start_month,
-                        end_day=end_day,
-                        end_month=end_month,
+                    error_msg = Strings.DAYOFF_ERROR.format(
+                        days=f"{start_day}/{start_month} - {end_day}/{end_month}",
                         error=Strings.GENERAL_ERROR
                     )
                     if message:
@@ -283,11 +281,8 @@ class SlashCommands:
                 logger.error(f"Error in vacation command: {e}")
                 if message:
                     await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                    error_msg = Strings.VACATION_ERROR.format(
-                        start_day=start_day,
-                        start_month=start_month,
-                        end_day=end_day,
-                        end_month=end_month,
+                    error_msg = Strings.DAYOFF_ERROR.format(
+                        days=f"{start_day}/{start_month} - {end_day}/{end_month}",
                         error=Strings.UNEXPECTED_ERROR
                     )
                     await message.edit(content=error_msg, allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
@@ -323,7 +318,7 @@ class SlashCommands:
             Args:
                 interaction: Discord interaction
             """
-            logger.info(f"Workload today command from {interaction.user}")
+            logger.info(f"[Channel {interaction.channel.id}] Workload today command from {interaction.user}")
             logger.debug(f"[{interaction.user}] - slash_workload_today called")
             
             # First send the command usage message and store it
@@ -332,7 +327,7 @@ class SlashCommands:
             command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
-            logger.debug(f"[{interaction.user}] - Calling create_view for workload_today")
+            logger.debug(f"[Channel {interaction.channel.id}] [{interaction.user}] - Calling create_view for workload_today")
             view = create_view(self.bot, "workload", "workload_today", str(interaction.user.id), survey=None) # Pass bot_instance and survey=None
             view.command_msg = command_msg  # Store reference to command message
             logger.debug(f"[{interaction.user}] - Workload view items before sending: {len(view.children)}") # Add this log
@@ -353,7 +348,7 @@ class SlashCommands:
             Args:
                 interaction: Discord interaction
             """
-            logger.info(f"Workload nextweek command from {interaction.user}")
+            logger.info(f"[Channel {interaction.channel.id}] Workload nextweek command from {interaction.user}")
             logger.debug(f"[{interaction.user}] - slash_workload_nextweek called")
             
             # First send the command usage message and store it
@@ -362,7 +357,7 @@ class SlashCommands:
             command_msg = await interaction.original_response()
             
             # Then send the buttons in a separate message
-            logger.debug(f"[{interaction.user}] - Calling create_view for workload_nextweek")
+            logger.debug(f"[Channel {interaction.channel.id}] [{interaction.user}] - Calling create_view for workload_nextweek")
             view = create_view(self.bot, "workload", "workload_nextweek", str(interaction.user.id), survey=None) # Pass bot_instance and survey=None
             view.command_msg = command_msg  # Store reference to command message
             buttons_msg = await interaction.channel.send(
@@ -384,7 +379,7 @@ class SlashCommands:
                 connects: Number of connects
             """
             from config import Strings # Import Strings locally
-            logger.info(f"[DEBUG] Connects command from {interaction.user}: {connects}")
+            logger.info(f"[Channel {interaction.channel.id}] [DEBUG] Connects command from {interaction.user}: {connects}")
             
             # First, acknowledge the interaction to prevent timeout
             if not interaction.response.is_done():
@@ -398,7 +393,7 @@ class SlashCommands:
             
             try:
                 # Send webhook
-                logger.debug(f"[{interaction.user}] - Attempting to send webhook for connects command")
+                logger.debug(f"[Channel {interaction.channel.id}] [{interaction.user}] - Attempting to send webhook for connects command")
                 success, data = await webhook_service.send_webhook(
                     interaction,
                     command="connects_thisweek",
