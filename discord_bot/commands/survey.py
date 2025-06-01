@@ -462,6 +462,14 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
         button.callback = button_callback
         button.callback = button_callback
         view = discord.ui.View(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"]) # Use timeout from constants
+        
+        # Add timeout handler to clean up and notify user
+        async def on_timeout():
+            logger.info(f"Survey step {step_name} timed out for user {channel.id} {channel.name}")
+            await handle_survey_incomplete(bot, survey.session_id)
+            
+        view.on_timeout = on_timeout
+        
         view.add_item(button)
         survey.active_view = view  # Attach view to survey
 
