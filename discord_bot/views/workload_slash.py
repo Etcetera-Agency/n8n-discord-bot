@@ -5,11 +5,10 @@ from services import webhook_service
 
 class WorkloadView_slash(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
-    def __init__(self, cmd_or_step: str, user_id: str, channel_id: str): # Added channel_id parameter
+    def __init__(self, cmd_or_step: str, user_id: str): # Added channel_id parameter
         super().__init__(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"])  # Use configured timeout
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
-        self.channel_id = channel_id
         # Removed self.has_survey = has_survey
         self.command_msg: Optional[discord.Message] = None  # Reference to the command message
         self.buttons_msg: Optional[discord.Message] = None  # Reference to the buttons message
