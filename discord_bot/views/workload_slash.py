@@ -5,13 +5,12 @@ from services import webhook_service
 
 class WorkloadView_slash(discord.ui.View):
     """View for workload selection - only used for non-survey commands"""
-    def __init__(self, cmd_or_step: str, user_id: str): # Removed has_survey parameter
-        channel_id = self.command_msg.channel.id if self.command_msg else "unknown"        
-        logger.debug(f"[Channel {channel_id}] - WorkloadView_slash.__init__ called for cmd_or_step: {cmd_or_step}")        
-        logger.debug(f"WorkloadView_slash.__init__ called for cmd_or_step: {cmd_or_step}")
+    def __init__(self, cmd_or_step: str, user_id: str, channel_id: str): # Added channel_id parameter
+        logger.debug(f"[Channel {channel_id}] - WorkloadView_slash.__init__ called for cmd_or_step: {cmd_or_step}")
         super().__init__(timeout=constants.VIEW_CONFIGS[constants.ViewType.DYNAMIC]["timeout"])  # Use configured timeout
         self.cmd_or_step = cmd_or_step
         self.user_id = user_id
+        self.channel_id = channel_id
         # Removed self.has_survey = has_survey
         self.command_msg: Optional[discord.Message] = None  # Reference to the command message
         self.buttons_msg: Optional[discord.Message] = None  # Reference to the buttons message
@@ -207,12 +206,12 @@ class WorkloadButton_slash(discord.ui.Button):
                     session_id_for_log = getattr(view, 'session_id', 'N/A').split('_')[0] if view and hasattr(view, 'session_id') else 'N/A'
                     logger.error(f"[Channel {interaction.channel.id}] [Session {session_id_for_log}] - Error deleting buttons message in finally block: {e}", exc_info=True)
 
-def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None, has_survey: bool = False, continue_survey_func=None) -> WorkloadView_slash:
+def create_workload_view(cmd: str, user_id: str, channel_id: str, timeout: Optional[float] = None, has_survey: bool = False, continue_survey_func=None) -> WorkloadView_slash:
     """Create workload view for regular commands only"""
-    logger.debug(f"[{user_id}] - create_workload_view function entered with cmd: {cmd}, has_survey: {has_survey}")
+    logger.debug(f"[{user_id}] - create_workload_view function entered with cmd: {cmd}, has_survey: {has_survey}, channel_id: {channel_id}")
     try:
-        view = WorkloadView_slash(cmd, user_id)
-        logger.debug(f"[{user_id}] - WorkloadView_slash instantiated successfully for cmd: {cmd}")
+        view = WorkloadView_slash(cmd, user_id, channel_id)
+        logger.debug(f"[{user_id}] - WorkloadView_slash instantiated successfully for cmd: {cmd} in channel: {channel_id}")
     except Exception as e:
         logger.error(f"[{user_id}] - Error instantiating WorkloadView_slash for cmd {cmd}: {e}", exc_info=True)
         raise
