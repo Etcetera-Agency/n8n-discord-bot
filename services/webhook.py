@@ -438,7 +438,7 @@ class WebhookService:
                     self.url,
                     json=payload,
                     headers=headers,
-                    timeout=30
+                    timeout=70
                 ) as response:
                     response_text = await response.text() # Keep reading text first
                     logger.info(f"[{request_id}] Received response status: {response.status}") # Added log + request_id
