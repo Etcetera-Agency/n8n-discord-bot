@@ -292,7 +292,7 @@ class DayOffView_slash(discord.ui.View):
         else:
             # For this week
             days_ahead = day_number - current_weekday
-            if days_ahead <= 0 and "day_off_thisweek" in self.cmd_or_step:
+            if days_ahead < 0 and "day_off_thisweek" in self.cmd_or_step:
                 # If the day has passed this week and it's thisweek command,
                 # we shouldn't include it (this is a safety check)
                 return None
@@ -347,9 +347,7 @@ def create_day_off_view(
         "Вівторок",
         "Середа",
         "Четвер",
-        "П'ятниця",
-        "Субота",
-        "Неділя"
+        "П'ятниця"
     ]
     
     for day in days:
