@@ -257,9 +257,9 @@ class SlashCommands:
                     if message:
                         output_content = data["output"]
                         logger.debug(f"Output content before mention check: '{output_content}', Mention message: '{Strings.MENTION_MESSAGE}'")
-                        # Check if output is not empty and does not contain an error indicator
+                        # Check if output is not empty, does not contain an error indicator, and mention is not already present
                         if output_content and "Помилка" not in output_content and Strings.MENTION_MESSAGE not in output_content:
-                            pass # Mention message is already in output_content, no need to append
+                            output_content += Strings.MENTION_MESSAGE
  
                         if message:
                             await message.edit(content=output_content, allowed_mentions=AllowedMentions(roles=True, users=True, everyone=False))
