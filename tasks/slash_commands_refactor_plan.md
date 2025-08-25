@@ -1,157 +1,197 @@
-# Slash Commands Refactoring Plan
+# Slash Commands Refactor Plan
 
-## Current Architecture Analysis
+## Overview
+This document outlines the command routing and handler architecture for migrating Discord bot commands from n8n to Python.
 
-### Key Components:
-1. `SlashCommands` class in `discord_bot/commands/slash.py`
-2. View factory in `discord_bot/views/factory.py`
-3. Webhook service integration
+## Command Router Architecture
 
-### Pain Points:
-- Duplicate webhook handling logic
-- Inconsistent response patterns
-- Tight coupling between commands and views
-- Verbose error handling
-- Mixed logging approaches
-
-## Proposed Architecture
-
-```mermaid
-classDiagram
-    class BaseCommandHandler {
-        +bot: Bot
-        +handle_webhook()
-        +create_interactive_view()
-    }
+### Main Router (`services/webhook.py`)
+```python
+class CommandRouter:
+    def __init__(self):
+        self.handlers = {
+            'register': RegisterHandler(),
+            'unregister': UnregisterHandler(), 
+            'check_channel': CheckChannelHandler(),
+            'survey': SurveyHandler(),
+            'mention': MentionHandler(),
+            # Fallback handler
+            'default': DefaultHandler()
+        }
     
-    class DayOffHandler {
-        +handle_thisweek()
-        +handle_nextweek()
-    }
-    
-    class VacationHandler {
-        +handle_vacation()
-    }
-    
-    class WorkloadHandler {
-        +handle_today()
-        +handle_nextweek()
-    }
-    
-    class ViewFactory {
-        +create_view()
-    }
-    
-    class ResponseStrategy {
-        <<interface>>
-        +send()
-    }
-    
-    BaseCommandHandler <|-- DayOffHandler
-    BaseCommandHandler <|-- VacationHandler
-    BaseCommandHandler <|-- WorkloadHandler
-    BaseCommandHandler o-- ViewFactory
-    BaseCommandHandler o-- ResponseStrategy
+    def route(self, request: WebhookRequest) -> WebhookResponse:
+        command = self.extract_command(request)
+        handler = self.handlers.get(command, self.handlers['default'])
+        return handler.handle(request)
 ```
 
-## Safety Considerations
+## Command Extraction Logic
 
-1. **Isolation Guarantees**:
-   - Changes strictly limited to `discord_bot/commands/slash.py`
-   - No modifications to survey or prefix command files
-   - Preserved existing import structures
+### From n8n Switch Node Conditions:
+1. **check_channel**: `command.includes("check_channel")`
+2. **register**: `command.startsWith("register")`
+3. **unregister**: `command.startsWith("unregister")`
+4. **survey.end**: `command.includes("survey") && status.includes("end")`
+5. **mention**: `command == "mention"`
+6. **all good**: `!message.includes("register") && !message.includes("unregister")`
 
-2. **View Factory Protection**:
-   ```python
-   # Factory usage restrictions
-   SURVEY_VIEW_CLASSES = {
-       'workload_survey': WorkloadSurveyView,
-       'day_off_survey': DayOffSurveyView,
-       'connects_survey': ConnectsModal
-   }
-   
-   # Modified create_view with protection
-   def create_view(bot, view_name, cmd_or_step, user_id, **kwargs):
-       if kwargs.get('has_survey', False):  # Preserve survey paths
-           return original_create_view(bot, view_name, cmd_or_step, user_id, **kwargs)
-       # Slash command refactored logic below
-   ```
+### Python Implementation:
+```python
+def extract_command(self, request: WebhookRequest) -> str:
+    command = request.body.get('command', '')
+    status = request.body.get('status', '')
+    message = request.body.get('message', '')
+    
+    if 'check_channel' in command:
+        return 'check_channel'
+    elif command.startswith('register'):
+        return 'register'
+    elif command.startswith('unregister'):
+        return 'unregister'
+    elif 'survey' in command and 'end' in status:
+        return 'survey'
+    elif command == 'mention':
+        return 'mention'
+    elif 'register' not in message and 'unregister' not in message:
+        return 'survey'  # Default survey handling
+    else:
+        return 'default'
+```
 
-## File-Specific Implementation Details
-
-### day_off_slash.py Changes:
+## Handler Base Class
 
 ```python
-# Before:
-class DayOffButton_slash(discord.ui.Button):
-    async def callback(self, interaction: discord.Interaction):
-        # Complex individual error handling
-        # Manual webhook calls
-        # Direct message editing
+from abc import ABC, abstractmethod
 
-# After:
-class DayOffButton_slash(discord.ui.Button):
-    async def callback(self, interaction: discord.Interaction):
-        try:
-            # Standardized payload
-            payload = {
-                "days": self.view.selected_days,
-                "timezone": "Europe/Kyiv"
-            }
-            
-            # Use base handler
-            result = await self.view.handler.handle_webhook(
-                interaction,
-                command="day_off",
-                payload=payload
-            )
-            
-            # Standard response handling
-            await self.view.handler.process_result(result)
-            
-        except Exception as e:
-            await self.view.handler.handle_error(e)
+class BaseHandler(ABC):
+    @abstractmethod
+    def handle(self, request: WebhookRequest) -> WebhookResponse:
+        pass
+    
+    def validate_request(self, request: WebhookRequest) -> None:
+        """Common validation logic"""
+        if not request.body.get('channelId'):
+            raise ValueError("channelId is required")
+        if not request.body.get('userId'):
+            raise ValueError("userId is required")
 ```
 
-Key Changes:
-1. Webhook payload standardization
-2. Base handler integration
-3. Centralized error handling
-4. Response strategy pattern
-5. Timezone management in base class
+## Survey Sub-Router
 
-Migration Steps:
-1. Create DayOffHandler extending BaseCommandHandler
-2. Move date logic to handler
-3. Update button callbacks
-4. Add validation
-5. Update tests
+### Survey Step Routing:
+```python
+class SurveyHandler(BaseHandler):
+    def __init__(self):
+        self.step_handlers = {
+            'workload_today': WorkloadTodayHandler(),
+            'workload_nextweek': WorkloadNextweekHandler(),
+            'day_off_thisweek': DayOffThisweekHandler(),
+            'day_off_nextweek': DayOffNextweekHandler(),
+            'connects_thisweek': ConnectsThisweekHandler(),
+            'vacation': VacationHandler()
+        }
+    
+    def handle(self, request: WebhookRequest) -> WebhookResponse:
+        status = request.body.get('status')
+        
+        if status == 'end':
+            return self.handle_survey_end(request)
+        elif status == 'step':
+            return self.handle_survey_step(request)
+        elif status == 'incomplete':
+            return self.handle_survey_continue(request)
+        else:
+            return self.handle_survey_cancel(request)
+```
 
-### workload_slash.py Changes:
-- Consolidate time selection patterns
-- Standardize modal interactions
-- Unify state management
+## Handler Directory Structure
 
-## Implementation Steps
+```
+handlers/
+├── __init__.py
+├── base.py                 # BaseHandler abstract class
+├── router.py              # CommandRouter main class
+├── registration/
+│   ├── __init__.py
+│   ├── register.py        # RegisterHandler
+│   └── unregister.py      # UnregisterHandler
+├── survey/
+│   ├── __init__.py
+│   ├── survey.py          # SurveyHandler (meta-handler)
+│   ├── workload_today.py
+│   ├── workload_nextweek.py
+│   ├── day_off_thisweek.py
+│   ├── day_off_nextweek.py
+│   ├── connects_thisweek.py
+│   └── vacation.py
+├── utility/
+│   ├── __init__.py
+│   ├── check_channel.py   # CheckChannelHandler
+│   ├── mention.py         # MentionHandler
+│   └── default.py         # DefaultHandler
+```
 
-### Phase 1: Base Infrastructure (2 days)
-- Create BaseCommandHandler
-- Implement core utilities
-- Setup test framework
+## Response Normalization
 
-### Phase 2: Command Migration (3 days)
-- Migrate day_off commands
-- Migrate workload commands
-- Update factory integration
+### Webhook Response Schema:
+```python
+@dataclass
+class WebhookResponse:
+    status_code: int = 200
+    headers: Dict[str, str] = field(default_factory=dict)
+    body: Dict[str, Any] = field(default_factory=dict)
+    
+    def to_json(self) -> str:
+        return json.dumps(self.body, ensure_ascii=False)
+```
 
-### Phase 3: Validation (1 day)
-- Test all command flows
-- Verify survey isolation
-- Performance check
+### Response Format Rules:
+1. **Non-survey commands**: `{"output": "string"}`
+2. **Survey commands**: `{"output": "string", "survey": "continue|end|cancel"}`
+3. **Survey end**: `{"output": "string", "survey": "end", "url": "string"}`
+4. **Check channel**: `{"output": "string", "steps": ["string"]}`
 
-## Expected Benefits
-- 40% reduction in code duplication
-- Consistent error handling
-- Improved maintainability
-- Easier testing
-- Clearer architecture
+## Error Handling Strategy
+
+### Handler Error Wrapper:
+```python
+def safe_handle(self, request: WebhookRequest) -> WebhookResponse:
+    try:
+        return self.handle(request)
+    except ValidationError as e:
+        return WebhookResponse(
+            status_code=400,
+            body={"output": f"Validation error: {e}"}
+        )
+    except NotionAPIError as e:
+        return WebhookResponse(
+            status_code=500,
+            body={"output": "Спробуй трохи піздніше. Я тут пораюсь по хаті."}
+        )
+    except Exception as e:
+        logger.exception("Unexpected error in handler")
+        return WebhookResponse(
+            status_code=500,
+            body={"output": "Some error"}
+        )
+```
+
+## Implementation Tasks
+
+### Phase 1: Core Infrastructure
+- [ ] Implement `BaseHandler` abstract class
+- [ ] Create `CommandRouter` with extraction logic
+- [ ] Set up handler directory structure
+- [ ] Implement `WebhookResponse` normalization
+
+### Phase 2: Handler Implementation
+- [ ] Implement registration handlers (`register`, `unregister`)
+- [ ] Implement utility handlers (`check_channel`, `mention`, `default`)
+- [ ] Implement survey meta-handler with sub-routing
+- [ ] Implement all survey step handlers
+
+### Phase 3: Integration & Testing
+- [ ] Set up dependency injection for clients
+- [ ] Implement error handling and logging
+- [ ] Create handler factory for testing
+- [ ] Write integration tests for full request flow

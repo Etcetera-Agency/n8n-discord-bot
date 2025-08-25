@@ -1,0 +1,7 @@
+- tasks/response_templates.md: Updated footer punctuation from spaces to middle dot (·) in all workload/day-off/vacation templates
+- tasks/commands/workload_today.md: Updated footer punctuation and added test_workload_today_formats_footer_with_middle_dot() test
+- tasks/commands/workload_nextweek.md: Updated footer punctuation from spaces to middle dot (·)
+- tasks/commands/day_off_thisweek.md: Updated footer punctuation and added test_day_off_formats_footer_with_middle_dot() test
+- tasks/commands/day_off_nextweek.md: Updated footer punctuation from spaces to middle dot (·)
+- tasks/commands/vacation.md: Updated footer punctuation and added test_vacation_formats_footer_with_middle_dot() test
+- tasks/commands/check_channel.md: Replaced tz_offset with zoneinfo usage, added test_check_channel_week_boundary_uses_zoneinfo_kyiv() test, and updated acceptance criteria to use config-based step enumeration wording

@@ -1,130 +1,230 @@
-# Code Refactoring Tasks: n8n-discord-bot
+# Execution-Focused Code Review Tasks (CI Gates)
 
-> **IMPORTANT:**
-> - All payloads sent to n8n (including command names, prefixes, and structure) must remain strictly unchanged.
-> - All logic related to Discord message deletions and reactions must remain strictly unchanged.
-> - Do **not** modify these aspects during any refactoring.
-> - After each change, verify that n8n receives the exact same payloads and that Discord message deletion/reaction logic is unaltered.
+## Overview
+Execution-focused review checklist for CI/CD pipeline gates to ensure production readiness of the Discord bot migration.
 
-**Guiding Principles:**
-*   **Don't Break Functionality:** Test frequently during changes.
-*   **KISS:** Keep solutions simple and direct.
-*   **DRY:** Eliminate duplicated code.
+## Pre-Merge CI Gates
 
----
+### Gate 1: Code Quality & Standards
+- [ ] **Linting passes** - flake8, black, isort with zero violations
+- [ ] **Type checking passes** - mypy with strict mode, no type: ignore
+- [ ] **Security scan passes** - bandit security linter clean
+- [ ] **Dependency scan passes** - safety check for known vulnerabilities
+- [ ] **Code complexity** - cyclomatic complexity < 10 for all functions
+- [ ] **Import organization** - no circular imports, clean dependency graph
 
-## Phase 1: Critical Fixes & Setup
+### Gate 2: Test Coverage & Quality
+- [ ] **Unit test coverage ≥ 90%** for all new modules
+- [ ] **Integration test coverage ≥ 80%** for critical paths
+- [ ] **All tests pass** - zero flaky or skipped tests
+- [ ] **Test performance** - unit tests complete in < 30 seconds
+- [ ] **Test isolation** - tests don't depend on external services
+- [ ] **Mock validation** - all external calls properly mocked
 
-**Task 1: Fix `requirements.txt` Versions**
-*   **Goal:** Ensure dependencies can be installed reliably.
-*   **Action:**
-    *   In `requirements.txt`, find the correct installable version for `aiohttp` (likely `3.9.x`, e.g., `aiohttp==3.9.5`). Update the line.
-    *   In `requirements.txt`, find the correct installable version for `cachetools` (likely `5.3.x`, e.g., `cachetools==5.3.3`). Update the line.
-*   **Verification:** Run `pip install -r requirements.txt` successfully.
+### Gate 3: Response Template Validation
+- [ ] **Template byte-for-byte accuracy** - automated comparison with n8n outputs
+- [ ] **Ukrainian text encoding** - UTF-8 validation passes
+- [ ] **JSON schema validation** - all responses match expected schemas
+- [ ] **Newline preservation** - `\n` characters not escaped
+- [ ] **Variable substitution** - all template variables properly replaced
+- [ ] **Response timing** - all handlers respond within 5 seconds
 
-**Task 2: Initialize `WebhookService` and Fix Static Calls (Interim)**
-*   **Goal:** Make the bot runnable by resolving the static call error and setting up the intended webhook service.
-*   **Action:**
-    1.  In `main.py` or the main startup sequence (`bot.py` near the top), ensure the `services.WebhookService` is initialized *after* the `aiohttp.ClientSession` is ready (e.g., inside `on_ready` or similar async setup). Create a single instance and make it accessible, for example: `bot.webhook_service = WebhookService()` followed by `await bot.webhook_service.initialize()`.
-    2.  Search `bot.py` for all calls like `ResponseHandler.handle_response(...)`.
-    3.  Replace each call with `await bot.webhook_service.send_webhook(...)` (or potentially `send_interaction_response` or `send_button_pressed_info` depending on context).
-    4.  Carefully adapt the arguments passed to match the parameters expected by the `WebhookService` methods. You may need to manually construct the `result` dictionary or pass `interaction`/`ctx` differently.
-*   **Verification:** The bot should start without the `TypeError` related to calling `handle_response` statically. Basic webhook interactions should function.
+## Database Integration Gates
 
----
+### Gate 4: Database Schema Compliance
+- [ ] **Schema migration passes** - clean migration from empty database
+- [ ] **Index creation verified** - all required indexes present
+- [ ] **Constraint validation** - foreign keys and constraints working
+- [ ] **Data type validation** - all columns match expected types
+- [ ] **Performance benchmarks** - queries execute within SLA (< 100ms)
+- [ ] **Connection pooling** - pool configuration tested under load
 
-## Phase 2: Consolidate Core Logic (DRY)
+### Gate 5: Query Accuracy Validation
+- [ ] **Weekly query results** - exact match with n8n Code node logic
+- [ ] **Timezone handling** - Europe/Kyiv calculations verified
+- [ ] **Upsert operations** - conflict resolution working correctly
+- [ ] **Transaction rollback** - error scenarios properly handled
+- [ ] **Concurrent access** - no race conditions or deadlocks
+- [ ] **Data consistency** - referential integrity maintained
 
-*(Tackle these one area at a time. Test related functionality after each task.)*
+## External API Integration Gates
 
-**Task 3: Consolidate Webhook/n8n Communication**
-*   **Goal:** Use only `services.WebhookService` for all n8n interactions.
-*   **Action:**
-    1.  Delete the `ResponseHandler` class definition from `bot.py`.
-    2.  Delete the global functions `send_webhook_with_retry`, `send_n8n_reply_channel`, `send_n8n_reply_interaction`, `send_button_pressed_info` from `bot.py`.
-    3.  Search the entire project (`bot.py`, `bot/commands/*`) for any remaining calls to the deleted functions/class.
-    4.  Ensure all webhook/n8n communication now exclusively uses methods from the `bot.webhook_service` instance created in Task 2 (e.g., `await bot.webhook_service.send_webhook(...)`, `await bot.webhook_service.send_interaction_response(...)`, `await bot.webhook_service.send_button_pressed_info(...)`).
-*   **Verification:** All commands and interactions involving n8n webhooks must continue to work correctly using only `WebhookService`.
+### Gate 6: Notion API Integration
+- [ ] **Authentication working** - API calls succeed with real credentials
+- [ ] **Property mapping exact** - field names match n8n configuration
+- [ ] **Search queries accurate** - filters produce expected results
+- [ ] **Update operations verified** - changes persist correctly
+- [ ] **Error handling robust** - API failures handled gracefully
+- [ ] **Rate limiting respected** - no 429 errors under normal load
 
-**Task 4: Consolidate UI Components (Views/Buttons/Selects)**
-*   **Goal:** Use only the UI components defined in `bot/views/`.
-*   **Action:**
-    1.  Delete the duplicated view/component class definitions (`BaseView`, `WorkloadView`, `WorkloadButton`, `DayOffView`, `DayOffSelect`, `DayOffSubmitButton`, `GenericSelect`) from `bot.py` (approx. lines 416-562).
-    2.  Delete the `create_view` factory function definition from `bot.py`.
-    3.  Search the project (`bot.py`, `bot/commands/*`) for anywhere views are created.
-    4.  Update these locations to import and use the classes and factory functions from the `bot/views/` directory (e.g., `from bot.views.factory import create_view`, `from bot.views.day_off import DayOffView`, etc.). Ensure the correct view/factory is used for each command.
-*   **Verification:** All commands that use interactive components (buttons, selects) must display and function correctly using the components from `bot/views/`.
+### Gate 7: Google Calendar Integration
+- [ ] **Event creation verified** - all-day events created correctly
+- [ ] **Date range accuracy** - start/end times match requirements
+- [ ] **Event summaries correct** - naming convention followed
+- [ ] **Calendar permissions** - write access confirmed
+- [ ] **Error scenarios handled** - API failures don't break flow
+- [ ] **Timezone consistency** - events created in correct timezone
 
-**Task 5: Consolidate Survey Management**
-*   **Goal:** Use only `services.SurveyManager` and `services.SurveyFlow` for survey logic.
-*   **Action:**
-    1.  Delete the duplicated `SurveyFlow` class definition from `bot.py`.
-    2.  Delete the global `SURVEYS` dictionary definition from `bot.py`.
-    3.  Analyze the functions in `bot/commands/survey.py` (`handle_start_daily_survey`, `ask_dynamic_step`, `finish_survey`, etc.). Decide how to best integrate this logic:
-        *   *Option A (Preferred):* Move the core logic into methods within the `services.SurveyManager` class.
-        *   *Option B:* Create a new class (e.g., `SurveyCommands`) that uses `SurveyManager` and contains these functions as methods.
-    4.  In the main startup sequence, create a single instance: `bot.survey_manager = SurveyManager()`.
-    5.  Refactor all code related to starting, progressing, or checking surveys (e.g., in `on_message`, button callbacks, HTTP endpoint) to use methods of the `bot.survey_manager` instance (e.g., `bot.survey_manager.get_survey(user_id)`, `bot.survey_manager.create_survey(...)`, `await bot.survey_manager.ask_next_step(...)` [you might need to add methods like this]).
-    6.  Remove or refactor the original functions from `bot/commands/survey.py` and `bot.py` once their logic is integrated.
-*   **Verification:** Survey functionality (starting via HTTP, progressing through steps via buttons/modals, timing out) must work correctly using the centralized `SurveyManager`.
+### Gate 8: HTTP Service Integration
+- [ ] **Connects endpoint accessible** - POST requests succeed
+- [ ] **Payload format correct** - name and connects parameters sent
+- [ ] **Error handling differentiated** - fatal vs non-fatal failures
+- [ ] **Timeout configuration** - requests don't hang indefinitely
+- [ ] **Retry logic working** - transient failures recovered
+- [ ] **Service availability** - endpoint health check passes
 
-**Task 6: Consolidate Session Management**
-*   **Goal:** Use only `services.SessionManager` for user session IDs.
-*   **Action:**
-    1.  Delete the global `sessions` `TTLCache` definition from `bot.py`.
-    2.  Delete the global `get_session_id` function definition from `bot.py`.
-    3.  In the main startup sequence, create a single instance: `bot.session_manager = SessionManager()`.
-    4.  Search the project for any code that used the old `sessions` cache or `get_session_id` function.
-    5.  Update these locations to use the `SessionManager` instance, primarily `bot.session_manager.get_session_id(user_id)`.
-*   **Verification:** Session IDs should still be generated and included correctly in webhook payloads.
+## Business Logic Verification Gates
 
-**Task 7: Consolidate Configuration & Constants**
-*   **Goal:** Access all config and constants via the `config` module.
-*   **Action:**
-    1.  In `bot.py`, replace direct `os.getenv` calls for `DISCORD_TOKEN`, `N8N_WEBHOOK_URL`, `WEBHOOK_AUTH_TOKEN` with `Config.DISCORD_TOKEN`, `Config.N8N_WEBHOOK_URL`, `Config.WEBHOOK_AUTH_TOKEN` (import `Config` from `config.config`).
-    2.  In the main startup sequence (e.g., `main.py` or top of `bot.py`), add a call to `Config.validate()`.
-    3.  In `bot.py`, delete the duplicated `VIEW_TYPES` dictionary. Find where it was used and update the code to import and use `VIEW_CONFIGS` and `ViewType` from `config.constants` instead.
-*   **Verification:** Bot should start, read config correctly, and use constants from the `config` module without errors.
+### Gate 9: Command Routing Accuracy
+- [ ] **Switch logic replicated** - exact n8n routing behavior
+- [ ] **Command extraction correct** - parsing matches n8n patterns
+- [ ] **Fallback handling** - unknown commands route to default
+- [ ] **Survey routing deterministic** - no LLM dependencies
+- [ ] **Status handling complete** - all survey statuses covered
+- [ ] **Error routing consistent** - errors route to appropriate handlers
 
-**Task 8: Consolidate Logging**
-*   **Goal:** Use the logging setup from `config/logger.py`.
-*   **Action:**
-    1.  In `bot.py`, delete the `logging.basicConfig(...)` call and the `logger = logging.getLogger(...)` line.
-    2.  In the main startup sequence, call `setup_logging()` from `config.logger`. Store the returned logger instance (e.g., `log = setup_logging()`).
-    3.  Replace uses of the old `logger` variable with the new `log` instance. Pass the `log` instance to classes/modules that need logging, if necessary.
-*   **Verification:** Logging output should still be generated correctly using the configured setup.
+### Gate 10: Registration Logic Verification
+- [ ] **Public channel detection** - hardcoded list matches n8n
+- [ ] **Regex validation working** - 19-digit pattern enforced
+- [ ] **User search accuracy** - Name|title contains logic exact
+- [ ] **Channel search accuracy** - Discord channel ID contains logic exact
+- [ ] **Update operations correct** - property values set properly
+- [ ] **Error messages exact** - Ukrainian text matches n8n outputs
 
----
+### Gate 11: Survey Flow Logic Verification
+- [ ] **Week boundary calculation** - Monday 00:00 Kyiv exact
+- [ ] **Pending step detection** - excludes completed today correctly
+- [ ] **Step enumeration complete** - all 5 steps included
+- [ ] **Completion tracking accurate** - database updates correct
+- [ ] **URL extraction working** - to-do URLs properly trimmed
+- [ ] **Status transitions valid** - survey state machine correct
 
-## Phase 3: Refactor `bot.py` (Simplicity/SRP)
+## Performance & Load Testing Gates
 
-**Task 9: Clean up `bot.py`**
-*   **Goal:** Make `bot.py` primarily responsible for initialization and orchestration, not detailed logic implementation.
-*   **Action:**
-    1.  Review `bot.py`. Ensure event handling logic (`on_ready`, `on_close`, `on_message`) is now fully contained within `bot.commands.EventHandlers` and that `bot.py` simply registers this handler.
-    2.  Ensure command registration logic is fully contained within `bot.commands.PrefixCommands` and `bot.commands.SlashCommands`, and that `bot.py` simply instantiates these classes, passing the `bot` instance.
-    3.  Ensure HTTP server logic (`run_server`, `start_survey_http`) is fully contained within `web/server.py`. Remove any related definitions or setup from `bot.py` (the `main()` function might coordinate starting the bot and server).
-    4.  Remove any other leftover functions or classes that were consolidated in Phase 2.
-*   **Verification:** `bot.py` should be significantly smaller. The bot must still start and all functionalities (events, commands, web server) must work correctly, being handled by their respective modules.
+### Gate 12: Response Time Validation
+- [ ] **Handler response time < 5s** - all commands within SLA
+- [ ] **Database query time < 100ms** - queries optimized
+- [ ] **External API time < 3s** - third-party calls within limits
+- [ ] **Memory usage stable** - no memory leaks detected
+- [ ] **CPU usage reasonable** - < 80% under normal load
+- [ ] **Concurrent request handling** - 100 concurrent users supported
 
----
+### Gate 13: Load Testing Validation
+- [ ] **Sustained load test** - 1000 requests/minute for 10 minutes
+- [ ] **Spike test** - handles 10x normal load for 1 minute
+- [ ] **Database connection limits** - pool doesn't exhaust connections
+- [ ] **Error rate < 1%** - under normal and peak load
+- [ ] **Response time degradation < 50%** - under 5x load
+- [ ] **Recovery time < 30s** - after load spike ends
 
-## Phase 4: Code Cleanup & Minor Improvements
+## Security & Compliance Gates
 
-**Task 10: Reduce Duplication in Commands**
-*   **Goal:** Simplify command implementations by extracting common patterns.
-*   **Action:**
-    1.  Review the command implementations in `bot/commands/slash.py` (e.g., `vacation_slash`, `slash_connects_thisweek`).
-    2.  Identify repeated sequences of actions (e.g., deferring interaction, adding reactions, calling webhook, handling success/error, updating message).
-    3.  Extract these common sequences into private helper methods within the `SlashCommands` class or standalone helper functions if appropriate. Update the commands to call these helpers.
-*   **Verification:** Commands should function identically, but their implementation code should be shorter and less repetitive.
+### Gate 14: Security Validation
+- [ ] **Input sanitization** - all user inputs properly validated
+- [ ] **SQL injection prevention** - parameterized queries only
+- [ ] **XSS prevention** - output encoding applied
+- [ ] **Authentication verification** - webhook signatures validated
+- [ ] **Rate limiting active** - prevents abuse scenarios
+- [ ] **Secrets management** - no hardcoded credentials
 
-**Task 11: Externalize User-Facing Strings (Optional/Lower Priority)**
-*   **Goal:** Improve maintainability by moving hardcoded text out of the code.
-*   **Action:**
-    1.  Search the codebase for hardcoded user-facing strings (especially command descriptions, button labels, messages sent to users in Ukrainian).
-    2.  Move these strings into `config/constants.py` or a new dedicated file (e.g., `config/strings.py`).
-    3.  Update the code to import and use these constants instead of the hardcoded strings.
-*   **Verification:** All UI text and bot messages should appear correctly, sourced from the constants file.
+### Gate 15: Compliance Verification
+- [ ] **Data privacy compliance** - user data handling appropriate
+- [ ] **Audit logging active** - security events logged
+- [ ] **Error information sanitized** - no sensitive data in errors
+- [ ] **Access controls enforced** - principle of least privilege
+- [ ] **Encryption in transit** - HTTPS for all external calls
+- [ ] **Backup procedures tested** - data recovery verified
 
----
+## Deployment Readiness Gates
+
+### Gate 16: Configuration Management
+- [ ] **Environment variables documented** - all required vars listed
+- [ ] **Configuration validation** - startup fails with missing config
+- [ ] **Default values appropriate** - sensible defaults where applicable
+- [ ] **Configuration hot-reload** - changes applied without restart where safe
+- [ ] **Secret rotation support** - credentials can be updated
+- [ ] **Environment parity** - dev/staging/prod configurations consistent
+
+### Gate 17: Monitoring & Observability
+- [ ] **Health check endpoint** - returns service status
+- [ ] **Metrics collection active** - Prometheus metrics exposed
+- [ ] **Logging structured** - JSON format with correlation IDs
+- [ ] **Error tracking integrated** - exceptions sent to monitoring
+- [ ] **Performance monitoring** - response times tracked
+- [ ] **Alert rules configured** - notifications for critical issues
+
+### Gate 18: Operational Readiness
+- [ ] **Deployment automation** - CI/CD pipeline functional
+- [ ] **Rollback procedures tested** - can revert to previous version
+- [ ] **Database migration strategy** - zero-downtime deployment
+- [ ] **Service discovery working** - load balancer health checks pass
+- [ ] **Graceful shutdown** - handles SIGTERM properly
+- [ ] **Resource limits configured** - memory/CPU limits set
+
+## Final Production Gates
+
+### Gate 19: End-to-End Validation
+- [ ] **Full user journey tested** - registration through survey completion
+- [ ] **Cross-service integration** - all external APIs working together
+- [ ] **Data flow validation** - information flows correctly end-to-end
+- [ ] **Error recovery tested** - system recovers from all failure modes
+- [ ] **Performance under realistic load** - production-like traffic patterns
+- [ ] **Monitoring alerts working** - alerts fire for real issues
+
+### Gate 20: Production Cutover Readiness
+- [ ] **Feature flags configured** - can enable/disable new system
+- [ ] **Traffic splitting ready** - gradual rollout capability
+- [ ] **Rollback plan tested** - can revert to n8n if needed
+- [ ] **Data migration verified** - historical data preserved
+- [ ] **Team training complete** - operations team ready to support
+- [ ] **Documentation complete** - runbooks and troubleshooting guides ready
+
+## Automated CI/CD Pipeline Checks
+
+### Continuous Integration
+```yaml
+# Example CI pipeline checks
+- name: Code Quality Gate
+  run: |
+    flake8 --max-complexity=10 .
+    black --check .
+    isort --check-only .
+    mypy --strict .
+    bandit -r .
+
+- name: Test Coverage Gate
+  run: |
+    pytest --cov=. --cov-report=xml --cov-fail-under=90
+    pytest-integration --cov-fail-under=80
+
+- name: Template Validation Gate
+  run: |
+    python scripts/validate_templates.py
+    python scripts/compare_with_n8n_outputs.py
+
+- name: Database Integration Gate
+  run: |
+    docker-compose up -d postgres
+    python scripts/run_db_migrations.py
+    pytest tests/integration/test_database.py
+```
+
+### Deployment Pipeline
+```yaml
+- name: Performance Gate
+  run: |
+    k6 run performance-tests/load-test.js
+    python scripts/validate_response_times.py
+
+- name: Security Gate
+  run: |
+    safety check
+    semgrep --config=auto .
+    python scripts/security_validation.py
+
+- name: Production Readiness Gate
+  run: |
+    python scripts/validate_config.py
+    python scripts/health_check.py
+    python scripts/validate_monitoring.py
+```
