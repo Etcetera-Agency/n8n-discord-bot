@@ -1,0 +1,2281 @@
+{
+  "name": "Discord-bot",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        7104,
+        1232
+      ],
+      "id": "fb956ff8-1f1b-4b94-8134-515e493a1f64",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        4656,
+        1568
+      ],
+      "id": "2fbed6cb-d332-4fdb-b41f-fc50fef91c11",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "vnHxdCZ1hQ9Frchg",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "discord-bot",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        2528,
+        1232
+      ],
+      "id": "d2626658-fa51-4ae3-8509-7e620f7e553a",
+      "name": "Discord Webhook",
+      "webhookId": "webhook-id",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CumNb9VRPUmBMX0w",
+          "name": "Discord"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7113e573-923e-4c57-8d78-8cd94a7bddfa",
+          "mode": "list",
+          "cachedResultName": "Team Directory",
+          "cachedResultUrl": "https://www.notion.so/7113e573923e4c578d788cd94a7bddfa"
+        },
+        "limit": 2,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Discord channel ID|rich_text",
+              "condition": "equals",
+              "richTextValue": "={{ $json.body.channelId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2960,
+        1232
+      ],
+      "id": "52c454a2-1946-49f7-8f01-d94f8ee837ab",
+      "name": "Notion",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "retryOnFail": true,
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n    \"output\": \"Some error\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2784,
+        1840
+      ],
+      "id": "a874cb17-cc7e-450e-8aed-e8726af8dd8b",
+      "name": "Respond not Registred"
+    },
+    {
+      "parameters": {
+        "content": "## Notion tools\n",
+        "height": 580,
+        "width": 460,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        5184,
+        1728
+      ],
+      "typeVersion": 1,
+      "id": "0e3e866c-a4c2-4b7a-8608-d632d46ea8dd",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "59172007-ca38-433e-ac5a-66dcdd25cc16",
+                    "leftValue": "={{ $json &&  $(  'Discord Webhook').item.json.body.command.includes(\"check_channel\")}}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "check_channel"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "bc2d2a65-260a-4393-aec7-63caf1d37a5c",
+                    "leftValue": "={{ $('Discord Webhook').item.json.body.command }}",
+                    "rightValue": "register",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "register"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a0a8e7d1-d733-4d77-b1a9-c857115321b8",
+                    "leftValue": "={{ $('Discord Webhook').item.json.body.command }}",
+                    "rightValue": "unregister",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "unregister"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7d062365-b932-4918-a4c2-a6547095d01f",
+                    "leftValue": "={{ $('Discord Webhook').item.json.body.command.includes(\"survey\")  && $('Discord Webhook').item.json.body.status.includes(\"end\")}}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "survey.end"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json && !$(  'Discord Webhook').item.json.body.message.includes(\"register\") && !$(  'Discord Webhook').item.json.body.message.includes(\"unregister\")}}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "f7a6ec18-5367-4c24-a877-325fb69b5e07"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "all good"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        3184,
+        1232
+      ],
+      "id": "265214c5-2d70-471b-96f6-3443ad3668b5",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7113e573-923e-4c57-8d78-8cd94a7bddfa",
+          "mode": "list",
+          "cachedResultName": "Team Directory",
+          "cachedResultUrl": "https://www.notion.so/7113e573923e4c578d788cd94a7bddfa"
+        },
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Name|title",
+              "condition": "contains",
+              "titleValue": "={{ $('Discord Webhook').item.json.body.result.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        3120,
+        3008
+      ],
+      "id": "3f803e54-8bbf-4a2d-81d1-fdcec9b7f4d8",
+      "name": "Notion search TD",
+      "alwaysOutputData": true,
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.url }}",
+          "mode": "url"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Discord ID|rich_text",
+              "textContent": "={{ $('Discord Webhook').item.json.body.userId }}"
+            },
+            {
+              "key": "Discord channel ID|rich_text",
+              "textContent": "={{ $('Discord Webhook').item.json.body.channelId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        3744,
+        3168
+      ],
+      "id": "8bd62cf0-006c-4acc-ba42-c52fcd4fc1ea",
+      "name": "Notion add ID, Channel ID",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4352,
+        3008
+      ],
+      "id": "6c1f634e-ff4f-4ff6-abfe-82664c323f29",
+      "name": "Respond  Registred"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "7113e573-923e-4c57-8d78-8cd94a7bddfa",
+          "mode": "list",
+          "cachedResultName": "Team Directory",
+          "cachedResultUrl": "https://www.notion.so/7113e573923e4c578d788cd94a7bddfa"
+        },
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Discord channel ID|rich_text",
+              "condition": "contains",
+              "richTextValue": "={{ $('Discord Webhook').item.json.body.channelId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        3264,
+        2384
+      ],
+      "id": "661272cd-def8-4102-af54-66829752d02d",
+      "name": "Notion search TD1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.url }}",
+          "mode": "url"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Discord ID|rich_text",
+              "textContent": "={{ $('Discord Webhook').item.json.body.userId }}"
+            },
+            {
+              "key": "Discord channel ID|rich_text",
+              "textContent": "= "
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        3728,
+        2384
+      ],
+      "id": "f562e4c3-684e-4a1b-bcdf-2dd38cd38708",
+      "name": "Notion add ID, Channel ID1",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4144,
+        2384
+      ],
+      "id": "7902b0eb-9293-4489-88c5-aecbe8a75f3a",
+      "name": "Respond  Registred1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6a271d22-02df-42cd-85b9-f978e55ade3d",
+              "leftValue": "={{ $('Discord Webhook').item.json.body.command }}",
+              "rightValue": "mention",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3728,
+        1184
+      ],
+      "id": "1e80791c-7ddd-4e65-9e95-2a7da9307ace",
+      "name": "If mention"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "n8n_survey_steps_missed",
+          "mode": "list",
+          "cachedResultName": "n8n_survey_steps_missed"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "session_id",
+              "value": "={{ $('Discord Webhook').item.json.body.channelId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3504,
+        2048
+      ],
+      "id": "261163cf-aab7-4218-9392-49c55f2d2d97",
+      "name": "Postgres get steps",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "11",
+          "name": "n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst dow = (now.getDay() + 6) % 7;                // Monday=0…Sunday=6\nconst startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow, 0, 0, 0, 0);\n\nconst names = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];\nconst today = names[now.getDay()];\nconst sched = {\n  Monday:    [],\n  Tuesday:   [],\n  Wednesday: [],\n  Thursday:  [],\n  Friday:    [],\n  Saturday:  [],\n  Sunday:    []\n};\n\nconst items = $input.all() || [];\nconst todayStr = now.toDateString();\n\n// 1) Початкові кроки без тих, що completed=true і оновлені сьогодні\nlet steps = (sched[today] || []).filter(step => {\n  const rec = items.find(i => i.json.step_name === step);\n  return !(rec && rec.json.completed && new Date(rec.json.updated).toDateString() === todayStr);\n});\n\n// 2) Додати ті, що completed=false й оновлені цього тижня\nitems.forEach(({ json: { step_name, completed, updated } }) => {\n  const upd = new Date(updated);\n  if (!completed && upd >= startOfWeek && !steps.includes(step_name)) {\n    steps.push(step_name);\n  }\n});\n\nreturn [{ json: { output: true, steps: [...new Set(steps)] } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3808,
+        2064
+      ],
+      "id": "9a2ae4f1-80a1-47cb-82ac-d0f57bd08210",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4048,
+        2064
+      ],
+      "id": "b9e831b4-9007-42a8-8938-bae953aa7c93",
+      "name": "Respond chanel found"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b749f50a-c1f4-4830-b473-79496804212e",
+              "name": "request.command",
+              "value": "={{ $('Discord Webhook').item.json.body.command }}",
+              "type": "string"
+            },
+            {
+              "id": "7d34dc3c-3bcf-4c5a-a141-3ef998187d22",
+              "name": "request.status",
+              "value": "={{ $('Discord Webhook').item.json.body.status }}",
+              "type": "string"
+            },
+            {
+              "id": "b2d3f18e-4b40-46b8-8c51-d47d9bc8afee",
+              "name": "request.result",
+              "value": "={{ $('Discord Webhook').item.json.body.result }}",
+              "type": "object"
+            },
+            {
+              "id": "4426836c-f6e7-4795-ae42-237afc2af563",
+              "name": "user.name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "fb5b3d8d-edee-4c3f-8a52-98adf962d2a9",
+              "name": "user.to_do",
+              "value": "={{ $json.property_to_do }}",
+              "type": "string"
+            },
+            {
+              "id": "e24377ad-06ea-482c-9437-7c5ba3fe084c",
+              "name": "user.discord_id",
+              "value": "={{ $('Discord Webhook').item.json.body.userId }}",
+              "type": "string"
+            },
+            {
+              "id": "0a577e79-6dce-4ea4-a27b-555db5d89e12",
+              "name": "user.discord_channel_id",
+              "value": "={{ $('Discord Webhook').item.json.body.channelId }}",
+              "type": "string"
+            },
+            {
+              "id": "9a16a053-7add-4740-951e-0ce4d3fc58ca",
+              "name": "time_date_now",
+              "value": "={{$now}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4272,
+        1232
+      ],
+      "id": "dd61f5c0-1906-4508-9598-de3ea3ea7000",
+      "name": "Set"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Update Survey step status in DB \nstep_name enum: [\"workload_today\", \"workload_nextweek\", \"connects_thisweek\",\"day_off_nextweek\", \"day_off_thisweek\" ]",
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "n8n_survey_steps_missed",
+          "mode": "list",
+          "cachedResultName": "n8n_survey_steps_missed"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "completed": "={{ $fromAI(\"completed\", \"true if completed\", boolean) }}",
+            "session_id": "={{ $('Discord Webhook').item.json.body.channelId }}",
+            "step_name": "={{ $fromAI(\"step_name\", \"Step name\", string) }}"
+          },
+          "matchingColumns": [
+            "session_id",
+            "step_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "step_name",
+              "displayName": "step_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "completed",
+              "displayName": "completed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": true
+            },
+            {
+              "id": "updated",
+              "displayName": "updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.5,
+      "position": [
+        5856,
+        1744
+      ],
+      "id": "fa44d1e2-bbea-4f8b-a30a-a1ed25da3a45",
+      "name": "Survey_step_status",
+      "credentials": {
+        "postgres": {
+          "id": "11",
+          "name": "n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $fromAI(\"url\") }}",
+          "mode": "url"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Connects|number",
+              "numberValue": "={{ $fromAI('connects', `connects value`, 'number') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        5280,
+        1920
+      ],
+      "id": "0ff5bd22-fb0a-4bf5-8b78-63d3a3d7c249",
+      "name": "Write_connects_to_Profile_stats_DB",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://www.notion.so/01e5b4b3d6eb4ad69262008ddc5fa5e4",
+          "__regex": "(?:https|http)://www\\.notion\\.so/(?:[a-z0-9-]{2,}/)?(?:[a-zA-Z0-9-]{1,}-)?([0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12})"
+        },
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Name|title",
+              "condition": "contains",
+              "titleValue": "={{ $fromAI(\"name\") }}"
+            },
+            {
+              "key": "Week|formula",
+              "condition": "equals",
+              "returnType": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        5456,
+        1744
+      ],
+      "id": "eb46b01c-a39b-457f-ac69-0a62e69acdaa",
+      "name": "Get_Workload_DB_by_name",
+      "retryOnFail": true,
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Database_Page', `url from Get_Workload_DB_by_name`, 'string') }}",
+          "mode": "url"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "={{ $fromAI(\"day_field\", \"corresponding day plan \" ,string) }}|number",
+              "numberValue": "={{ $fromAI(\"hours\", \"hours to add\", number) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        5456,
+        1952
+      ],
+      "id": "4dfea2b2-d02c-4c2e-ba8c-97b12b97edae",
+      "name": "Write_plan_hours_to_Workload_DB",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $fromAI(\"url\") }}",
+          "mode": "url"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Capacity|number",
+              "numberValue": "={{$fromAI(\"capacity\", \"this week capacity\", number)}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        5456,
+        2128
+      ],
+      "id": "dc390f5e-e7ac-4efa-8e9e-4e4f59f6bc7b",
+      "name": "Write_capacity_to_Workload_DB",
+      "retryOnFail": true,
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// collect our new items here\nconst returnData = [];\n\nfor (const item of items) {\n  const raw = item.json.text || '';\n\n  // 1. Extract whatever’s between the ```json fence or a plain ``` fence\n  //    – the (?:json)? makes the “json” part optional\n  const fenceRx = /```(?:json)?[\\r\\n]+([\\s\\S]*?)```/m;\n  const match   = raw.match(fenceRx);\n\n  // 2. If it matched, use the captured group; otherwise strip any leading/trailing ``` and trim\n  const jsonText = match\n    ? match[1]\n    : raw.replace(/^```|```$/g, '').trim();\n\n  // 3. Parse it (could be an object or an array)\n  let parsed;\n  try {\n    parsed = JSON.parse(jsonText);\n  } catch (err) {\n    throw new Error('JSON parse failed: ' + err.message);\n  }\n\n  // 4. Normalize to an array\n  const entries = Array.isArray(parsed) ? parsed : [parsed];\n\n  // 5. Convert any remaining \"\\n\" or \"\\\\n\" in output into real newlines, then emit\n  for (const entry of entries) {\n    if (typeof entry.output === 'string') {\n      entry.output = entry.output\n        .replace(/\\\\\\\\n/g, '\\n')\n        .replace(/\\\\n/g,   '\\n');\n    }\n    returnData.push({ json: entry });\n  }\n}\n\nreturn returnData;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6624,
+        1232
+      ],
+      "id": "66b1f961-8bbf-4e68-a803-7f8fe84b1a77",
+      "name": "toJSON"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Send_connects_to_db",
+        "method": "POST",
+        "url": "https://tech2.etcetera.kiev.ua/set-db-connects",
+        "sendBody": true,
+        "parametersBody": {
+          "values": [
+            {
+              "name": "name"
+            },
+            {
+              "name": "connects"
+            }
+          ]
+        },
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "connects",
+              "description": "Numeber of connects",
+              "type": "number"
+            }
+          ]
+        },
+        "optimizeResponse": true,
+        "responseType": "text"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        6016,
+        1744
+      ],
+      "id": "f0887f4b-a23e-4433-acce-2e4eae0cd58c",
+      "name": "Send_connects_to_db"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e062c6f2-48b1-44d5-9269-73f5e7c4e011",
+                    "leftValue": "={{ ['1362662345737769101', '1348253056097189908', '1348274077978202153', '1348273069466189977'].includes($json.property_discord_channel_id.toString()) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Public Chanel"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9cd096eb-80b3-4b7b-b34f-278f55187db6",
+                    "leftValue": "={{ $json.property_discord_channel_id }}",
+                    "rightValue": "^\\d{19}$",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Already"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        3584,
+        3008
+      ],
+      "id": "e65b0341-e8e4-45e3-b2b5-647ded2a7e3a",
+      "name": "Check register"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b39c785d-46d4-41be-aaec-c8c76b2125b4",
+              "name": "output",
+              "value": "=Канал успішно зареєстровано на {{ $json.property_name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3968,
+        3168
+      ],
+      "id": "7e3b0ccc-d9fe-4d23-95d4-9d33a493b80c",
+      "name": "Register"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3cd471c0-84db-4f1b-8859-ee37a78c06df",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3488,
+        2384
+      ],
+      "id": "59dfb365-0e79-4124-ba60-65ae2cf44e64",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "615e8e59-28d6-4bdd-8521-4124b307bea6",
+              "name": "output",
+              "value": "Канал вже зареєстрований на когось іншого. ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3968,
+        2880
+      ],
+      "id": "7c165805-7810-4d3f-ac6e-5d460e7018b6",
+      "name": "already Registred"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "615e8e59-28d6-4bdd-8521-4124b307bea6",
+              "name": "output",
+              "value": "Вибачте, але цей канал не зареєстрований ні на кого. Тому не можу зняти його з реєстрації",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3824,
+        2624
+      ],
+      "id": "332093f3-17e8-43c5-bd83-6ac50f8aa8cb",
+      "name": "already NOT registered"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "615e8e59-28d6-4bdd-8521-4124b307bea6",
+              "name": "output",
+              "value": "Готово. Тепер цей канал не зареєстрований ні на кого. ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3920,
+        2384
+      ],
+      "id": "af28cfd1-6f57-4c52-923a-db0f1d15bb5e",
+      "name": "already NOT registered1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3d5e75a1-e977-4a91-9aa5-3f838cd17ec8",
+              "name": "output",
+              "value": "=Я ще не вмію вільно розмовляти. Використовуй слеш команди <@{{$('Discord Webhook').item.json.body.userId}}>. Почни із /",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5184,
+        64
+      ],
+      "id": "779e0252-336f-4099-bbc1-034ddb3529c3",
+      "name": "Bot reply"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Find in Profile Stats db record by name",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "501c314a-bddb-45bf-b35d-91a217d709d8",
+          "mode": "list",
+          "cachedResultName": "Profile stats",
+          "cachedResultUrl": "https://www.notion.so/501c314abddb45bfb35d91a217d709d8"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Name|title",
+              "condition": "contains",
+              "titleValue": "={{ $fromAI(\"name\") }}"
+            },
+            {
+              "key": "Week|formula",
+              "condition": "equals",
+              "returnType": "number",
+              "numberValue": 1
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        5280,
+        1760
+      ],
+      "id": "0d37d078-44a0-44ad-b350-a4d640839a17",
+      "name": "Get_Profile_stats_DB_by_name",
+      "credentials": {
+        "notionApi": {
+          "id": "8",
+          "name": "Etcetera Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=<ContextVars>\n   now: {{ $now }}  \n   day: {{ ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date($today).getDay()] }}  \n   userId: {{ $json.user.discord_id }}  \n   cmd: {{ $json.request.command }}  \n   status: {{ $json.request.status }}  \n   result: {{ JSON.stringify($json.request.result) }}  \n   user.name: {{ $json.user.name }}\n</ContextVars>\n",
+        "options": {
+          "systemMessage": "=## 1. Role and Core Directives\n\n🤖 **Agent:** A Discord AI assistant for the \"Etcetera\" server.\n**Purpose:** To process user commands and surveys by interacting with Notion and Google Calendar APIs. The final output for survey steps must be valid JSON.\n\n### Core Principles\n\n-   **Language:** Always respond in **Ukrainian**.\n-   **Conciseness:** Keep responses brief and acknowledge the user's request.\n-   **Confirmation:** Confirm that the requested action has been completed.\n-   **Tool Integrity:**\n    -   Only use the tools explicitly listed in the `[Available Tools]` section.\n    -   If a `Write_*` tool fails, retry it up to two more times.\n-   **Execution:** Follow the command steps precisely as outlined.\n\n---\n\n{{ $json.instruction }}",
+          "maxIterations": 10,
+          "returnIntermediateSteps": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        5296,
+        1232
+      ],
+      "id": "fcef244b-f277-4564-9dd0-d5d771a225b9",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "etcetera.kiev.ua_q1bfpjas0rj3e59cv32v05t6bs@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Etcetera Agency"
+        },
+        "start": "={{ $fromAI(\"starttime\",\"the time the user asks for the event to start\") }}",
+        "end": "={{ $fromAI(\"endtime\",\"the time the user asks for the event to end\") }}",
+        "useDefaultReminders": false,
+        "additionalFields": {
+          "allday": "yes",
+          "attendees": [],
+          "summary": "={{ $fromAI(\"summary\", \"even summary\", string) }}"
+        }
+      },
+      "id": "f21a42ed-36f7-45d4-bede-aaf70b2d84a0",
+      "name": "Create_Day-off_or_Vacation",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.1,
+      "position": [
+        5680,
+        1744
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "10",
+          "name": "Safonov gCal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=<ContextVars>\noutput:{{ $json.output }}\ncmd: {{$('Set').item.json.request.command }}  \nstatus: {{ $('Set').item.json.request.status }}  \n</ContextVars>",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are the final formatting chain for Discord.py.  \nInput: an array of objects from the AI Tools Agent, each with an \"output\" field containing a stringified JSON.  \nTask: parse  \"output\" string into a JSON object, and return a JSON array .  \n– Add any extra fields if needed or wrap in prose.  \n– Ensure valid JSON formatting.  \n- Responce ONLY json with no extra text\n- Do not remove \\n from text \n\n\n## Output Schema if \"command\" !== \"survey\" and status: ok\nYou MUST produce a JSON object STRICTLY adhering to this format. Do not add anything else:\n\n```json\n{\n  \"output\": \"string\"\n}\n\n\n## Output Schema if \"command\": \"survey\"\nYou MUST produce a JSON object STRICTLY adhering to this format.Do not add anything else:\n\n```json\n{\n  \"output\": \"string\", // The message content to potentially display to the user. Cannot be null. if some error contains error message \n  \"survey\": \"string\"   // Describes the survey context: \"continue\", \"end\", \"cancel\" got from output\n}\n\n\n## Output Schema if \"command\": \"survey\" and \"status\": end  \nYou MUST produce a JSON object STRICTLY adhering to this format.Do not add anything else:\n\n```json\n{\n  \"output\": \"string\", // The message content to potentially display to the user. Cannot be null. if some error contains error message \n  \"survey\": \"string\"   // Describes the survey context: \"continue\", \"end\", \"cancel\"\n  \"url\": {{ $(\"Set\").item.json.user.to_do }}  . \n}\n\nnever remove \\n or change it to \\\\n"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        6144,
+        1232
+      ],
+      "id": "8ac32cd7-d048-4b8f-b843-ea7d9d14e60e",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        6160,
+        1472
+      ],
+      "id": "3afe0816-b57c-4c9d-82bc-816569dee7ea",
+      "name": "Groq Chat Model2",
+      "credentials": {
+        "groqApi": {
+          "id": "66NKbM9sHQMwh3Gw",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7d01009b-feb0-41e8-9db9-5aa135d4c0f0",
+              "name": "output",
+              "value": "Спробуй трохи піздніше. Я тут пораюсь по хаті.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5808,
+        1344
+      ],
+      "id": "ce9a46e9-27e7-4cf0-a6c2-0da303deac32",
+      "name": "Error"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4000,
+        1712
+      ],
+      "id": "a5b437bd-6f1b-4d29-9033-5f1f2bccdf6d",
+      "name": "Respond todourl"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d785193c-6c5d-4bad-8965-b5977691ef9f",
+              "name": "url",
+              "value": "={{ $json.property_to_do.trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3664,
+        1680
+      ],
+      "id": "efb2bc97-dd55-42b2-8d52-e61e8467341e",
+      "name": "set todourl"
+    },
+    {
+      "parameters": {
+        "dataToSave": {
+          "values": [
+            {
+              "key": "request",
+              "value": "={{ $json.body.toJsonString() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executionData",
+      "typeVersion": 1,
+      "position": [
+        2752,
+        1232
+      ],
+      "id": "8ecca761-ce5f-44d6-9646-d3f18353f993",
+      "name": "Execution Data"
+    },
+    {
+      "parameters": {
+        "dataToSave": {
+          "values": [
+            {
+              "key": "reply",
+              "value": "={{ $json.toJsonString() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executionData",
+      "typeVersion": 1,
+      "position": [
+        6848,
+        1232
+      ],
+      "id": "52caeefe-48a7-46d2-9b24-c1b1e16d681f",
+      "name": "Execution Data1"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        4544,
+        1568
+      ],
+      "id": "6321c929-6d76-45da-b882-df85c6e02b89",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "66NKbM9sHQMwh3Gw",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-oss-120b",
+          "mode": "id"
+        },
+        "options": {
+          "temperature": 0.4,
+          "maxRetries": 2,
+          "topP": 1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        5248,
+        1488
+      ],
+      "id": "6eaeb06f-75ed-475c-893f-67b9eccf5a7e",
+      "name": "Cerebras Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "MkiqXfNcZMu7uGVp",
+          "name": "Cerebras"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ /workload/i.test( ($json.request?.command ?? '') + ' ' + ($json.request?.result?.stepName ?? '') ) ? true : false }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "82d71444-52c2-41df-a773-e7d78af24bd1"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "workload"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "4ebc8a1a-558a-4317-8770-29475f5a7916",
+                    "leftValue": "={{ /day_off/i.test( ($json.request?.command ?? '') + ' ' + ($json.request?.result?.stepName ?? '') ) ? true : false }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "dayoff"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "03e41145-a2d1-4928-abbe-7e88964abde8",
+                    "leftValue": "={{ /vacation/i.test( ($json.request?.command ?? '') + ' ' + ($json.request?.result?.stepName ?? '') ) ? true : false }}",
+                    "rightValue": "True",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "vacation"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "aafb1ff2-061b-4cbc-9784-a02de2175ed9",
+                    "leftValue": "={{ /connects/i.test( ($json.request?.command ?? '') + ' ' + ($json.request?.result?.stepName ?? '') ) ? true : false }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "connects"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        4480,
+        1200
+      ],
+      "id": "f1e058ae-a6b6-4f52-99cc-11f80913fc90",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8e17f460-abcc-4813-89ae-7ee6e08f222a",
+              "name": "instruction",
+              "value": "## 2. Command Handling Logic\n\n### Command: `day_off_*`\n\n1.  **Extract Dates**: Get the list of dates from `{result.value.values}`.\n2.  **Handle Input**:\n    -   **If value is `\"Nothing\"`:**\n        -   Invoke `Survey_step_status` with `step_name: \"{cmd}\"` and `completed: true`.\n        -   Respond with `templates.dayoff_none`.\n    -   **If dates are provided:**\n        -   For each `day` in the list, invoke `Create_Day-off_or_Vacation` with:\n            -   `summary`: `\"Day-off: {user.name}\"`\n            -   `start`: `day`\n            -   `end`: `day`\n        -   use tool `Survey_step_status` with `step_name: \"{command}\"` and `completed: true`.\n        -   Respond with `templates.dayoff` (use `dayoff_one` or `dayoff_many` based on the number of dates).\n\n### Command: `survey` (Meta-Handler)\n\n-   **If `status` is `incomplete`**:\n    1.  Invoke `Survey_step_status` with `step_name: \"{result.step}\"` and `status: false`.\n    2.  Respond with `{}`.\n-   **If `status` is `step`**:\n    1.  Handle the command specified in `{result.step}` as per the instructions above.\n    2.  Respond with `{\"output\":\"{result_info}\",\"survey\":\"continue\"}`.\n-   **If `status` is `end`**:\n    1.  Handle the final command in `{result.step}`.\n    2.  Respond with `{\"output\":\"{command_output}\",\"survey\":\"end\"}`.\n\n## 3. Available Tools\n\n*   **`Survey_step_status`**\n    *   **Parameters:** `step_name: string` or `enum`, `completed: boolean`\n    *   **Description:** Updates the status of a survey step. Valid `step_name` values: `\"workload_today\"`, `\"workload_nextweek\"`, `\"connects_thisweek\"`, `\"day_off_nextweek\"`, `\"day_off_thisweek\"`.\n\n*   **`Create_Day-off_or_Vacation`**\n    *   **Parameters:** `summary: string`, `start: string`, `end: string`\n    *   **Description:** Creates a day-off or vacation event in the calendar.\n\n---\n\n## 4. Response Templates\n\n> **Note:** Populate placeholders `{...}` with data obtained from tools.\n\n-   **dayoff\\_one**: `\"Вихідний: {DD MMMM YY} записано.\\nНе забудь попередити клієнтів.\"`\n-   **dayoff\\_many**: `\"Вихідні:\" {DD MMMM YY}, {DD MMMM YY} записані.\\nНе забудь попередити клієнтів.\"`\n-   **dayoff\\_none**: `\"Записав! Вихідних нема\"`\n",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4768,
+        1184
+      ],
+      "id": "f186c6e1-65db-4668-9488-9669fb8fea30",
+      "name": "Set day-off"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8e17f460-abcc-4813-89ae-7ee6e08f222a",
+              "name": "instruction",
+              "value": "## 2. Command Handling Logic\n\n\n### Command: `workload_*`\n\n1.   Extract  hours = Number(result.value)\n    > **Important:** If `{result.value}` is `0`, it is a valid input used to mark the step as complete. Proceed with writing `0` to \"Write_plan_hours_to_Workload_DB\".\n2.  use tool `Get_Workload_DB_by_name` with (name: {user.name}). responce is ALSWAYS!!! valid. read responce as valid json. extract url= [\"response\"][\"url\"] \n4.  Set day_field:\n    -   If command contains \"today\", set `day_field` to `\"{day} Plan\"` (i.e \"Mon Plan\" if today=Monday, \"Tue Plan\" if today=Tuesday, \"Wed Plan\" if today=Wednesday, \"Thu Plan\" if today=Thusday, \"Fri Plan\" if today=Friday; else → \"Next week plan\").\n    -   If command contains \"nextweek\", set `day_field` to `\"Next week plan\"`.\n5.  use tool  `Write_plan_hours_to_Workload_DB` with:\n    -   `url`: The `.url` from the `Get_Workload_DB_by_name` response.\n    -   `hours`\n    -   `day_field`\n6.  On success: use tool `Survey_step_status` with `step_name: \"{cmd}\"` and `completed: true`.\n7.  Respond: Use the corresponding `templates.workload_*` template.\n\n### Command: `survey` (Meta-Handler)\n\n-   **If `status` is `incomplete`**:\n    1.  Invoke `Survey_step_status` with `step_name: \"{result.step}\"` and `status: false`.\n    2.  Respond with `{}`.\n-   **If `status` is `step`**:\n    1.  Handle the command specified in `{result.step}` as per the instructions above.\n    2.  Respond with `{\"output\":\"{result_info}\",\"survey\":\"continue\"}`.\n-   **If `status` is `end`**:\n    1.  Handle the final command in `{result.step}`.\n    2.  Respond with `{\"output\":\"{command_output}\",\"survey\":\"end\"}`.\n\n## 3. Available Tools\n\n*   **`Get_Workload_DB_by_name`**\n    *   **Parameters:** `name: string`\n    *   **Description:** Retrieves a user's workload page from Notion.\n\n*   **`Write_plan_hours_to_Workload_DB`**\n    *   **Parameters:** `url: string`, `hours: number`, `day_field: string`\n    *   **Description:** Writes planned hours to a field on a Notion page.\n\n*   **`Survey_step_status`**\n    *   **Parameters:** `step_name: string` or `enum`, `completed: boolean`\n    *   **Description:** Updates the status of a survey step. Valid `step_name` values: `\"workload_today\"`, `\"workload_nextweek\"`, `\"connects_thisweek\"`, `\"day_off_nextweek\"`, `\"day_off_thisweek\"`.\n\n---\n\n## 4. Response Templates\n\n> **Note:** Populate placeholders `{...}` with data obtained from tools. All text should be in Ukranian (week days name as well)\n> **Note:**  Srictly follow provided template\n\n-   **workload\\_today**: `\"Записав! \\nЗаплановане навантаження у {день тиждня}: {hours} год. \\nВ щоденнику з понеділка до {день тиждня}: {user.property_fact} год.\\nКапасіті на цей тиждень: {user.property_capasity} год.\"`\n-   **workload\\_nextweek**: `\"Записав! \\nЗаплановане навантаження на наступний тиждень: {hours} год.\"`",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4640,
+        1104
+      ],
+      "id": "5f466a9d-9b8a-4282-b302-852f261e4420",
+      "name": "Set workload"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8e17f460-abcc-4813-89ae-7ee6e08f222a",
+              "name": "instruction",
+              "value": "## 2. Command Handling Logic\n\n\n### Command: `vacation`\n\n1.  **Extract Dates**: Get `{result.start}` and `{result.end}` from the input.\n2.  **Create Calendar Event**: Invoke `Create_Day-off_or_Vacation` with:\n    -   `summary`: `\"Vacation: {user.name}\"`\n    -   `start`: Start date formatted as `\"YYYY-MM-DD 00:00:00\"`.\n    -   `end`: End date formatted as `\"YYYY-MM-DD 23:59:59\"`.\n3.  **Respond**: Use the `templates.vacation` template.\n\n### Command: `survey` (Meta-Handler)\n\n-   **If `status` is `incomplete`**:\n    1.  Invoke `Survey_step_status` with `step_name: \"{result.step}\"` and `status: false`.\n    2.  Respond with `{}`.\n-   **If `status` is `step`**:\n    1.  Handle the command specified in `{result.step}` as per the instructions above.\n    2.  Respond with `{\"output\":\"{result_info}\",\"survey\":\"continue\"}`.\n-   **If `status` is `end`**:\n    1.  Handle the final command in `{result.step}`.\n    2.  Respond with `{\"output\":\"{command_output}\",\"survey\":\"end\"}`.\n\n## 3. Available Tools\n\n*   **`Survey_step_status`**\n    *   **Parameters:** `step_name: string` or `enum`, `completed: boolean`\n    *   **Description:** Updates the status of a survey step. Valid `step_name` values: `\"workload_today\"`, `\"workload_nextweek\"`, `\"connects_thisweek\"`, `\"day_off_nextweek\"`, `\"day_off_thisweek\"`.\n\n*   **`Create_Day-off_or_Vacation`**\n    *   **Parameters:** `summary: string`, `start: string`, `end: string`\n    *   **Description:** Creates a day-off or vacation event in the calendar.\n\n---\n\n## 4. Response Templates\n\n> **Note:** Populate placeholders `{...}` with data obtained from tools.\n\n-   **vacation**: `\"Записав! Відпустка: {start WEEKDAY DD MMMM}—{end WEEKDAY DD MMMM}.\"`\n",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4896,
+        1264
+      ],
+      "id": "f913810c-9f11-468b-a23d-247bede52bdb",
+      "name": "Set vacation"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8e17f460-abcc-4813-89ae-7ee6e08f222a",
+              "name": "instruction",
+              "value": "## 2. Command Handling Logic\n\n### Command: `connects_thisweek`\n\n1.  use tool  `Survey_step_status` with `step_name: \"connects_thisweek\"` and `completed: true`, use tool `Send_connects_to_db` with (\"name\": {user.name}, \"connects\": Number({result.value}) \n2. use tool  `Get_Profile_stats_DB_by_name` with `name: \"{user.name}\"` if response is `[]` (no page) Proceed to the final response.\n3.  **Check for Profile Page**:\n    -   **Proceed !!!ONLY if response is NOT `[]` that means page exists else Proceed to the final response:**\n        -   Extract the `url` from the response.\n        -   use tool `Write_connects_to_Profile_stats_DB` with the `url` and `{result.value}`. if write failed its NOT ERROR\n4.  **Respond**: Use the `templates.connects` template.\n\n\n### Command: `survey` (Meta-Handler)\n\n-   **If `status` is `incomplete`**:\n    1.  Invoke `Survey_step_status` with `step_name: \"{result.step}\"` and `status: false`.\n    2.  Respond with `{}`.\n-   **If `status` is `step`**:\n    1.  Handle the command specified in `{result.step}` as per the instructions above.\n    2.  Respond with `{\"output\":\"{result_info}\",\"survey\":\"continue\"}`.\n-   **If `status` is `end`**:\n    1.  Handle the final command in `{result.step}`.\n    2.  Respond with `{\"output\":\"{command_output}\",\"survey\":\"end\"}`.\n\n## 3. Available Tools\n\n*   **`Get_Profile_stats_DB_by_name`**\n    *   **Parameters:** `name: string`\n    *   **Description:** Retrieves a user's profile statistics page from Notion.\n\n*   **`Write_connects_to_Profile_stats_DB`**\n    *   **Parameters:** `url: string`, `connects: number`\n    *   **Description:** Writes the remaining connects count to a Notion page.\n\n*   **`Survey_step_status`**\n    *   **Parameters:** `step_name: string` or `enum`, `completed: boolean`\n    *   **Description:** Updates the status of a survey step. Valid `step_name` values: `\"workload_today\"`, `\"workload_nextweek\"`, `\"connects_thisweek\"`, `\"day_off_nextweek\"`, `\"day_off_thisweek\"`.\n\n---\n\n## 4. Response Templates\n\n> **Note:** Populate placeholders `{...}` with data obtained from tools.\n\n-   **connects**: `\"Записав! Upwork connects: залишилось {connects} на цьому тиждні.\"`\n",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5008,
+        1344
+      ],
+      "id": "099926a4-baac-440a-99c7-f2d3ba5f259f",
+      "name": "Set connects"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1.1,
+      "position": [
+        5456,
+        1440
+      ],
+      "id": "a81ea5b3-8f83-4abd-837d-2899adb5b6eb",
+      "name": "Think"
+    }
+  ],
+  "pinData": {
+    "Discord Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.etcetera.agency",
+            "x-real-ip": "152.70.187.230",
+            "x-forwarded-for": "152.70.187.230",
+            "x-forwarded-proto": "https",
+            "connection": "upgrade",
+            "content-length": "319",
+            "authorization": "Bearer 3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate",
+            "user-agent": "Python/3.10 aiohttp/3.9.5",
+            "content-type": "application/json"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "command": "survey",
+            "status": "step",
+            "message": "",
+            "result": {
+              "stepName": "workload_today",
+              "value": 0
+            },
+            "userId": "829736729991970838",
+            "channelId": "1362738788505485414",
+            "sessionId": "1362738788505485414_829736729991970838",
+            "author": "sershevchyk",
+            "channelName": "dev-serhii-shevchyk",
+            "timestamp": 1755687677
+          },
+          "webhookUrl": "https://n8n.etcetera.agency/webhook/discord-bot",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Discord Webhook": {
+      "main": [
+        [
+          {
+            "node": "Execution Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Postgres get steps",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notion search TD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notion search TD1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "set todourl",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If mention",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond not Registred",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion search TD": {
+      "main": [
+        [
+          {
+            "node": "Check register",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond  Registred",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion add ID, Channel ID": {
+      "main": [
+        [
+          {
+            "node": "Register",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion search TD1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion add ID, Channel ID1": {
+      "main": [
+        [
+          {
+            "node": "already NOT registered1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If mention": {
+      "main": [
+        [
+          {
+            "node": "Bot reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres get steps": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Respond chanel found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Survey_step_status": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write_connects_to_Profile_stats_DB": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get_Workload_DB_by_name": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write_plan_hours_to_Workload_DB": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write_capacity_to_Workload_DB": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "toJSON": {
+      "main": [
+        [
+          {
+            "node": "Execution Data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send_connects_to_db": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check register": {
+      "main": [
+        [
+          {
+            "node": "already Registred",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "already Registred",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notion add ID, Channel ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Register": {
+      "main": [
+        [
+          {
+            "node": "Respond  Registred",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Notion add ID, Channel ID1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "already NOT registered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "already Registred": {
+      "main": [
+        [
+          {
+            "node": "Respond  Registred",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "already NOT registered": {
+      "main": [
+        [
+          {
+            "node": "Respond  Registred1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "already NOT registered1": {
+      "main": [
+        [
+          {
+            "node": "Respond  Registred1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bot reply": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get_Profile_stats_DB_by_name": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Create_Day-off_or_Vacation": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "toJSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond todourl": {
+      "main": [
+        []
+      ]
+    },
+    "set todourl": {
+      "main": [
+        [
+          {
+            "node": "Respond todourl",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execution Data": {
+      "main": [
+        [
+          {
+            "node": "Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execution Data1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Cerebras Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Set workload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set day-off",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set vacation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set connects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set day-off": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set vacation": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set workload": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set connects": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9b92a1c6-448b-450e-8ba8-781b932dcf94",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b3f46965e79ded88445b217ef4b61bbf4a8cac3b842104201ba127ccd1b416b7"
+  },
+  "id": "5EAsIp9Pq5sbz493",
+  "tags": []
+}
