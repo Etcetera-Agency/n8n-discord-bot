@@ -13,6 +13,19 @@ class Config:
     # N8N webhook configuration
     N8N_WEBHOOK_URL: str = os.getenv("N8N_WEBHOOK_URL", "")
     WEBHOOK_AUTH_TOKEN: Optional[str] = os.getenv("WEBHOOK_AUTH_TOKEN")
+
+    # Notion configuration
+    NOTION_TOKEN: str = os.getenv("NOTION_TOKEN", "")
+    NOTION_TEAM_DIRECTORY_DB_ID: str = os.getenv("NOTION_TEAM_DIRECTORY_DB_ID", "")
+    NOTION_WORKLOAD_DB_ID: str = os.getenv("NOTION_WORKLOAD_DB_ID", "")
+    NOTION_PROFILE_STATS_DB_ID: str = os.getenv("NOTION_PROFILE_STATS_DB_ID", "")
+
+    # Calendar configuration
+    GOOGLE_SERVICE_ACCOUNT_B64: str = os.getenv("GOOGLE_SERVICE_ACCOUNT_B64", "")
+    CALENDAR_ID: str = os.getenv("CALENDAR_ID", "")
+
+    # Database configuration
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
     
     # Session configuration
     SESSION_TTL: int = int(os.getenv("SESSION_TTL", "86400"))  # 24 hours default
@@ -29,4 +42,5 @@ class Config:
         if not cls.DISCORD_TOKEN:
             raise ValueError("DISCORD_TOKEN is required")
         if not cls.N8N_WEBHOOK_URL:
-            raise ValueError("N8N_WEBHOOK_URL is required") 
+            raise ValueError("N8N_WEBHOOK_URL is required")
+

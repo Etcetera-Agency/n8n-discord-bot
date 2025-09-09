@@ -1,8 +1,8 @@
 # Migration Tasks
 
-- [ ] Task01_NotionConnector.md
-- [ ] Task02_CalendarConnector.md
-- [ ] Task03_SurveyStepsDB.md
+- [x] Task01_NotionConnector.md
+- [x] Task02_CalendarConnector.md
+- [x] Task03_SurveyStepsDB.md
 - [ ] Task04_InternalDispatcher.md
 - [ ] Task05_PrefixCommands.md
 - [ ] Task06_RegisterHandler.md
