@@ -465,10 +465,7 @@ Configuration is now managed through the `Config` class in `config/config.py`. C
 # Discord Bot Token - Your Discord bot's token
 DISCORD_TOKEN=YOUR_DISCORD_BOT_TOKEN
 
-# n8n Webhook URL - The URL for your n8n webhook endpoint
-N8N_WEBHOOK_URL=https://your-n8n-instance.com/webhook/your_webhook_endpoint
-
-# Webhook Auth Token (optional) - Token to authenticate requests to the n8n webhook
+# Webhook Auth Token (optional) - Token to authenticate internal webhook requests
 WEBHOOK_AUTH_TOKEN=YOUR_WEBHOOK_AUTH_TOKEN
 
 # Notion API Token - Required for fetching ToDo tasks from Notion

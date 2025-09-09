@@ -14,6 +14,7 @@ from typing import Any, Dict, Optional
 
 from config import Config
 from services.notion_connector import NotionConnector, NotionError
+from services.logging_utils import get_logger
 
 try:  # pragma: no cover - optional dependency
     from services.survey_steps_db import SurveyStepsDB
@@ -50,12 +51,16 @@ DAY_GEN = [
     "неділі",
 ]
 
+ERROR_MSG = "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+
 
 async def handle(payload: Dict[str, Any]) -> str:
     """Handle the ``workload_today`` command."""
 
+    log = get_logger()
     try:
         hours = int(payload["result"]["value"])  # 0 is valid
+        log.debug("parsed hours", extra={"hours": hours})
         ts = payload.get("timestamp")
         now = (
             datetime.fromtimestamp(ts, timezone.utc)
@@ -74,7 +79,7 @@ async def handle(payload: Dict[str, Any]) -> str:
         )
         results = query.get("results", [])
         if not results:
-            return "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+            return ERROR_MSG
         page = results[0]
         page_id = page.get("id", "")
         capacity = int(page.get("capacity", 0))
@@ -83,11 +88,13 @@ async def handle(payload: Dict[str, Any]) -> str:
         )
 
         await _notio.update_workload_day(page_id, plan_field, hours)
+        log.info("workload updated", extra={"page_id": page_id, "field": plan_field})
 
         if _steps_db:
             await _steps_db.upsert_step(
                 str(payload.get("channelId")), "workload_today", True
             )
+            log.info("step recorded")
 
         day_acc = DAY_ACC[idx]
         day_gen = DAY_GEN[idx]
@@ -98,4 +105,5 @@ async def handle(payload: Dict[str, Any]) -> str:
             f"Капасіті на цей тиждень: {capacity} год."
         )
     except (NotionError, KeyError, ValueError, TypeError, IndexError):
-        return "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+        log.exception("workload_today failed")
+        return ERROR_MSG
