@@ -37,13 +37,27 @@ class SurveyStepsDB:
         """Return statuses for a session from the given week start."""
 
         await self._connect()
-        query = (
-            "SELECT step_name, completed, updated "
-            "FROM n8n_survey_steps_missed "
-            "WHERE session_id = :session_id AND updated >= :week_start "
-            "ORDER BY step_name"
-        )
-        rows = await self.db.fetch_all(query, {"session_id": session_id, "week_start": week_start})
+
+        params = {"session_id": session_id, "week_start": week_start}
+
+        if self.database_url.startswith("postgres"):
+            query = (
+                "SELECT DISTINCT ON (step_name) step_name, completed, updated "
+                "FROM n8n_survey_steps_missed "
+                "WHERE session_id = :session_id AND updated >= :week_start "
+                "ORDER BY step_name, updated DESC"
+            )
+        else:
+            query = (
+                "SELECT step_name, completed, updated FROM ("
+                "SELECT step_name, completed, updated, "
+                "ROW_NUMBER() OVER (PARTITION BY step_name ORDER BY updated DESC) AS rn "
+                "FROM n8n_survey_steps_missed "
+                "WHERE session_id = :session_id AND updated >= :week_start"
+                ") AS ranked WHERE rn = 1 ORDER BY step_name"
+            )
+
+        rows = await self.db.fetch_all(query, params)
         return [dict(r) for r in rows]
 
     async def pending_steps(self, session_id: str, week_start: Any, all_steps: Iterable[str]) -> List[str]:
