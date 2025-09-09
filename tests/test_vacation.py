@@ -52,6 +52,18 @@ sys.modules["config"] = types.SimpleNamespace(
 from services.cmd import vacation
 
 
+class FakeDB:
+    def __init__(self, *_):
+        self.calls = []
+        self.closed = False
+
+    async def upsert_step(self, session_id, step_name, completed):
+        self.calls.append((session_id, step_name, completed))
+
+    async def close(self):
+        self.closed = True
+
+
 def load_payload(title: str) -> dict:
     text = Path(ROOT / "payload_examples.txt").read_text()
     start = text.index(title)
@@ -167,3 +179,33 @@ async def test_vacation_e2e(tmp_path, monkeypatch):
 
     expected = f"Записав! Відпустка: {fmt(start_date)}—{fmt(end_date)}."
     assert result == {"output": expected}
+
+
+@pytest.mark.asyncio
+async def test_handle_vacation_records_step(monkeypatch, tmp_path):
+    log = tmp_path / "vacation_db_log.txt"
+    log.write_text("Input: vacation survey db\n")
+
+    start_date, end_date, _ = load_response_data()
+    payload = load_payload("/vacation Command Payload")
+    payload["result"]["start_date"] = start_date
+    payload["result"]["end_date"] = end_date
+
+    fake_db = FakeDB()
+    monkeypatch.setattr(vacation, "SurveyStepsDB", lambda *_: fake_db)
+    monkeypatch.setattr(vacation, "Config", types.SimpleNamespace(DATABASE_URL="sqlite://"))
+
+    async def fake_create(name, start, end, tz):
+        return {"status": "ok"}
+
+    monkeypatch.setattr(
+        vacation, "calendar", types.SimpleNamespace(create_vacation_event=fake_create)
+    )
+
+    result = await vacation.handle(payload)
+    with open(log, "a") as f:
+        f.write("Step: handle\n")
+        f.write(f"Output: {result}\n")
+
+    assert fake_db.calls == [(payload["channelId"], "vacation", True)]
+    assert fake_db.closed

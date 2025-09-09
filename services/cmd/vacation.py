@@ -5,7 +5,12 @@ from __future__ import annotations
 from typing import Any, Dict
 from datetime import datetime
 
+from config import Config
 from services.calendar_connector import CalendarConnector
+try:  # pragma: no cover - optional dependency
+    from services.survey_steps_db import SurveyStepsDB
+except Exception:  # pragma: no cover - missing databases package
+    SurveyStepsDB = None  # type: ignore
 
 # Reusable calendar connector instance
 calendar = CalendarConnector()
@@ -56,6 +61,14 @@ async def handle(payload: Dict[str, Any]) -> str:
         )
         if resp.get("status") != "ok":
             raise Exception("calendar error")
+
+        db_url = getattr(Config, "DATABASE_URL", "")
+        if SurveyStepsDB and db_url:
+            db = SurveyStepsDB(db_url)
+            try:
+                await db.upsert_step(str(payload.get("channelId")), "vacation", True)
+            finally:
+                await db.close()
 
         return f"Записав! Відпустка: {_fmt(start)}—{_fmt(end)}."
     except Exception:
