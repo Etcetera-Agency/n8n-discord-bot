@@ -3,6 +3,16 @@ from typing import Any, Callable, Awaitable, Dict, Optional
 
 from services.notion_connector import NotionConnector
 from services.survey import survey_manager
+from services.cmd import (
+    register,
+    unregister,
+    workload_today,
+    workload_nextweek,
+    connects_this_week,
+    day_off,
+    vacation,
+    check_channel,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +28,14 @@ async def handle_mention(payload: Dict[str, Any]) -> str:
 
 HANDLERS: Dict[str, Callable[[Dict[str, Any]], Awaitable[str]]] = {
     "mention": handle_mention,
+    "register": register.handle,
+    "unregister": unregister.handle,
+    "workload_today": workload_today.handle,
+    "workload_nextweek": workload_nextweek.handle,
+    "connects_this_week": connects_this_week.handle,
+    "day_off": day_off.handle,
+    "vacation": vacation.handle,
+    "check_channel": check_channel.handle,
 }
 
 _notio = NotionConnector()
