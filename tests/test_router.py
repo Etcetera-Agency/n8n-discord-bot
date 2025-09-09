@@ -223,16 +223,16 @@ async def test_dispatch_register(tmp_path, monkeypatch):
         return {"results": []}
 
     async def fake_find_name(name):
-        return {"results": []}
+        return {"results": [{"id": "abc", "discord_id": "", "channel_id": ""}]}
 
-    async def fake_create(name, uid, cid):
-        return {"url": "https://www.notion.so/new"}
+    async def fake_update(pid, uid, cid):
+        return {"status": "ok"}
 
     import services.cmd.register as reg
     monkeypatch.setattr(router._notio, "find_team_directory_by_channel", router_lookup)
     monkeypatch.setattr(reg._notio, "find_team_directory_by_channel", fake_find_channel)
     monkeypatch.setattr(reg._notio, "find_team_directory_by_name", fake_find_name)
-    monkeypatch.setattr(reg._notio, "create_team_directory_page", fake_create)
+    monkeypatch.setattr(reg._notio, "update_team_directory_ids", fake_update)
 
     with open(log, "a") as f:
         f.write("Step: dispatch\n")

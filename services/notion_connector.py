@@ -198,44 +198,6 @@ class NotionConnector:
             Config.NOTION_TEAM_DIRECTORY_DB_ID, filter, mapping
         )
 
-    async def create_team_directory_page(
-        self,
-        name: str,
-        discord_id: str,
-        channel_id: str,
-        max_retries: int = 3,
-        retry_delay: int = 20,
-    ) -> Dict[str, Any]:
-        session = await self._get_session()
-        url = "https://api.notion.com/v1/pages"
-        payload = {
-            "parent": {"database_id": Config.NOTION_TEAM_DIRECTORY_DB_ID},
-            "properties": {
-                "Name": {"title": [{"text": {"content": name}}]},
-                "Discord ID": {
-                    "rich_text": [{"text": {"content": discord_id}}]
-                },
-                "Discord channel ID": {
-                    "rich_text": [{"text": {"content": channel_id}}]
-                },
-            },
-        }
-        last_error: Any = None
-        for attempt in range(max_retries):
-            try:
-                async with session.post(
-                    url, headers=base_headers(), json=payload
-                ) as resp:
-                    data = await resp.json()
-                    if resp.status == 200:
-                        return {"url": data.get("url", "")}
-                    last_error = data
-            except Exception as e:  # pragma: no cover - network errors
-                last_error = {"error": str(e)}
-            if attempt < max_retries - 1:
-                await asyncio.sleep(retry_delay)
-        raise NotionError(last_error)
-
     async def update_team_directory_ids(
         self, page_id: str, discord_id: str, channel_id: str
     ) -> Dict[str, str]:
