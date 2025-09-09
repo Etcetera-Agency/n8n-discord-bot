@@ -27,7 +27,7 @@
     "title": "Survey Step Submission Payload (Day Off)",
     "stepName": "day_off_nextweek",
     "bot": "dayTue",
-    "expected": {"survey": "end", "url": "$TODO_URL"},
+    "expected": {"survey": "end", "url": "https://www.notion.so/202c3573e510811a8ad9d8d284db96e1"},
     "dbExpected": {"active": false},
     "payloadOverride": {"daysSelected": ["2025-09-16"]}
   }
