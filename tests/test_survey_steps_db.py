@@ -21,6 +21,16 @@ CREATE_TABLE = (
     ")"
 )
 
+CREATE_TABLE_NO_UNIQUE = (
+    "CREATE TABLE IF NOT EXISTS n8n_survey_steps_missed ("
+    "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+    "session_id TEXT NOT NULL,"
+    "step_name TEXT NOT NULL,"
+    "completed BOOLEAN NOT NULL,"
+    "updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
+    ")"
+)
+
 
 def week_start_str():
     return (datetime.utcnow() - timedelta(days=1)).replace(microsecond=0).isoformat(" ")
@@ -93,6 +103,46 @@ async def test_pending_steps(tmp_path):
         f.write(f"Output: {pending}\n")
 
     assert pending == ["connects_thisweek", "workload_nextweek"]
+
+    await database.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_fetch_week_returns_latest(tmp_path):
+    log_file = tmp_path / "fetch_week_latest_log.txt"
+    log_file.write_text(
+        "Input: session=S1, step=workload_today, statuses False then True\n"
+    )
+
+    db_url = f"sqlite+aiosqlite:///{tmp_path}/test.db"
+    database = Database(db_url)
+    await database.connect()
+    await database.execute(CREATE_TABLE_NO_UNIQUE)
+    repo = SurveyStepsDB(db_url, db=database)
+
+    week_start = datetime.utcnow() - timedelta(days=1)
+    week_start_str = week_start.replace(microsecond=0).isoformat(" ")
+    first = (week_start + timedelta(hours=1)).isoformat(" ")
+    second = (week_start + timedelta(hours=2)).isoformat(" ")
+
+    await database.execute(
+        "INSERT INTO n8n_survey_steps_missed (session_id, step_name, completed, updated)"
+        " VALUES (:session_id, :step_name, :completed, :updated)",
+        {"session_id": "S1", "step_name": "workload_today", "completed": False, "updated": first},
+    )
+    await database.execute(
+        "INSERT INTO n8n_survey_steps_missed (session_id, step_name, completed, updated)"
+        " VALUES (:session_id, :step_name, :completed, :updated)",
+        {"session_id": "S1", "step_name": "workload_today", "completed": True, "updated": second},
+    )
+
+    records = await repo.fetch_week("S1", week_start_str)
+    with open(log_file, "a") as f:
+        f.write("Step: insert duplicates and fetch\n")
+        f.write(f"Output: {records}\n")
+
+    assert len(records) == 1
+    assert bool(records[0]["completed"]) is True
 
     await database.disconnect()
 
