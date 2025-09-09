@@ -103,7 +103,11 @@ async def test_survey_scenario(monkeypatch, scenario_path):
     responses_path = ROOT / notion_cfg["file"]
     lookup_data = load_notion_lookup(responses_path)
 
+    log = logging.getLogger("test")
+
     async def lookup(channel_id):
+        log.debug("notion lookup", extra={"channel": channel_id})
+        log.debug("notion lookup response", extra={"result": lookup_data})
         return lookup_data
 
     monkeypatch.setattr(router._notio, "find_team_directory_by_channel", lookup)
@@ -111,9 +115,9 @@ async def test_survey_scenario(monkeypatch, scenario_path):
     steps = json.load(open(scenario_path / "steps.json"))
     handler_outputs = {s["stepName"]: s["bot"] for s in steps}
     for name, output in handler_outputs.items():
-        async def handler(payload, _out=output):
+        async def fake_handler(payload, _out=output):
             return _out
-        monkeypatch.setitem(router.HANDLERS, name, handler)
+        monkeypatch.setitem(router.HANDLERS, name, fake_handler)
 
     step_order = [s["stepName"] for s in steps]
     router.survey_manager.surveys.clear()
@@ -121,7 +125,13 @@ async def test_survey_scenario(monkeypatch, scenario_path):
 
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     log_file = LOG_DIR / f"{scenario_path.name}.log"
-    with log_file.open("w") as log:
+    file_handler = logging.FileHandler(log_file)
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    file_handler.setFormatter(formatter)
+    log.setLevel(logging.DEBUG)
+    log.addHandler(file_handler)
+
+    try:
         for step in steps:
             payload = load_payload_example(step["title"])
             payload["userId"] = "321"
@@ -130,15 +140,24 @@ async def test_survey_scenario(monkeypatch, scenario_path):
             payload["result"]["stepName"] = step["stepName"]
             if "payloadOverride" in step:
                 payload["result"].update(step["payloadOverride"])
+
+            log.info("step start", extra={"step": step["stepName"]})
+            log.debug("dispatch payload", extra={"payload": payload})
             response = await router.dispatch(payload)
-            log.write(json.dumps({"payload": payload, "response": response}) + "\n")
+            active = router.survey_manager.get_survey("123") is not None
+            log.debug("dispatch response", extra={"response": response, "survey_active": active})
+            log.info("step done", extra={"step": step["stepName"]})
+
             expected = {"output": step["bot"], **step["expected"]}
             if "$TODO_URL" in json.dumps(expected):
                 todo_url = lookup_data["results"][0]["to_do"]
                 expected = json.loads(json.dumps(expected).replace("$TODO_URL", todo_url))
             assert response == expected
-            active = step["dbExpected"]["active"]
-            if active:
-                assert router.survey_manager.get_survey("123") is not None
+            active_expected = step["dbExpected"]["active"]
+            if active_expected:
+                assert active
             else:
-                assert router.survey_manager.get_survey("123") is None
+                assert not active
+    finally:
+        log.removeHandler(file_handler)
+        file_handler.close()
