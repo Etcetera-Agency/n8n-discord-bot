@@ -2,6 +2,7 @@ from services.session import session_manager
 from services.survey import survey_manager, SurveyFlow
 from services.webhook import webhook_service, HttpSession, WebhookError
 from services.notion_connector import NotionConnector, NotionError
+from services.calendar_connector import CalendarConnector, CalendarError
 
 __all__ = [
     'session_manager',
@@ -11,5 +12,7 @@ __all__ = [
     'HttpSession',
     'WebhookError',
     'NotionConnector',
-    'NotionError'
+    'NotionError',
+    'CalendarConnector',
+    'CalendarError',
 ]

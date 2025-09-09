@@ -19,6 +19,10 @@ class Config:
     NOTION_TEAM_DIRECTORY_DB_ID: str = os.getenv("NOTION_TEAM_DIRECTORY_DB_ID", "")
     NOTION_WORKLOAD_DB_ID: str = os.getenv("NOTION_WORKLOAD_DB_ID", "")
     NOTION_PROFILE_STATS_DB_ID: str = os.getenv("NOTION_PROFILE_STATS_DB_ID", "")
+
+    # Calendar configuration
+    CALENDAR_TOKEN: str = os.getenv("CALENDAR_TOKEN", "")
+    CALENDAR_ID: str = os.getenv("CALENDAR_ID", "")
     
     # Session configuration
     SESSION_TTL: int = int(os.getenv("SESSION_TTL", "86400"))  # 24 hours default
