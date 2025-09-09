@@ -32,18 +32,19 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as exc:  # pragma: no cover - defensive
         logger.error("Notion lookup failed: %s", exc)
         return {"output": str(exc)}
+    if not user:
+        return {"output": "Користувач не знайдений"}
 
-    if user:
-        payload["userId"] = user.get("discord_id", payload.get("userId"))
-        payload["author"] = user.get("name", payload.get("author"))
-        todo_url = user.get("to_do")
+    payload["userId"] = user.get("discord_id", payload.get("userId"))
+    payload["author"] = user.get("name", payload.get("author"))
+    todo_url = user.get("to_do")
 
-        if payload.get("command") == "register":
-            if user.get("is_public"):
-                return {"output": "Публічні канали не можна реєструвати."}
-            chan = str(user.get("channel_id", ""))
-            if chan and len(chan) == 19:
-                return {"output": "Канал вже зареєстрований на когось іншого."}
+    if payload.get("command") == "register":
+        if user.get("is_public"):
+            return {"output": "Публічні канали не можна реєструвати."}
+        chan = str(user.get("channel_id", ""))
+        if chan and len(chan) == 19:
+            return {"output": "Канал вже зареєстрований на когось іншого."}
 
     user_id = payload.get("userId", "")
     active = any(s.user_id == user_id for s in survey_manager.surveys.values())

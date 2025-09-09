@@ -179,3 +179,25 @@ async def test_dispatch_survey_continue(tmp_path, monkeypatch):
         f.write(f"Output: {result}\n")
     assert result == {"output": "step1", "survey": "continue", "next_step": "step2"}
     assert survey_manager.get_survey("123") is not None
+
+
+@pytest.mark.asyncio
+async def test_dispatch_user_not_found(tmp_path, monkeypatch):
+    log = tmp_path / "user_not_found_log.txt"
+    log.write_text("Input: user-not-found\n")
+
+    async def empty_lookup(channel_id):
+        data = load_notion_lookup()
+        data["results"] = []
+        return data
+
+    monkeypatch.setattr(router._notio, "find_team_directory_by_channel", empty_lookup)
+    payload = load_payload_example("Generic Slash Command Payload")
+    payload.update({"command": "dummy", "result": {}})
+    payload["channelId"] = "123"
+    payload["userId"] = "321"
+    payload["sessionId"] = "123_321"
+    result = await router.dispatch(payload)
+    with open(log, "a") as f:
+        f.write(f"Output: {result}\n")
+    assert result == {"output": "Користувач не знайдений"}

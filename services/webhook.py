@@ -1,11 +1,8 @@
-import uuid
 import asyncio
-import aiohttp
 import discord
-import os
 from typing import Dict, Any, Tuple, Optional, Union
 from discord.ext import commands
-from config import Config, logger, Strings # Added Strings
+from config import logger, Strings
 from services.session import session_manager
 from services.survey import survey_manager
 from . import router
@@ -16,6 +13,7 @@ SURVEYS = None
 ask_dynamic_step = None
 finish_survey = None
 
+
 def initialize_survey_functions(surveys_dict, ask_step_func, finish_survey_func):
     """Initialize survey-related globals and functions to avoid circular imports."""
     global SURVEYS, ask_dynamic_step, finish_survey
@@ -23,87 +21,17 @@ def initialize_survey_functions(surveys_dict, ask_step_func, finish_survey_func)
     ask_dynamic_step = ask_step_func
     finish_survey = finish_survey_func
 
+
 class WebhookError(Exception):
     """Exception raised for webhook-related errors."""
     pass
 
-class HttpSession:
-    """
-    Context manager for HTTP sessions.
-    Ensures proper cleanup of resources.
-    """
-    def __init__(self):
-        """Initialize the HTTP session."""
-        self.session = None
-
-    async def __aenter__(self) -> aiohttp.ClientSession:
-        """
-        Create and return a new aiohttp ClientSession.
-
-        Returns:
-            An aiohttp ClientSession instance
-        """
-        connector = aiohttp.TCPConnector(
-            limit=50,
-            ttl_dns_cache=60,
-            force_close=False,
-            enable_cleanup_closed=True
-        )
-        self.session = aiohttp.ClientSession(connector=connector)
-        return self.session
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        """
-        Close the aiohttp ClientSession.
-
-        Args:
-            exc_type: Exception type
-            exc_val: Exception value
-            exc_tb: Exception traceback
-        """
-        if self.session and not self.session.closed:
-            await self.session.close()
-
 
 class WebhookService:
-    """
-    Service for handling webhook communications with n8n.
-    """
+    """Service for handling internal webhook dispatch."""
+
     def __init__(self):
-        """Initialize the webhook service."""
         logger.info("Initializing WebhookService")
-        self.url = Config.N8N_WEBHOOK_URL
-        self.auth_token = Config.WEBHOOK_AUTH_TOKEN
-        logger.info(f"Webhook URL configured: {bool(self.url)}")
-        logger.info(f"Auth token configured: {bool(self.auth_token)}")
-        self.http_session: Optional[aiohttp.ClientSession] = None
-
-    async def initialize(self) -> None:
-        """Initialize the HTTP session."""
-        try:
-            logger.info("Initializing HTTP session...")
-            connector = aiohttp.TCPConnector(limit=10, ttl_dns_cache=300)
-            self.http_session = aiohttp.ClientSession(connector=connector)
-            logger.info("Successfully initialized webhook service HTTP session")
-            # Test connectivity
-            try:
-                async with self.http_session.get("https://httpbin.org/get") as resp:
-                    logger.info(f"HTTP test request status: {resp.status}")
-            except Exception as e:
-                logger.error(f"HTTP connectivity test failed: {e}")
-        except Exception as e:
-            logger.error(f"Failed to initialize HTTP session: {e}")
-            raise
-
-    async def close(self) -> None:
-        """Close the HTTP session."""
-        if self.http_session and not self.http_session.closed:
-            try:
-                logger.info("Closing HTTP session...")
-                await self.http_session.close()
-                logger.info("Successfully closed webhook service HTTP session")
-            except Exception as e:
-                logger.error(f"Error closing HTTP session: {e}")
 
     def build_payload(
         self,
@@ -260,13 +188,6 @@ class WebhookService:
             channel_name=channel_name, # Pass channel_name
             timestamp=timestamp # Pass timestamp
         )
-
-        # Set up headers
-        headers = {} # Initialize headers dictionary
-        if self.auth_token:
-            headers["Authorization"] = f"Bearer {self.auth_token}"
-        if extra_headers:
-            headers.update(extra_headers)
 
         logger.info(f"Dispatching payload via router for command: {command}")
         data = await router.dispatch(payload)
