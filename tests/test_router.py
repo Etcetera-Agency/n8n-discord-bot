@@ -201,3 +201,29 @@ async def test_dispatch_user_not_found(tmp_path, monkeypatch):
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
     assert result == {"output": "Користувач не знайдений"}
+
+
+def test_parse_prefix_register(tmp_path):
+    log = tmp_path / "parse_register_log.txt"
+    payload = load_payload_example("!register Command Payload")
+    message = payload["message"]
+    log.write_text(f"Input: {message}\n")
+    with open(log, "a") as f:
+        f.write("Step: parse_prefix\n")
+    result = router.parse_prefix(message)
+    with open(log, "a") as f:
+        f.write(f"Output: {result}\n")
+    assert result == {"command": "register", "result": {"text": payload["result"]["text"]}}
+
+
+def test_parse_prefix_unregister(tmp_path):
+    log = tmp_path / "parse_unregister_log.txt"
+    payload = load_payload_example("!unregister Command Payload")
+    message = payload["message"]
+    log.write_text(f"Input: {message}\n")
+    with open(log, "a") as f:
+        f.write("Step: parse_prefix\n")
+    result = router.parse_prefix(message)
+    with open(log, "a") as f:
+        f.write(f"Output: {result}\n")
+    assert result == {"command": "unregister", "result": {}}

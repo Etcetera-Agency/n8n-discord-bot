@@ -33,6 +33,29 @@ sys.modules["google.auth.transport.requests"] = requests_mod
 sys.modules["google.oauth2"] = oauth2
 sys.modules["google.oauth2.service_account"] = service_account
 
+class DummyConfig:
+    CALENDAR_ID = ""
+    GOOGLE_SERVICE_ACCOUNT_B64 = ""
+    NOTION_TEAM_DIRECTORY_DB_ID = ""
+    NOTION_TOKEN = ""
+    NOTION_WORKLOAD_DB_ID = ""
+    NOTION_PROFILE_STATS_DB_ID = ""
+    N8N_WEBHOOK_URL = ""
+    WEBHOOK_AUTH_TOKEN = ""
+    SESSION_TTL = 1
+
+config_pkg = types.ModuleType("config")
+config_pkg.Config = DummyConfig
+config_pkg.logger = logging.getLogger("test")
+config_pkg.Strings = object()
+config_pkg.WebhookService = object()
+
+config_sub = types.ModuleType("config.config")
+config_sub.Config = DummyConfig
+
+sys.modules["config"] = config_pkg
+sys.modules["config.config"] = config_sub
+
 import calendar_connector as cc
 from calendar_connector import CalendarConnector
 from config.config import Config

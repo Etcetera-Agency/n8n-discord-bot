@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Callable, Awaitable, Dict
+from typing import Any, Callable, Awaitable, Dict, Optional
 
 from services.notion_connector import NotionConnector
 from services.survey import survey_manager
@@ -23,8 +23,24 @@ HANDLERS: Dict[str, Callable[[Dict[str, Any]], Awaitable[str]]] = {
 _notio = NotionConnector()
 
 
+def parse_prefix(message: str) -> Optional[Dict[str, Any]]:
+    """Parse `!` prefix commands from a message string."""
+    if not message:
+        return None
+    if message.startswith("!register"):
+        name = message[len("!register") :].strip()
+        return {"command": "register", "result": {"text": name}}
+    if message.startswith("!unregister"):
+        return {"command": "unregister", "result": {}}
+    return None
+
+
 async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Route payloads to internal handlers."""
+    prefix = parse_prefix(payload.get("message", ""))
+    if prefix:
+        payload.update(prefix)
+
     todo_url = None
     try:
         result = await _notio.find_team_directory_by_channel(payload["channelId"])
