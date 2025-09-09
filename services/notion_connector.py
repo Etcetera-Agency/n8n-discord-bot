@@ -185,6 +185,19 @@ class NotionConnector:
         }
         return await self.query_database(Config.NOTION_TEAM_DIRECTORY_DB_ID, filter, mapping)
 
+    async def find_team_directory_by_name(self, name: str) -> Dict[str, Any]:
+        filter = {"property": "Name", "title": {"equals": name}}
+        mapping = {
+            "name": "Name",
+            "discord_id": "Discord ID",
+            "channel_id": "Discord channel ID",
+            "to_do": "ToDo",
+            "is_public": "is_public",
+        }
+        return await self.query_database(
+            Config.NOTION_TEAM_DIRECTORY_DB_ID, filter, mapping
+        )
+
     async def update_team_directory_ids(
         self, page_id: str, discord_id: str, channel_id: str
     ) -> Dict[str, str]:

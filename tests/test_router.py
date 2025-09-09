@@ -217,6 +217,37 @@ async def test_dispatch_user_not_found(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_dispatch_register(tmp_path, monkeypatch):
+    log = tmp_path / "register_e2e_log.txt"
+    payload = load_payload_example("!register Command Payload")
+    payload["userId"] = "321"
+    payload["channelId"] = "123"
+    payload["sessionId"] = "123_321"
+    log.write_text(f"Input: {payload}\n")
+
+    data = load_notion_lookup()
+    data["results"][0]["discord_id"] = ""
+    data["results"][0]["channel_id"] = ""
+
+    async def router_lookup(channel_id):
+        return data
+
+    async def fake_find_channel(cid):
+        return {"results": []}
+
+    async def fake_find_name(name):
+        return {"results": [{"id": "abc", "discord_id": "", "channel_id": ""}]}
+
+    async def fake_update(pid, uid, cid):
+        return {"status": "ok"}
+
+    import services.cmd.register as reg
+    monkeypatch.setattr(router._notio, "find_team_directory_by_channel", router_lookup)
+    monkeypatch.setattr(reg._notio, "find_team_directory_by_channel", fake_find_channel)
+    monkeypatch.setattr(reg._notio, "find_team_directory_by_name", fake_find_name)
+    monkeypatch.setattr(reg._notio, "update_team_directory_ids", fake_update)
+    
+@pytest.mark.asyncio    
 async def test_dispatch_unregister(tmp_path, monkeypatch):
     log = tmp_path / "dispatch_unregister_log.txt"
     payload = load_payload_example("!unregister Command Payload")
@@ -242,7 +273,7 @@ async def test_dispatch_unregister(tmp_path, monkeypatch):
     result = await router.dispatch(payload)
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
-
+    assert result == {"output": "Канал успішно зареєстровано на User Name"}
     assert result == {"output": "Готово. Тепер цей канал не зареєстрований ні на кого."}
     assert called == [lookup["results"][0]["id"]]
 
