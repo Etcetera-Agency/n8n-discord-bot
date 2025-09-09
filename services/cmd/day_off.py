@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from config import Config, logger
+from config import Config
 from services.calendar_connector import CalendarConnector
+from services.logging_utils import get_logger
 try:  # pragma: no cover - optional dependency
     from services.survey_steps_db import SurveyStepsDB
 except Exception:  # pragma: no cover - databases package missing
@@ -23,6 +24,8 @@ async def _mark_step(channel_id: str, step: str) -> None:
 async def handle(payload: Dict[str, Any]) -> str:
     """Record day-off dates for the current or next week."""
 
+    log = get_logger("day_off", payload)
+    log.info("start")
     try:
         value = (
             payload.get("result", {}).get("value")
@@ -33,34 +36,38 @@ async def handle(payload: Dict[str, Any]) -> str:
             step = payload.get("result", {}).get("stepName")
         if value == "Nothing" or not value:
             await _mark_step(payload.get("channelId", ""), step)
+            log.info("done", extra={"output": "Записав! Вихідних нема"})
             return "Записав! Вихідних нема"
         if isinstance(value, str):
             value = [value]
         author = payload.get("author", "")
         for day in value:
             if not is_valid_iso_date(day):
-                logger.error("Invalid day-off date provided: %s", day)
+                log.error("Invalid day-off date provided", extra={"day": day})
                 return f"Некоректна дата: {day}"
             try:
                 resp = await calendar.create_day_off_event(author, day)
             except Exception:  # pragma: no cover - defensive
-                logger.exception("create_day_off_event failed for %s", day)
+                log.exception("create_day_off_event failed", extra={"day": day})
                 return "Спробуй трохи піздніше. Я тут пораюсь по хаті."
             if resp.get("status") != "ok":
                 msg = resp.get("message", "")
-                logger.error("Calendar error for %s: %s", day, msg)
+                log.error("Calendar error", extra={"day": day, "error": msg})
                 return msg or "Спробуй трохи піздніше. Я тут пораюсь по хаті."
         await _mark_step(payload.get("channelId", ""), step)
         if len(value) == 1:
-            return (
+            result = (
                 f"Вихідний: {format_date_ua(value[0])} записано.\n"
                 "Не забудь попередити клієнтів."
             )
-        formatted = ", ".join(format_date_ua(v) for v in value)
-        return (
-            f"Вихідні: {formatted} записані.\n"
-            "Не забудь попередити клієнтів."
-        )
+        else:
+            formatted = ", ".join(format_date_ua(v) for v in value)
+            result = (
+                f"Вихідні: {formatted} записані.\n"
+                "Не забудь попередити клієнтів."
+            )
+        log.info("done", extra={"output": result})
+        return result
     except Exception:  # pragma: no cover - defensive
-        logger.exception("Unexpected error in day_off.handle")
+        log.exception("failed")
         return "Спробуй трохи піздніше. Я тут пораюсь по хаті."

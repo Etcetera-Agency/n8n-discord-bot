@@ -175,7 +175,7 @@ async def test_dispatch_check_channel(tmp_path, monkeypatch):
     await database.disconnect()
     log_step(log, "DB disconnect")
 
-    monkeypatch.setattr(check_channel, "Config", types.SimpleNamespace(DATABASE_URL=db_url))
+    monkeypatch.setattr(check_channel.Config, "DATABASE_URL", db_url, raising=False)
 
     async def fake_lookup(channel_id):
         return {
