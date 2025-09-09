@@ -5,6 +5,7 @@ import json # Added for Notion ToDo JSON parsing
 from typing import Optional, List, Any # Added Any
 from config import ViewType, logger, Strings, Config, constants # Added constants
 from services import survey_manager, webhook_service
+from services.router import dispatch as router_dispatch
 from services.notion_todos import Notion_todos # Added for Notion ToDo fetching
 from services.survey import SurveyFlow # Added import
 # Removed factory import
@@ -146,24 +147,24 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
 
 
     # Check if channel is registered
-    payload = { # Payload for check_channel webhook
+    payload = {
         "command": "check_channel",
         "channelId": channel_id,
-        "sessionId": session_id # Added session_id
+        "sessionId": session_id,
     }
-    headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
-    headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
-    logger.info(f"First check_channel call for channel {channel_id} with payload: {payload}")
-    success, data = await webhook_service.send_webhook_with_retry(None, payload, headers)
-    # logger.debug(f"First check_channel webhook response: success={success}, raw_data={data}") # Log raw data at debug level
-    if not success or not data or str(data.get("output", "false")).lower() != "true":
-        logger.info(f"First check_channel webhook response: success={success}, raw_data={data}") # Log raw data
+    logger.info(
+        f"First check_channel dispatch for channel {channel_id} with payload: {payload}"
+    )
+    data = await router_dispatch(payload)
+    logger.info(f"check_channel dispatch returned: {data}")
+    output = data.get("output") if isinstance(data, dict) else None
+    if not output or not isinstance(output, dict) or not output.get("output"):
         logger.warning(f"Channel {channel_id} not registered for surveys")
         return
 
     # Check channel response data
-    steps = data.get("steps", []) if data else []
-    # logger.debug(f"Extracted steps from webhook data: {steps}") # Log extracted steps at debug level
+    steps = output.get("steps", [])
+    # logger.debug(f"Extracted steps from dispatch data: {steps}") # Log extracted steps at debug level
     channel = await bot.fetch_channel(channel_id)
     if not channel:
         logger.warning(f"Channel {channel_id} not found")

@@ -7,7 +7,7 @@ Implement `handle_check_channel` to report pending survey steps for the current 
 - Use `channelId` to query the `n8n_survey_steps_missed` table for this week.
 - Collect step names where `completed=false`.
 - Return the list of unique pending steps. If none are found, the list is empty.
-- Any database failure returns the generic error message.
+- Any database failure returns `{ "output": false, "message": "Спробуй трохи піздніше. Я тут пораюсь по хаті." }`.
 
 ### Input Variants
 - **No pending steps** – all required steps are completed for the week.
@@ -32,25 +32,29 @@ Implement `handle_check_channel` to report pending survey steps for the current 
 
 ### Output Variants
 - Success: `{ "output": true, "steps": [] }`
-- Error: `{ "output": "Спробуй трохи піздніше. Я тут пораюсь по хаті." }`
+- Error: `{ "output": false, "message": "Спробуй трохи піздніше. Я тут пораюсь по хаті." }`
 
 ## Steps
-1. Compute start of the current week (Monday 00:00 UTC).
+1. Compute start of the current week (Monday 00:00 in Europe/Kyiv).
 2. **Read from Postgres** – `SELECT step_name, completed, updated FROM n8n_survey_steps_missed` filtering by `session_id` and `updated >= week_start`.
 3. Collect step names with `completed=false` and remove duplicates.
-4. Return `{ "output": true, "steps": pending_steps }` or the error message if the query fails.
+4. Return `{ "output": true, "steps": pending_steps }` or `{ "output": false, "message": ... }` if the query fails.
+5. Close the database connection in a `finally` block if it was created inside the handler.
 
 ## Pseudocode
 ```python
 async def handle_check_channel(payload):
+    db = SurveyStepsDB(DATABASE_URL)
     try:
-        repo = SurveyStepsDB(DATABASE_URL)
-        start = start_of_week()
-        records = await repo.fetch_week(payload["channelId"], start)
+        now = now_in_kyiv()
+        start = start_of_week(now)
+        records = await db.fetch_week(payload["channelId"], start)
         steps = [r["step_name"] for r in records if not r["completed"]]
         return {"output": True, "steps": list(dict.fromkeys(steps))}
     except Exception:
-        return {"output": "Спробуй трохи піздніше. Я тут пораюсь по хаті."}
+        return {"output": False, "message": "Спробуй трохи піздніше. Я тут пораюсь по хаті."}
+    finally:
+        await db.close()
 ```
 
 ## Tests
