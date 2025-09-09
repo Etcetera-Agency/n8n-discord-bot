@@ -203,6 +203,45 @@ async def test_dispatch_user_not_found(tmp_path, monkeypatch):
     assert result == {"output": "Користувач не знайдений"}
 
 
+@pytest.mark.asyncio
+async def test_dispatch_register(tmp_path, monkeypatch):
+    log = tmp_path / "register_e2e_log.txt"
+    payload = load_payload_example("!register Command Payload")
+    payload["userId"] = "321"
+    payload["channelId"] = "123"
+    payload["sessionId"] = "123_321"
+    log.write_text(f"Input: {payload}\n")
+
+    data = load_notion_lookup()
+    data["results"][0]["discord_id"] = ""
+    data["results"][0]["channel_id"] = ""
+
+    async def router_lookup(channel_id):
+        return data
+
+    async def fake_find_channel(cid):
+        return {"results": []}
+
+    async def fake_find_name(name):
+        return {"results": []}
+
+    async def fake_create(name, uid, cid):
+        return {"url": "https://www.notion.so/new"}
+
+    import services.cmd.register as reg
+    monkeypatch.setattr(router._notio, "find_team_directory_by_channel", router_lookup)
+    monkeypatch.setattr(reg._notio, "find_team_directory_by_channel", fake_find_channel)
+    monkeypatch.setattr(reg._notio, "find_team_directory_by_name", fake_find_name)
+    monkeypatch.setattr(reg._notio, "create_team_directory_page", fake_create)
+
+    with open(log, "a") as f:
+        f.write("Step: dispatch\n")
+    result = await router.dispatch(payload)
+    with open(log, "a") as f:
+        f.write(f"Output: {result}\n")
+    assert result == {"output": "Канал успішно зареєстровано на User Name"}
+
+
 def test_parse_prefix_register(tmp_path):
     log = tmp_path / "parse_register_log.txt"
     payload = load_payload_example("!register Command Payload")
