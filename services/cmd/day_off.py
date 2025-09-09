@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from config import Config
+from config import Config, logger
 from services.calendar_connector import CalendarConnector
 try:  # pragma: no cover - optional dependency
     from services.survey_steps_db import SurveyStepsDB
 except Exception:  # pragma: no cover - databases package missing
     SurveyStepsDB = None
-from services.date_utils import format_date_ua
+from services.date_utils import format_date_ua, is_valid_iso_date
 
 calendar = CalendarConnector()
 db_url = getattr(Config, "DATABASE_URL", "")
@@ -38,9 +38,18 @@ async def handle(payload: Dict[str, Any]) -> str:
             value = [value]
         author = payload.get("author", "")
         for day in value:
-            resp = await calendar.create_day_off_event(author, day)
+            if not is_valid_iso_date(day):
+                logger.error("Invalid day-off date provided: %s", day)
+                return f"Некоректна дата: {day}"
+            try:
+                resp = await calendar.create_day_off_event(author, day)
+            except Exception:  # pragma: no cover - defensive
+                logger.exception("create_day_off_event failed for %s", day)
+                return "Спробуй трохи піздніше. Я тут пораюсь по хаті."
             if resp.get("status") != "ok":
-                raise RuntimeError(resp.get("message"))
+                msg = resp.get("message", "")
+                logger.error("Calendar error for %s: %s", day, msg)
+                return msg or "Спробуй трохи піздніше. Я тут пораюсь по хаті."
         await _mark_step(payload.get("channelId", ""), step)
         if len(value) == 1:
             return (
@@ -52,5 +61,6 @@ async def handle(payload: Dict[str, Any]) -> str:
             f"Вихідні: {formatted} записані.\n"
             "Не забудь попередити клієнтів."
         )
-    except Exception:
+    except Exception:  # pragma: no cover - defensive
+        logger.exception("Unexpected error in day_off.handle")
         return "Спробуй трохи піздніше. Я тут пораюсь по хаті."

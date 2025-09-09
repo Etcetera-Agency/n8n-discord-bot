@@ -208,5 +208,93 @@ async def test_calendar_error(tmp_path, monkeypatch):
 
     assert cal.calls == [(load_author(), "2024-02-05")]
     assert steps.calls == []
-    assert out == "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+    assert out == "boom"
+
+
+@pytest.mark.asyncio
+async def test_single_string_value(tmp_path, monkeypatch):
+    log = tmp_path / "single_string_log.txt"
+    log.write_text("Input: single string value\n")
+
+    cal = DummyCalendar()
+    steps = DummySteps()
+    monkeypatch.setattr(day_off, "calendar", cal)
+    monkeypatch.setattr(day_off, "_steps_db", steps)
+
+    payload = load_payload_example("Day Off Slash Command Payload (e.g., /day_off_nextweek)")
+    payload["command"] = "day_off_thisweek"
+    payload["result"]["value"] = "2024-02-05"
+    payload["author"] = load_author()
+    payload["channelId"] = "123"
+
+    with open(log, "a") as f:
+        f.write("Step: handle\n")
+    out = await day_off.handle(payload)
+    with open(log, "a") as f:
+        f.write(f"Output: {out}\n")
+
+    assert cal.calls == [(load_author(), "2024-02-05")]
+    assert steps.calls == [("123", "day_off_thisweek", True)]
+    expected = f"Вихідний: {format_date_ua('2024-02-05')} записано.\nНе забудь попередити клієнтів."
+    assert out == expected
+
+
+@pytest.mark.asyncio
+async def test_days_selected_key(tmp_path, monkeypatch):
+    log = tmp_path / "days_selected_log.txt"
+    log.write_text("Input: daysSelected key\n")
+
+    cal = DummyCalendar()
+    steps = DummySteps()
+    monkeypatch.setattr(day_off, "calendar", cal)
+    monkeypatch.setattr(day_off, "_steps_db", steps)
+
+    payload = load_payload_example("Day Off Slash Command Payload (e.g., /day_off_nextweek)")
+    payload["command"] = "day_off_nextweek"
+    payload["result"].pop("value", None)
+    payload["result"]["daysSelected"] = ["2024-02-05", "2024-02-06"]
+    payload["author"] = load_author()
+    payload["channelId"] = "123"
+
+    with open(log, "a") as f:
+        f.write("Step: handle\n")
+    out = await day_off.handle(payload)
+    with open(log, "a") as f:
+        f.write(f"Output: {out}\n")
+
+    assert cal.calls == [
+        (load_author(), "2024-02-05"),
+        (load_author(), "2024-02-06"),
+    ]
+    assert steps.calls == [("123", "day_off_nextweek", True)]
+    formatted = ", ".join([format_date_ua("2024-02-05"), format_date_ua("2024-02-06")])
+    expected = f"Вихідні: {formatted} записані.\nНе забудь попередити клієнтів."
+    assert out == expected
+
+
+@pytest.mark.asyncio
+async def test_invalid_date_format(tmp_path, monkeypatch):
+    log = tmp_path / "invalid_date_log.txt"
+    log.write_text("Input: invalid date\n")
+
+    cal = DummyCalendar()
+    steps = DummySteps()
+    monkeypatch.setattr(day_off, "calendar", cal)
+    monkeypatch.setattr(day_off, "_steps_db", steps)
+
+    payload = load_payload_example("Day Off Slash Command Payload (e.g., /day_off_nextweek)")
+    payload["command"] = "day_off_nextweek"
+    payload["result"]["value"] = ["2024-02-30"]
+    payload["author"] = load_author()
+    payload["channelId"] = "123"
+
+    with open(log, "a") as f:
+        f.write("Step: handle\n")
+    out = await day_off.handle(payload)
+    with open(log, "a") as f:
+        f.write(f"Output: {out}\n")
+
+    assert cal.calls == []
+    assert steps.calls == []
+    assert out == "Некоректна дата: 2024-02-30"
 
