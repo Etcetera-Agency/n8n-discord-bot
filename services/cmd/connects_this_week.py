@@ -9,6 +9,7 @@ import aiohttp
 
 from config import Config
 from services.notion_connector import NotionConnector
+from services.logging_utils import get_logger
 
 try:  # pragma: no cover - optional dependency
     from services.survey_steps_db import SurveyStepsDB
@@ -21,14 +22,17 @@ ERROR_MESSAGE = "Спробуй трохи піздніше. Я тут пора�
 
 async def handle(payload: Dict[str, Any]) -> str:
     """Record weekly connects and update optional profile stats."""
+    log = get_logger()
     try:
         connects = int(payload["result"]["connects"])
+        log.debug("parsed connects", extra={"connects": connects})
 
         # mark survey step as completed using channel id as session id
         if SurveyStepsDB and Config.DATABASE_URL:
             db = SurveyStepsDB(Config.DATABASE_URL)
             try:
                 await db.upsert_step(payload["channelId"], "connects_thisweek", True)
+                log.info("step recorded")
             finally:
                 await db.close()
 
@@ -40,6 +44,7 @@ async def handle(payload: Dict[str, Any]) -> str:
             await session.post(
                 url, json={"name": payload["author"], "connects": connects}
             )
+        log.info("connects posted", extra={"url": url})
 
         # update profile stats in notion if page exists
         notion = NotionConnector()
@@ -49,13 +54,15 @@ async def handle(payload: Dict[str, Any]) -> str:
             page_id = results[0].get("id")
             try:
                 await notion.update_profile_stats_connects(page_id, connects)
+                log.info("notion stats updated", extra={"page_id": page_id})
             except Exception:  # pragma: no cover - best effort
-                pass
+                log.exception("update profile stats failed")
         await notion.close()
 
         return (
             f"Записав! Upwork connects: залишилось {connects} на цьому тиждні."
         )
     except Exception:
+        log.exception("connects_this_week failed")
         return ERROR_MESSAGE
 

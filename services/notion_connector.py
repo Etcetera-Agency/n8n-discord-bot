@@ -40,6 +40,7 @@ import aiohttp
 import asyncio
 
 from config import Config
+from services.logging_utils import get_logger
 
 
 class NotionError(Exception):
@@ -124,6 +125,8 @@ class NotionConnector:
     ) -> Dict[str, Any]:
         """Query a Notion database and return normalized results."""
 
+        log = get_logger("notion.query_database")
+        log.debug("request", extra={"database_id": database_id, "filter": filter})
         session = await self._get_session()
         url = f"https://api.notion.com/v1/databases/{database_id}/query"
         last_error: Any = None
@@ -134,12 +137,14 @@ class NotionConnector:
                 ) as resp:
                     data = await resp.json()
                     if resp.status == 200:
+                        log.debug("response", extra={"status": resp.status})
                         return normalize_query(data, mapping or {})
                     last_error = data
             except Exception as e:  # pragma: no cover - network errors
                 last_error = {"error": str(e)}
             if attempt < max_retries - 1:
                 await asyncio.sleep(retry_delay)
+        log.exception("failed")
         raise NotionError(last_error)
 
     async def update_page(
@@ -151,6 +156,8 @@ class NotionConnector:
     ) -> Dict[str, str]:
         """Update properties on a Notion page."""
 
+        log = get_logger("notion.update_page")
+        log.debug("request", extra={"page_id": page_id, "properties": properties})
         session = await self._get_session()
         url = f"https://api.notion.com/v1/pages/{page_id}"
         last_error: Any = None
@@ -161,12 +168,14 @@ class NotionConnector:
                 ) as resp:
                     data = await resp.json()
                     if resp.status == 200:
+                        log.debug("response", extra={"status": resp.status})
                         return {"status": "ok"}
                     last_error = data
             except Exception as e:  # pragma: no cover - network errors
                 last_error = {"error": str(e)}
             if attempt < max_retries - 1:
                 await asyncio.sleep(retry_delay)
+        log.exception("failed")
         raise NotionError(last_error)
 
     # --- Helper methods for specific databases ---

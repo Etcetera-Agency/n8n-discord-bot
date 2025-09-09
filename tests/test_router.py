@@ -61,7 +61,6 @@ class DummyConfig:
     NOTION_TOKEN = ""
     NOTION_WORKLOAD_DB_ID = ""
     NOTION_PROFILE_STATS_DB_ID = ""
-    N8N_WEBHOOK_URL = ""
     WEBHOOK_AUTH_TOKEN = ""
     SESSION_TTL = 1
 
@@ -273,7 +272,6 @@ async def test_dispatch_unregister(tmp_path, monkeypatch):
     result = await router.dispatch(payload)
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
-    assert result == {"output": "Канал успішно зареєстровано на User Name"}
     assert result == {"output": "Готово. Тепер цей канал не зареєстрований ні на кого."}
     assert called == [lookup["results"][0]["id"]]
 

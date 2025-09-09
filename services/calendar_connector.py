@@ -37,6 +37,7 @@ from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 
 from config import Config
+from services.logging_utils import get_logger
 
 
 class CalendarError(Exception):
@@ -94,6 +95,8 @@ class CalendarConnector:
         max_retries: int = 3,
         retry_delay: int = 20,
     ) -> Dict[str, Any]:
+        log = get_logger("calendar.create_event")
+        log.debug("request", extra={"payload": payload})
         session = await self._get_session()
         calendar_id = os.environ.get("CALENDAR_ID", Config.CALENDAR_ID)
         if not calendar_id:
@@ -105,12 +108,14 @@ class CalendarConnector:
                 async with session.post(url, headers=base_headers(), json=payload) as resp:
                     data = await resp.json()
                     if resp.status == 200:
+                        log.debug("response", extra={"status": resp.status})
                         return {"status": "ok", "event_id": data.get("id", "")}
                     last_error = data.get("error", "calendar unreachable")
             except Exception as e:  # pragma: no cover - network errors
                 last_error = str(e)
             if attempt < max_retries - 1:
                 await asyncio.sleep(retry_delay)
+        log.exception("failed")
         return {"status": "error", "message": last_error}
 
     async def create_day_off_event(self, user_name: str, date: str) -> Dict[str, Any]:
