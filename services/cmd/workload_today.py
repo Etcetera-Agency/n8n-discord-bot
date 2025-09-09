@@ -64,17 +64,23 @@ async def handle(payload: Dict[str, Any]) -> str:
         )
         idx = now.weekday()
         plan_field = f"{DAY_SHORT[idx]} Plan"
-        fact_field = f"{DAY_SHORT[idx]} Fact"
 
         filter = {"property": "Name", "title": {"equals": payload["author"]}}
-        mapping = {"capacity": "Capacity", "fact": fact_field}
+        mapping: Dict[str, str] = {"capacity": "Capacity"}
+        for i in range(idx + 1):
+            mapping[f"fact_{i}"] = f"{DAY_SHORT[i]} Fact"
         query = await _notio.query_database(
             Config.NOTION_WORKLOAD_DB_ID, filter, mapping
         )
-        page = query.get("results", [{}])[0]
+        results = query.get("results", [])
+        if not results:
+            return "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+        page = results[0]
         page_id = page.get("id", "")
         capacity = int(page.get("capacity", 0))
-        fact = int(page.get("fact", 0))
+        fact = int(
+            sum(float(page.get(f"fact_{i}", 0)) for i in range(idx + 1))
+        )
 
         await _notio.update_workload_day(page_id, plan_field, hours)
 
@@ -91,5 +97,5 @@ async def handle(payload: Dict[str, Any]) -> str:
             f"В щоденнику з понеділка до {day_gen}: {fact} год.\n"
             f"Капасіті на цей тиждень: {capacity} год."
         )
-    except Exception:  # pragma: no cover - broad catch for safety
+    except (NotionError, KeyError, ValueError, TypeError, IndexError):
         return "Спробуй трохи піздніше. Я тут пораюсь по хаті."
