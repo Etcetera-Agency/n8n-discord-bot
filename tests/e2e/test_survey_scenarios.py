@@ -59,6 +59,7 @@ databases_mod.Database = DummyDatabase
 sys.modules["databases"] = databases_mod
 
 import router
+from services.survey_steps_db import SurveyStepsDB
 
 SCENARIO_DIR = Path(__file__).parent / "surveys"
 LOG_DIR = Path(__file__).parent / "logs"
@@ -74,8 +75,15 @@ def anyio_backend():
 def load_payload_example(title: str) -> dict:
     text = (ROOT / "payload_examples.txt").read_text()
     start = text.index(title)
-    match = re.search(r"```json\n(.*?)\n```", text[start:], re.DOTALL)
-    return json.loads(match.group(1))
+    block = text[start:]
+    json_start = block.index("```json\n") + len("```json\n")
+    after = block[json_start:]
+    end_backticks = after.find("```")
+    end_heading = after.find("\n##")
+    candidates = [i for i in (end_backticks, end_heading) if i != -1]
+    end = min(candidates) if candidates else len(after)
+    json_text = after[:end]
+    return json.loads(json_text)
 
 
 def load_notion_lookup(responses_path: Path) -> dict:
@@ -120,18 +128,70 @@ async def test_survey_scenario(monkeypatch, scenario_path):
         monkeypatch.setitem(router.HANDLERS, name, fake_handler)
 
     step_order = [s["stepName"] for s in steps]
+
+    async def fake_fetch_week(self, channel_id, start):
+        return [
+            {"step_name": name, "completed": False, "updated": ""}
+            for name in step_order
+        ]
+    monkeypatch.setattr(SurveyStepsDB, "fetch_week", fake_fetch_week)
+
     router.survey_manager.surveys.clear()
-    router.survey_manager.create_survey("321", "123", step_order, "sess")
 
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     log_file = LOG_DIR / f"{scenario_path.name}.log"
+
+    class JsonFormatter(logging.Formatter):
+        def format(self, record):
+            data = {
+                "time": self.formatTime(record, self.datefmt),
+                "level": record.levelname,
+                "message": record.getMessage(),
+            }
+            for k, v in record.__dict__.items():
+                if k not in (
+                    "name",
+                    "msg",
+                    "args",
+                    "levelname",
+                    "levelno",
+                    "pathname",
+                    "filename",
+                    "module",
+                    "exc_info",
+                    "exc_text",
+                    "stack_info",
+                    "lineno",
+                    "funcName",
+                    "created",
+                    "msecs",
+                    "relativeCreated",
+                    "thread",
+                    "threadName",
+                    "processName",
+                    "process",
+                ):
+                    data[k] = v
+            return json.dumps(data, ensure_ascii=False)
+
     file_handler = logging.FileHandler(log_file)
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    file_handler.setFormatter(formatter)
+    file_handler.setFormatter(JsonFormatter())
     log.setLevel(logging.DEBUG)
     log.addHandler(file_handler)
 
     try:
+        check = load_payload_example("check_channel Command Payload")
+        check["userId"] = "321"
+        check["channelId"] = "123"
+        check["sessionId"] = "123_321"
+        log.info("step start", extra={"step": "check_channel"})
+        log.debug("dispatch payload", extra={"payload": check})
+        start_resp = await router.dispatch(check)
+        log.debug("dispatch response", extra={"response": start_resp})
+        log.info("step done", extra={"step": "check_channel"})
+        start_steps = start_resp["output"]["steps"]
+        router.survey_manager.create_survey("321", "123", start_steps, "123_321")
+
         for step in steps:
             payload = load_payload_example(step["title"])
             payload["userId"] = "321"
@@ -145,13 +205,17 @@ async def test_survey_scenario(monkeypatch, scenario_path):
             log.debug("dispatch payload", extra={"payload": payload})
             response = await router.dispatch(payload)
             active = router.survey_manager.get_survey("123") is not None
-            log.debug("dispatch response", extra={"response": response, "survey_active": active})
+            log.debug(
+                "dispatch response", extra={"response": response, "survey_active": active}
+            )
             log.info("step done", extra={"step": step["stepName"]})
 
             expected = {"output": step["bot"], **step["expected"]}
             if "$TODO_URL" in json.dumps(expected):
                 todo_url = lookup_data["results"][0]["to_do"]
-                expected = json.loads(json.dumps(expected).replace("$TODO_URL", todo_url))
+                expected = json.loads(
+                    json.dumps(expected).replace("$TODO_URL", todo_url)
+                )
             assert response == expected
             active_expected = step["dbExpected"]["active"]
             if active_expected:
