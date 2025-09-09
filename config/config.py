@@ -21,7 +21,7 @@ class Config:
     NOTION_PROFILE_STATS_DB_ID: str = os.getenv("NOTION_PROFILE_STATS_DB_ID", "")
 
     # Calendar configuration
-    CALENDAR_TOKEN: str = os.getenv("CALENDAR_TOKEN", "")
+    GOOGLE_SERVICE_ACCOUNT_B64: str = os.getenv("GOOGLE_SERVICE_ACCOUNT_B64", "")
     CALENDAR_ID: str = os.getenv("CALENDAR_ID", "")
 
     # Database configuration

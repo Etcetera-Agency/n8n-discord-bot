@@ -6,3 +6,5 @@ pytz==2024.1
 notion-client
 pytest-asyncio
 databases[sqlite]
+google-auth
+requests

@@ -1,4 +1,3 @@
-import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -9,6 +8,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "services"))
 
+import calendar_connector as cc
 from calendar_connector import CalendarConnector
 from config.config import Config
 
@@ -47,12 +47,12 @@ class DummySession:
 
 
 @pytest.mark.asyncio
-async def test_create_day_off_event_success(tmp_path):
+async def test_create_day_off_event_success(tmp_path, monkeypatch):
     log_file = tmp_path / "dayoff_success_log.txt"
     log_file.write_text("Input: user=Roman Lernichenko, date=2024-02-05\n")
 
-    os.environ["CALENDAR_TOKEN"] = "token"
     Config.CALENDAR_ID = "CAL_ID"
+    monkeypatch.setattr(cc, "base_headers", lambda: {"Authorization": "Bearer token"})
 
     session = DummySession()
     session.post_response = MockResponse(200, {"id": "CAL_EVENT_ID"})
@@ -74,12 +74,12 @@ async def test_create_day_off_event_success(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_create_day_off_event_failure(tmp_path):
+async def test_create_day_off_event_failure(tmp_path, monkeypatch):
     log_file = tmp_path / "dayoff_failure_log.txt"
     log_file.write_text("Input: user=Roman Lernichenko, date=2024-02-05\n")
 
-    os.environ["CALENDAR_TOKEN"] = "token"
     Config.CALENDAR_ID = "CAL_ID"
+    monkeypatch.setattr(cc, "base_headers", lambda: {"Authorization": "Bearer token"})
 
     session = DummySession()
     session.post_response = MockResponse(500, {"error": "down"})
@@ -96,12 +96,12 @@ async def test_create_day_off_event_failure(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_create_vacation_event_success(tmp_path):
+async def test_create_vacation_event_success(tmp_path, monkeypatch):
     log_file = tmp_path / "vacation_success_log.txt"
     log_file.write_text("Input: user=Roman Lernichenko, start=2024-02-05, end=2024-02-10\n")
 
-    os.environ["CALENDAR_TOKEN"] = "token"
     Config.CALENDAR_ID = "CAL_ID"
+    monkeypatch.setattr(cc, "base_headers", lambda: {"Authorization": "Bearer token"})
 
     session = DummySession()
     session.post_response = MockResponse(200, {"id": "VAC_EVENT_ID"})
@@ -128,12 +128,12 @@ async def test_create_vacation_event_success(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_create_vacation_event_failure(tmp_path):
+async def test_create_vacation_event_failure(tmp_path, monkeypatch):
     log_file = tmp_path / "vacation_failure_log.txt"
     log_file.write_text("Input: user=Roman Lernichenko, start=2024-02-05, end=2024-02-10\n")
 
-    os.environ["CALENDAR_TOKEN"] = "token"
     Config.CALENDAR_ID = "CAL_ID"
+    monkeypatch.setattr(cc, "base_headers", lambda: {"Authorization": "Bearer token"})
 
     session = DummySession()
     session.post_response = MockResponse(500, {"error": "down"})

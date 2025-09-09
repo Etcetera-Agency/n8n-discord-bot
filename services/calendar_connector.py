@@ -17,17 +17,23 @@ Pseudocode from Task02_CalendarConnector.md::
                 return {"status": "error", "message": data.get("error")}
             return {"status": "ok", "event_id": data["id"]}
 
-The implementation below follows this design and provides helpers for
-creating day-off and vacation events. Configuration values are read from
-``config.Config`` or environment variables.
+The implementation below follows this design but derives the OAuth token
+from a base64-encoded service account stored in the
+``GOOGLE_SERVICE_ACCOUNT_B64`` environment variable. Helpers are provided
+for creating day-off and vacation events, and configuration values are
+read from ``config.Config`` or environment variables.
 """
 
 from __future__ import annotations
 
+import base64
+import json
 import os
 from typing import Any, Dict, Optional
 
 import aiohttp
+from google.auth.transport.requests import Request
+from google.oauth2 import service_account
 
 from config import Config
 
@@ -36,13 +42,34 @@ class CalendarError(Exception):
     """Raised when the Calendar API cannot be reached or misconfigured."""
 
 
+_credentials: service_account.Credentials | None = None
+
+
+def _get_credentials() -> service_account.Credentials:
+    """Load service account credentials from base64 env variable."""
+
+    global _credentials
+    if _credentials is None:
+        b64 = os.environ.get(
+            "GOOGLE_SERVICE_ACCOUNT_B64", Config.GOOGLE_SERVICE_ACCOUNT_B64
+        )
+        if not b64:
+            raise CalendarError("GOOGLE_SERVICE_ACCOUNT_B64 is not configured")
+        raw = base64.b64decode(b64).decode("utf-8")
+        info = json.loads(raw)
+        info["private_key"] = info["private_key"].replace("\\n", "\n")
+        _credentials = service_account.Credentials.from_service_account_info(
+            info, scopes=["https://www.googleapis.com/auth/calendar"]
+        )
+    return _credentials
+
+
 def base_headers() -> Dict[str, str]:
     """Return headers required for all Calendar API requests."""
 
-    token = os.environ.get("CALENDAR_TOKEN", Config.CALENDAR_TOKEN)
-    if not token:
-        raise CalendarError("CALENDAR_TOKEN is not configured")
-    return {"Authorization": f"Bearer {token}"}
+    creds = _get_credentials()
+    creds.refresh(Request())
+    return {"Authorization": f"Bearer {creds.token}"}
 
 
 class CalendarConnector:
