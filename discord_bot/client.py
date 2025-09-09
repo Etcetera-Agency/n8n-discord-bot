@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-import asyncio
 from config import Config, logger
 from discord_bot.commands import PrefixCommands, SlashCommands, EventHandlers
 from services.webhook import WebhookService
@@ -19,9 +18,8 @@ def create_bot() -> commands.Bot:
     # Create bot instance
     bot = commands.Bot(command_prefix="!", intents=intents)
     
-    # Initialize webhook service
+    # Initialize webhook service (internal dispatcher; no HTTP init required)
     bot.webhook_service = WebhookService()
-    asyncio.create_task(bot.webhook_service.initialize())
     
     # Register commands and event handlers
     prefix_commands = PrefixCommands(bot)
