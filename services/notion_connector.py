@@ -37,6 +37,7 @@ import os
 from typing import Any, Dict, Optional
 
 import aiohttp
+import asyncio
 
 from config import Config
 
@@ -77,6 +78,8 @@ def _extract_property(prop: Dict[str, Any], field_name: str) -> Any:
         return "".join(t.get("plain_text", "") for t in texts)
     if "number" in prop:
         return prop.get("number") or 0
+    if "checkbox" in prop:
+        return prop.get("checkbox", False)
     return ""
 
 
@@ -116,27 +119,55 @@ class NotionConnector:
         database_id: str,
         filter: Dict[str, Any],
         mapping: Optional[Dict[str, str]] = None,
+        max_retries: int = 3,
+        retry_delay: int = 20,
     ) -> Dict[str, Any]:
         """Query a Notion database and return normalized results."""
 
         session = await self._get_session()
         url = f"https://api.notion.com/v1/databases/{database_id}/query"
-        async with session.post(url, headers=base_headers(), json={"filter": filter}) as resp:
-            data = await resp.json()
-            if resp.status != 200:
-                raise NotionError(data)
-        return normalize_query(data, mapping or {})
+        last_error: Any = None
+        for attempt in range(max_retries):
+            try:
+                async with session.post(
+                    url, headers=base_headers(), json={"filter": filter}
+                ) as resp:
+                    data = await resp.json()
+                    if resp.status == 200:
+                        return normalize_query(data, mapping or {})
+                    last_error = data
+            except Exception as e:  # pragma: no cover - network errors
+                last_error = {"error": str(e)}
+            if attempt < max_retries - 1:
+                await asyncio.sleep(retry_delay)
+        raise NotionError(last_error)
 
-    async def update_page(self, page_id: str, properties: Dict[str, Any]) -> Dict[str, str]:
+    async def update_page(
+        self,
+        page_id: str,
+        properties: Dict[str, Any],
+        max_retries: int = 3,
+        retry_delay: int = 20,
+    ) -> Dict[str, str]:
         """Update properties on a Notion page."""
 
         session = await self._get_session()
         url = f"https://api.notion.com/v1/pages/{page_id}"
-        async with session.patch(url, headers=base_headers(), json={"properties": properties}) as resp:
-            data = await resp.json()
-            if resp.status != 200:
-                raise NotionError(data)
-        return {"status": "ok"}
+        last_error: Any = None
+        for attempt in range(max_retries):
+            try:
+                async with session.patch(
+                    url, headers=base_headers(), json={"properties": properties}
+                ) as resp:
+                    data = await resp.json()
+                    if resp.status == 200:
+                        return {"status": "ok"}
+                    last_error = data
+            except Exception as e:  # pragma: no cover - network errors
+                last_error = {"error": str(e)}
+            if attempt < max_retries - 1:
+                await asyncio.sleep(retry_delay)
+        raise NotionError(last_error)
 
     # --- Helper methods for specific databases ---
 
@@ -150,6 +181,7 @@ class NotionConnector:
             "discord_id": "Discord ID",
             "channel_id": "Discord channel ID",
             "to_do": "ToDo",
+            "is_public": "is_public",
         }
         return await self.query_database(Config.NOTION_TEAM_DIRECTORY_DB_ID, filter, mapping)
 

@@ -32,6 +32,7 @@ import os
 from typing import Any, Dict, Optional
 
 import aiohttp
+import asyncio
 from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 
@@ -87,20 +88,30 @@ class CalendarConnector:
         if self.session and not getattr(self.session, "closed", False):
             await self.session.close()
 
-    async def _create_event(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    async def _create_event(
+        self,
+        payload: Dict[str, Any],
+        max_retries: int = 3,
+        retry_delay: int = 20,
+    ) -> Dict[str, Any]:
         session = await self._get_session()
         calendar_id = os.environ.get("CALENDAR_ID", Config.CALENDAR_ID)
         if not calendar_id:
             raise CalendarError("CALENDAR_ID is not configured")
         url = f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events"
-        async with session.post(url, headers=base_headers(), json=payload) as resp:
-            data = await resp.json()
-            if resp.status != 200:
-                return {
-                    "status": "error",
-                    "message": data.get("error", "calendar unreachable"),
-                }
-            return {"status": "ok", "event_id": data.get("id", "")}
+        last_error: Any = None
+        for attempt in range(max_retries):
+            try:
+                async with session.post(url, headers=base_headers(), json=payload) as resp:
+                    data = await resp.json()
+                    if resp.status == 200:
+                        return {"status": "ok", "event_id": data.get("id", "")}
+                    last_error = data.get("error", "calendar unreachable")
+            except Exception as e:  # pragma: no cover - network errors
+                last_error = str(e)
+            if attempt < max_retries - 1:
+                await asyncio.sleep(retry_delay)
+        return {"status": "error", "message": last_error}
 
     async def create_day_off_event(self, user_name: str, date: str) -> Dict[str, Any]:
         """Create an all-day day-off event for the given user."""
