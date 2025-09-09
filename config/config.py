@@ -23,6 +23,9 @@ class Config:
     # Calendar configuration
     CALENDAR_TOKEN: str = os.getenv("CALENDAR_TOKEN", "")
     CALENDAR_ID: str = os.getenv("CALENDAR_ID", "")
+
+    # Database configuration
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
     
     # Session configuration
     SESSION_TTL: int = int(os.getenv("SESSION_TTL", "86400"))  # 24 hours default
@@ -39,4 +42,5 @@ class Config:
         if not cls.DISCORD_TOKEN:
             raise ValueError("DISCORD_TOKEN is required")
         if not cls.N8N_WEBHOOK_URL:
-            raise ValueError("N8N_WEBHOOK_URL is required") 
+            raise ValueError("N8N_WEBHOOK_URL is required")
+

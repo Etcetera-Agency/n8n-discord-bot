@@ -5,3 +5,4 @@ cachetools==5.3.3
 pytz==2024.1
 notion-client
 pytest-asyncio
+databases[sqlite]
