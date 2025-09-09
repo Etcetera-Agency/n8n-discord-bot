@@ -207,6 +207,12 @@ class NotionConnector:
         }
         return await self.update_page(page_id, properties)
 
+    async def clear_team_directory_ids(self, page_id: str) -> Dict[str, str]:
+        """Remove the Discord channel association for a team directory entry."""
+
+        properties = {"Discord channel ID": {"rich_text": []}}
+        return await self.update_page(page_id, properties)
+
     async def get_workload_page_by_name(self, name: str) -> Dict[str, Any]:
         filter = {"property": "Name", "title": {"equals": name}}
         mapping = {"name": "Name"}

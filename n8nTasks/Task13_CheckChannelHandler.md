@@ -1,19 +1,21 @@
 # Task 13: Check Channel Handler
 
 ## Goal
-Implement `handle_check_channel` to verify that the current channel is registered and ready for surveys. This handler is invoked internally (`author` is `"system"`) to ensure a channel has a Team Directory entry before user interactions begin.
+Implement `handle_check_channel` to report pending survey steps for the current channel. The survey command sends a system webhook with this payload before any user interaction begins.
 
 ## Business Logic
-- Triggered as a system check, it uses `channelId` to search for an existing channel record in Notion.
-- Each entry exposes `Name`, `Discord ID`, `Discord channel ID`, and `ToDo` properties.
-- If a record exists, return its assigned user name.
-- If missing, create the channel entry with default survey configuration and acknowledge the registration.
-- Any Notion failure returns the generic error message.
+- Select rows from `n8n_survey_steps_missed` where `session_id` equals `channelId`.
+- In memory:
+  1. Compute start of the week (Monday 00:00, Europe/Kyiv) and today's name.
+  2. Start with today's scheduled steps and drop any that have a record marked `completed=true` and `updated` today.
+  3. Add any rows where `completed=false` and `updated` falls within the current week.
+  4. Return the unique set of step names.
+- On database failure, return `{ "output": false, "message": "Спробуй трохи піздніше. Я тут пораюсь по хаті." }`.
 
 ### Input Variants
-- **Existing channel** – record found in Notion.
-- **Missing channel** – no record; create a new one.
-- **Generic failure** – any Notion error triggers the fallback message.
+- **No pending steps** – all required steps are completed for the week.
+- **Pending steps** – some steps exist with `completed=false`.
+- **Database failure** – query raises an exception.
 
 #### Example Payload
 ```json
@@ -32,59 +34,35 @@ Implement `handle_check_channel` to verify that the current channel is registere
 ```
 
 ### Output Variants
-- Success: `{ "output": "Канал успішно зареєстровано на {property_name}" }`
-- Error: `{ "output": "Спробуй трохи піздніше. Я тут пораюсь по хаті." }`
+- Success: `{ "output": true, "steps": [] }`
+- Error: `{ "output": false, "message": "Спробуй трохи піздніше. Я тут пораюсь по хаті." }`
 
 ## Steps
-1. **Read from Notion** – `POST /v1/databases/{TD_DB}/query` filtering by
-   `"Discord channel ID" == payload.channelId`.
-   Example response (from `responses` when channel exists):
-   ```json
-   {
-     "results": [
-       {
-         "id": "abc",
-         "url": "https://www.notion.so/Roman-Lernichenko-b02bf04c43e4404ca4e21707ae8b61cc",
-         "properties": {
-           "Name": {"title": [{"plain_text": "Roman Lernichenko"}]},
-           "Discord ID": {"rich_text": []},
-           "Discord channel ID": {"rich_text": []}
-         }
-       }
-     ]
-   }
-   ```
-2. If no page is found, **write to Notion** – `POST /v1/pages` with default
-   properties:
-   ```json
-   {
-     "parent": {"database_id": "{TD_DB}"},
-     "properties": {
-       "Name": {"title": [{"text": {"content": payload.channelName}}]},
-       "Discord channel ID": {"rich_text": [{"text": {"content": payload.channelId}}]}
-     }
-   }
-   ```
-   Example success response: `{ "url": "https://www.notion.so/new-channel" }`.
-3. Return a confirmation with the channel's assigned name or an error.
+1. Select `step_name`, `completed`, and `updated` from `n8n_survey_steps_missed` for the given `session_id`.
+2. Compute the start of the current week and process records as described above to build the pending steps list.
+3. Return `{ "output": true, "steps": pending_steps }` or `{ "output": false, "message": ... }` if the query fails.
+4. Close the database connection in a `finally` block if it was created inside the handler.
 
 ## Pseudocode
 ```python
 async def handle_check_channel(payload):
+    db = SurveyStepsDB(DATABASE_URL)
     try:
-        page = await notion.find_channel(payload["channelId"])
-        if not page:
-            page = await notion.create_channel(payload["channelId"], payload["channelName"])
-        name = page.get("name", payload["channelName"])
-        return {"output": f"Канал успішно зареєстровано на {name}"}
+        now = now_in_kyiv()
+        start = start_of_week(now)
+        records = await db.fetch_week(payload["channelId"], start)
+        steps = [r["step_name"] for r in records if not r["completed"]]
+        return {"output": True, "steps": list(dict.fromkeys(steps))}
     except Exception:
-        return {"output": "Спробуй трохи піздніше. Я тут пораюсь по хаті."}
+        return {"output": False, "message": "Спробуй трохи піздніше. Я тут пораюсь по хаті."}
+    finally:
+        await db.close()
 ```
 
 ## Tests
 - Unit:
-  - **Existing channel** – mock `find_channel` to return `{ "name": "User" }` and ensure `create_channel` is not called.
-  - **Missing channel** – mock `find_channel` to return `None` and verify `create_channel` is invoked.
-  - **Notion error** – mock `find_channel` to raise and assert error message.
-- End-to-end: trigger the system check and confirm no user-visible errors occur.
+  - **No pending steps** – DB returns only `completed=true` rows.
+  - **Pending steps** – DB returns at least one `completed=false` row.
+  - **Database failure** – simulate exception and assert error message.
+- End-to-end: dispatch `check_channel` and ensure the response contains the pending `steps` list.
 - All tests must log inputs, steps, and outputs to a file for later review.

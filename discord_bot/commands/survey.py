@@ -146,18 +146,20 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
 
 
     # Check if channel is registered
-    payload = { # Payload for check_channel webhook
+    payload = {
         "command": "check_channel",
         "channelId": channel_id,
-        "sessionId": session_id # Added session_id
+        "sessionId": session_id,
     }
     headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
-    headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
-    logger.info(f"First check_channel call for channel {channel_id} with payload: {payload}")
+    logger.info(
+        f"First check_channel call for channel {channel_id} with payload: {payload}"
+    )
     success, data = await webhook_service.send_webhook_with_retry(None, payload, headers)
-    # logger.debug(f"First check_channel webhook response: success={success}, raw_data={data}") # Log raw data at debug level
+    logger.info(
+        f"First check_channel webhook response: success={success}, raw_data={data}"
+    )
     if not success or not data or str(data.get("output", "false")).lower() != "true":
-        logger.info(f"First check_channel webhook response: success={success}, raw_data={data}") # Log raw data
         logger.warning(f"Channel {channel_id} not registered for surveys")
         return
 

@@ -34,6 +34,8 @@ HANDLERS: Dict[str, Callable[[Dict[str, Any]], Awaitable[str]]] = {
     "workload_nextweek": workload_nextweek.handle,
     "connects_this_week": connects_this_week.handle,
     "day_off": day_off.handle,
+    "day_off_thisweek": day_off.handle,
+    "day_off_nextweek": day_off.handle,
     "vacation": vacation.handle,
     "check_channel": check_channel.handle,
 }
