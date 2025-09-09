@@ -8,6 +8,8 @@ Implement `handle_workload_nextweek` so planned hours for next week are saved wi
 - Retrieve the user's workload page URL and stats from Notion.
 - Write to the `"Next week plan"` field and mark the `workload_nextweek` survey step as completed.
 - On any Notion failure return the generic error message.
+- when write to n8n_survey_steps_missed session_id is always channel_id only.
+
 
 ### Input Variants
 - **Standalone command** `workload_nextweek` with numeric `result.value` (0 allowed).

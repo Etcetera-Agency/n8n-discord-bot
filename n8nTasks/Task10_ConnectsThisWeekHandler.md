@@ -8,6 +8,8 @@ Implement `handle_connects_thisweek` so the router records remaining Upwork conn
 - Send the value to the connects database with an HTTP `POST` request to a configurable endpoint (default `https://tech2.etcetera.kiev.ua/set-db-connects`) using body `{ "name": <user>, "connects": <count> }`.
 - If a profile stats page exists, write the connects value to it, ignoring failures.
 - Any failure in these operations returns the generic error message.
+- when write to n8n_survey_steps_missed session_id is always channel_id only.
+
 
 ### Input Variants
 - **Standalone command** `connects_thisweek` with numeric `result.connects`.

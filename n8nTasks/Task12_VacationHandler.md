@@ -14,6 +14,7 @@ Implement `handle_vacation` so users can log vacations directly through the bot.
   `WEEKDAY DD MMMM` using a date utility.
 - Any calendar failure returns the generic error message.
 
+
 ### Input Variants
 - **Standalone command** `vacation` with `result.start_date` and `result.end_date`.
 - **Survey step** with `result.stepName` == `vacation`.

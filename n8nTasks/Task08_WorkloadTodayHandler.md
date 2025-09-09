@@ -11,6 +11,7 @@ Implement `handle_workload_today` so the router can record today's workload dire
 - Determine the correct `day_field` (e.g., `Mon Plan`) for today's date.
 - Write the hours to Notion and mark the `workload_today` survey step as completed.
 - On any Notion failure return the generic error message.
+- when write to n8n_survey_steps_missed session_id is always channel_id only.
 
 ### Input Variants
 - **Standalone command** `workload_today` with `result.value` as number (0 allowed).

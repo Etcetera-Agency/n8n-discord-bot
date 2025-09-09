@@ -14,6 +14,8 @@ Implement `handle_day_off` to record days off for either the current or upcoming
 - Choose response template based on whether zero, one, or many dates were provided and whether the command targeted this week or next week.
 - Format dates in responses using a helper that outputs `DD MMMM YY`.
 - Any calendar failure returns the generic error message.
+- when write to n8n_survey_steps_missed session_id is always channel_id only.
+
 
 ### Input Variants
 - **day_off_thisweek** – `result.value` is an array of dates or the string `"Nothing"`.
