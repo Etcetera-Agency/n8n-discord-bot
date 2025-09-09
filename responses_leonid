@@ -1,0 +1,172 @@
+{
+  "n8n_missing_steps": [
+    {
+      "id": 1307,
+      "session_id": "1362739173827805354",
+      "step_name": "day_off_nextweek",
+      "completed": false,
+      "updated": "2025-09-08T02:01:06.031Z"
+    },
+    {
+      "id": 681,
+      "session_id": "1362739173827805354",
+      "step_name": "connects_thisweek",
+      "completed": false,
+      "updated": "2025-09-09T08:08:35.197Z"
+    },
+    {
+      "id": 634,
+      "session_id": "1362739173827805354",
+      "step_name": "workload_today",
+      "completed": false,
+      "updated": "2025-09-09T08:08:13.681Z"
+    },
+    {
+      "id": 680,
+      "session_id": "1362739173827805354",
+      "step_name": "workload_nextweek",
+      "completed": false,
+      "updated": "2025-09-08T08:41:28.680Z"
+    }
+  ],
+  "team_directory": [
+    {
+      "id": "202c3573-e510-805c-b5bb-f11ed35a9953",
+      "name": "Leonid Lukianov",
+      "url": "https://www.notion.so/Leonid-Lukianov-202c3573e510805cb5bbf11ed35a9953",
+      "property_tools": "Jira, Slack, Asana, Trello, SSH, Bash, Apache, Nginx, Docker, Docker Compose, Git (GitHub, Bitbucket), Composer, xDebug, NPM, Gulp, Postman, PHP CodeSniffer, PHP-CS-Fixer, PhpStorm, VS Code, Sublime, FileZilla, WordPress API, WpCLI, LightHouse, PageSpeed insights ",
+      "property_skills_set": "1. PHP: SOLID, DDD, MVC \n2. WordPress: building themes, plugins, API, Rest API, Integrations, Cron tasks\n3. WordPress Plugins: WooCommerce, WooCommerce PayPal Payments, WooCommerce Stripe Payments, MemberPress, WC Vendors, ACF (options, guttenberg blocks, custom posts), CF7, Total W3C, WP Fastest Cache, WPML\n4. SQL: MySQL, PostgreSQL, SQLite  \n5. Symfony\n6. JS: jQuery, Vue.js, JavaScript\n7. Python, Laravel, GO - used it for a while and would like to go into more depth\n9. HTML, CSS, SCSS, Schema, AMP\n10. Linux, Servers, VPS, AWS",
+      "property_fb": null,
+      "property_1_1": " ",
+      "property_to_do": "https://www.notion.so/202c3573e510811a8ad9d8d284db96e1",
+      "property_location": "Berehovo, Zakarpatskiy region",
+      "property_upwork_profile": "https://www.upwork.com/freelancers/~018665891b347246a3",
+      "property_birth_day": {
+        "start": "1988-07-26",
+        "end": null,
+        "time_zone": null
+      },
+      "property_notion_user": [
+        "lukyanov@etcetera.kiev.ua"
+      ],
+      "property_discord_id": "1372859050584309760",
+      "property_etc": "lukyanov@etcetera.kiev.ua",
+      "property_16_pers": "Командир ENTJ-A",
+      "property_behance": "https://www.behance.net/levalukyanov",
+      "property_unwanted": "- gambling\n- casino, online betting, lottery\n- scammers\n- cannabis, cigarettes,  alcohol\n- adult sites. ",
+      "property_newcommer": true,
+      "property_upwork_id": "levall",
+      "property_updated": "2025-06-15T07:13:00.000Z",
+      "property_discord_channel_link": "https://discord.com/channels/733038656067207179/1372848783662256148",
+      "property_skype_chat_id": "",
+      "property_skype_staffing_chat": null,
+      "property_phone": "+380669369164, +380969077923",
+      "property_years_in_team": 0.2,
+      "property_stats_upload": "https://u.pcloud.com/#page=puplink&code=qE8XZgRaTFcEgguJdzy3PV8nE2YtYP7EV",
+      "property_bidder": [],
+      "property_discord_channel_id": "1372848783662256148",
+      "property_linked_in": "https://www.linkedin.com/in/leonid-lukyanov-b090652b6",
+      "property_non_exclusive": false,
+      "property_disk": "D:-1, I:4, S:0, C:-3",
+      "property_bd": false,
+      "property_pa": [],
+      "property_upwork_reference": "018665891b347246a3",
+      "property_skype_id": "",
+      "property_left_agency": null,
+      "property_joined": {
+        "start": "2025-06-10",
+        "end": null,
+        "time_zone": null
+      },
+      "property_stats": "https://my.pcloud.com/#page=filemanager&folder=26654661543",
+      "property_skype": "leva_lv",
+      "property_roles": [
+        "Development",
+        "BackEnd",
+        "FL",
+        "FrontEnd"
+      ],
+      "property_out_of_team_now": false,
+      "property_dribbble": null,
+      "property_personal": "levalukyanov@gmail.com",
+      "property_templates": "",
+      "property_offboarding_bye_bye": "",
+      "property_name": "Leonid Lukianov"
+    }
+  ],
+  "workload": [
+    {
+      "response": [
+        {
+          "id": "269c3573-e510-80a5-9e46-e387e111819d",
+          "name": "Leonid Lukianov",
+          "url": "https://www.notion.so/Leonid-Lukianov-269c3573e51080a59e46e387e111819d",
+          "property_capacity": 20,
+          "property_out_of_team": false,
+          "property_date": "2025-09-09T19:29:00.000Z",
+          "property_who": [],
+          "property_week": 0,
+          "property_plan": 0,
+          "property_who_1": [],
+          "property_booked3": null,
+          "property_weekend_fact": null,
+          "property_tue_plan": null,
+          "property_need_attention": true,
+          "property_total": 0,
+          "property_thu_plan": null,
+          "property_thu_fact": null,
+          "property_wed_fact": null,
+          "property_wed_plan": null,
+          "property_mon_plan": null,
+          "property_booked_hours": 0,
+          "property_tue_fact": null,
+          "property_mon_fact": 0.3,
+          "property_booked1": null,
+          "property_date_1": null,
+          "property_booked2": null,
+          "property_fri_fact": null,
+          "property_next_week_plan": null,
+          "property_not_used": "19.7",
+          "property_template": false,
+          "property_not_used_number": 19.7,
+          "property_fact": 0.3,
+          "property_who_2": [],
+          "property_updated": "2025-09-09T19:29:00.000Z",
+          "property_fri_plan": null,
+          "property_name": "Leonid Lukianov"
+        }
+      ]
+    }
+  ],
+  "profiles_stats": [
+    {
+      "response": [
+        {
+          "id": "269c3573-e510-80b7-8ae1-c9de1a315caf",
+          "name": "Leonid Lukianov",
+          "url": "https://www.notion.so/Leonid-Lukianov-269c3573e51080b78ae1c9de1a315caf",
+          "property_date": null,
+          "property_spec_pr_2": null,
+          "property_kpi": true,
+          "property_profile_views": 10,
+          "property_spec_pr_2_invites": null,
+          "property_viewed_proposals": 5,
+          "property_general_pr_invites": 2,
+          "property_week": 1,
+          "property_clicks": 0,
+          "property_views": null,
+          "property_answ_in_24h": null,
+          "property_sent_proposals": 13,
+          "property_impressions": 0,
+          "property_spec_pr_1_invites": null,
+          "property_connects": 40,
+          "property_spec_pr_1": null,
+          "property_all_invites": 2,
+          "property_created": "2025-09-09T19:33:00.000Z",
+          "property_period": "September 1 - September 7 2025",
+          "property_name": "Denys Safonov"
+        }
+      ]
+    }
+  ]
+}

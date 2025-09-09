@@ -63,6 +63,13 @@ import router
 SCENARIO_DIR = Path(__file__).parent / "surveys"
 LOG_DIR = Path(__file__).parent / "logs"
 
+pytestmark = pytest.mark.anyio
+
+
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
 
 def load_payload_example(title: str) -> dict:
     text = (ROOT / "payload_examples.txt").read_text()
@@ -73,8 +80,14 @@ def load_payload_example(title: str) -> dict:
 
 def load_notion_lookup(responses_path: Path) -> dict:
     text = responses_path.read_text()
-    name = re.search(r'plain_text": "([^"]+Lernichenko)"', text).group(1)
-    todo_url = re.search(r'https://www.notion.so/[0-9a-f-]+', text).group(0)
+    try:
+        data = json.loads(text)
+        td = data["team_directory"][0]
+        name = td["property_name"]
+        todo_url = td["property_to_do"].strip()
+    except Exception:
+        name = re.search(r'plain_text": "([^"]+Lernichenko)"', text).group(1)
+        todo_url = re.search(r'https://www.notion.so/[0-9a-f-]+', text).group(0)
     return {"results": [{"name": name, "discord_id": "321", "channel_id": "123", "to_do": todo_url}]}
 
 
@@ -82,7 +95,6 @@ def scenarios():
     return [p for p in SCENARIO_DIR.iterdir() if p.is_dir()]
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("scenario_path", scenarios())
 async def test_survey_scenario(monkeypatch, scenario_path):
     with open(scenario_path / "dbSetup.json") as f:
@@ -116,6 +128,8 @@ async def test_survey_scenario(monkeypatch, scenario_path):
             payload["channelId"] = "123"
             payload["sessionId"] = "123_321"
             payload["result"]["stepName"] = step["stepName"]
+            if "payloadOverride" in step:
+                payload["result"].update(step["payloadOverride"])
             response = await router.dispatch(payload)
             log.write(json.dumps({"payload": payload, "response": response}) + "\n")
             expected = {"output": step["bot"], **step["expected"]}
