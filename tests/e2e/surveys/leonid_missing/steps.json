@@ -1,0 +1,34 @@
+[
+  {
+    "title": "Survey Step Submission Payload (Workload)",
+    "stepName": "workload_today",
+    "bot": "wt2",
+    "expected": {"survey": "continue", "next_step": "workload_nextweek"},
+    "dbExpected": {"active": true},
+    "payloadOverride": {"value": 2}
+  },
+  {
+    "title": "Survey Step Submission Payload (Workload)",
+    "stepName": "workload_nextweek",
+    "bot": "wn10",
+    "expected": {"survey": "continue", "next_step": "connects_thisweek"},
+    "dbExpected": {"active": true},
+    "payloadOverride": {"value": 10}
+  },
+  {
+    "title": "Survey Step Submission Payload (Connects)",
+    "stepName": "connects_thisweek",
+    "bot": "conn10",
+    "expected": {"survey": "continue", "next_step": "day_off_nextweek"},
+    "dbExpected": {"active": true},
+    "payloadOverride": {"value": 10}
+  },
+  {
+    "title": "Survey Step Submission Payload (Day Off)",
+    "stepName": "day_off_nextweek",
+    "bot": "dayTue",
+    "expected": {"survey": "end", "url": "https://www.notion.so/202c3573e510811a8ad9d8d284db96e1"},
+    "dbExpected": {"active": false},
+    "payloadOverride": {"daysSelected": ["2025-09-16"]}
+  }
+]

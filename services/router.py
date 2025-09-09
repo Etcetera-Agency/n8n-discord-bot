@@ -78,7 +78,8 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
             payload.update(prefix)
 
         todo_url = None
-        log.debug("query team directory", extra={"channel": payload.get("channelId")})
+        channel = payload.get("channelId")
+        log.debug(f"query team directory for channel {channel}", extra={"channel": channel})
         result = await _notio.find_team_directory_by_channel(payload["channelId"])
         user = result.get("results", [{}])[0] if result.get("results") else {}
         log.debug("notion response", extra={"user": user})
