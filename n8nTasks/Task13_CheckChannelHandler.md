@@ -1,13 +1,16 @@
 # Task 13: Check Channel Handler
 
 ## Goal
-Implement `handle_check_channel` to report pending survey steps for the current channel. This command is triggered internally (`author` is `"system"`) before user interaction begins.
+Implement `handle_check_channel` to report pending survey steps for the current channel. The survey command sends a system webhook with this payload before any user interaction begins.
 
 ## Business Logic
-- Use `channelId` to query the `n8n_survey_steps_missed` table for this week.
-- Collect step names where `completed=false`.
-- Return the list of unique pending steps. If none are found, the list is empty.
-- Any database failure returns `{ "output": false, "message": "Спробуй трохи піздніше. Я тут пораюсь по хаті." }`.
+- Select rows from `n8n_survey_steps_missed` where `session_id` equals `channelId`.
+- In memory:
+  1. Compute start of the week (Monday 00:00, Europe/Kyiv) and today's name.
+  2. Start with today's scheduled steps and drop any that have a record marked `completed=true` and `updated` today.
+  3. Add any rows where `completed=false` and `updated` falls within the current week.
+  4. Return the unique set of step names.
+- On database failure, return `{ "output": false, "message": "Спробуй трохи піздніше. Я тут пораюсь по хаті." }`.
 
 ### Input Variants
 - **No pending steps** – all required steps are completed for the week.
@@ -35,11 +38,10 @@ Implement `handle_check_channel` to report pending survey steps for the current 
 - Error: `{ "output": false, "message": "Спробуй трохи піздніше. Я тут пораюсь по хаті." }`
 
 ## Steps
-1. Compute start of the current week (Monday 00:00 in Europe/Kyiv).
-2. **Read from Postgres** – `SELECT step_name, completed, updated FROM n8n_survey_steps_missed` filtering by `session_id` and `updated >= week_start`.
-3. Collect step names with `completed=false` and remove duplicates.
-4. Return `{ "output": true, "steps": pending_steps }` or `{ "output": false, "message": ... }` if the query fails.
-5. Close the database connection in a `finally` block if it was created inside the handler.
+1. Select `step_name`, `completed`, and `updated` from `n8n_survey_steps_missed` for the given `session_id`.
+2. Compute the start of the current week and process records as described above to build the pending steps list.
+3. Return `{ "output": true, "steps": pending_steps }` or `{ "output": false, "message": ... }` if the query fails.
+4. Close the database connection in a `finally` block if it was created inside the handler.
 
 ## Pseudocode
 ```python
