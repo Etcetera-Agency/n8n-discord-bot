@@ -271,6 +271,7 @@ This file provides examples of the JSON payloads sent by the Discord bot to the 
   "channelName": "channel-name",
   "timestamp": 1678886400
 }
+```
 ## Button/Select Interaction
 
 ### Button/Select Interaction Payload
@@ -292,3 +293,4 @@ This file provides examples of the JSON payloads sent by the Discord bot to the 
   "channelName": "channel-name",
   "timestamp": 1678886400
 }
+```

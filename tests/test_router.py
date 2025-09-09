@@ -71,11 +71,11 @@ async def test_dispatch_mention(tmp_path, monkeypatch):
         return load_notion_lookup()
 
     monkeypatch.setattr(router._notio, "find_team_directory_by_channel", fake_lookup)
-    payload = load_payload_example("Generic Slash Command Payload")
-    payload.update({"type": "mention", "message": "hi", "result": {}})
-    payload.pop("command", None)
+    payload = load_payload_example("!mention Command Payload")
+    payload["message"] = "hi"
     payload["userId"] = "321"
     payload["channelId"] = "123"
+    payload["sessionId"] = "123_321"
     with open(log, "a") as f:
         f.write("Step: dispatch\n")
     result = await router.dispatch(payload)
@@ -100,9 +100,10 @@ async def test_dispatch_command(tmp_path, monkeypatch):
     monkeypatch.setattr(router._notio, "find_team_directory_by_channel", fake_lookup)
     monkeypatch.setitem(router.HANDLERS, "dummy", dummy)
     payload = load_payload_example("Generic Slash Command Payload")
-    payload.update({"command": "dummy", "type": "command", "result": {}})
+    payload.update({"command": "dummy", "result": {}})
     payload["channelId"] = "123"
-    payload["userId"] = "u"
+    payload["userId"] = "321"
+    payload["sessionId"] = "123_321"
     with open(log, "a") as f:
         f.write("Step: dispatch\n")
     result = await router.dispatch(payload)
@@ -126,11 +127,12 @@ async def test_dispatch_survey_end(tmp_path, monkeypatch):
     monkeypatch.setitem(router.HANDLERS, "step1", step1)
     survey_manager.create_survey("321", "123", ["step1"], "sess")
     payload = load_payload_example("Survey Step Submission Payload (Workload)")
-    payload.update({"command": "survey", "type": "command"})
+    payload.update({"command": "survey"})
     payload["result"]["stepName"] = "step1"
     payload["result"]["value"] = "v"
     payload["channelId"] = "123"
     payload["userId"] = "321"
+    payload["sessionId"] = "123_321"
     with open(log, "a") as f:
         f.write("Step: dispatch\n")
     result = await router.dispatch(payload)
@@ -164,11 +166,12 @@ async def test_dispatch_survey_continue(tmp_path, monkeypatch):
     monkeypatch.setitem(router.HANDLERS, "step2", step2)
     survey_manager.create_survey("321", "123", ["step1", "step2"], "sess")
     payload = load_payload_example("Survey Step Submission Payload (Workload)")
-    payload.update({"command": "survey", "type": "command"})
+    payload.update({"command": "survey"})
     payload["result"]["stepName"] = "step1"
     payload["result"]["value"] = "v"
     payload["channelId"] = "123"
     payload["userId"] = "321"
+    payload["sessionId"] = "123_321"
     with open(log, "a") as f:
         f.write("Step: dispatch\n")
     result = await router.dispatch(payload)
