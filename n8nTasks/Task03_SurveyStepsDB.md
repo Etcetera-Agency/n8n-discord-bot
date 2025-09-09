@@ -8,6 +8,8 @@ Store survey progress so the bot can skip completed steps and query missed ones 
    - insert or update a row keyed by `(session_id, step_name)`
 2. **Fetch last week’s statuses**
    - return the most recent record per step for a session
+3. **Determine pending steps**
+   - given expected step names, return those not completed for the current week
 
 ## Schema
 The `n8n_survey_steps_missed` table already exists in production, so no migration is
@@ -83,6 +85,11 @@ async def fetch_week(session_id, week_start):
         session_id, week_start,
     )
     return [dict(r) for r in rows]
+
+async def pending_steps(session_id, week_start, all_steps):
+    records = await fetch_week(session_id, week_start)
+    done = {r["step_name"] for r in records if r["completed"]}
+    return [s for s in all_steps if s not in done]
 ```
 
 ## Testing

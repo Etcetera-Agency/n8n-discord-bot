@@ -1,10 +1,10 @@
 # Task 13: Check Channel Handler
 
 ## Goal
-Implement `handle_check_channel` to verify that the current channel is registered and ready for surveys.
+Implement `handle_check_channel` to verify that the current channel is registered and ready for surveys. This handler is invoked internally (`author` is `"system"`) to ensure a channel has a Team Directory entry before user interactions begin.
 
 ## Business Logic
-- Use `channelId` to search for an existing channel record in Notion.
+- Triggered as a system check, it uses `channelId` to search for an existing channel record in Notion.
 - Each entry exposes `Name`, `Discord ID`, `Discord channel ID`, and `ToDo` properties.
 - If a record exists, return its assigned user name.
 - If missing, create the channel entry with default survey configuration and acknowledge the registration.

@@ -7,7 +7,7 @@ Implement `handle_unregister` for the `!unregister` prefix command so the router
 - Look up the channel in the Team Directory using `channelId`.
 - Each entry exposes `Name`, `Discord ID`, `Discord channel ID`, and `ToDo` properties.
 - If no page is found, respond that the channel is not registered.
-- If a page exists, delete it or mark it inactive.
+- If a page exists, clear its `Discord ID` and `Discord channel ID` fields so the entry remains in the Team Directory.
 - Any failure when accessing Notion produces a fallback error.
 
 ### Input Variants
@@ -57,11 +57,16 @@ Implement `handle_unregister` for the `!unregister` prefix command so the router
    }
    ```
 2. If no results, return the "not registered" message.
-3. **Write to Notion** – archive the page with `PATCH /v1/pages/page123`:
+3. **Write to Notion** – clear identifying fields with `PATCH /v1/pages/page123`:
    ```json
-   {"archived": true}
+   {
+     "properties": {
+       "Discord ID": {"rich_text": []},
+       "Discord channel ID": {"rich_text": []}
+     }
+   }
    ```
-   Example success response: `{ "archived": true }`.
+   Example success response: `{ "properties": {"Discord ID": {"rich_text": []}} }`.
 4. Return a confirmation or error message.
 
 ## Pseudocode
@@ -71,7 +76,7 @@ async def handle_unregister(payload):
         page = await notion.find_channel(payload["channelId"])
         if not page:
             return {"output": "Вибачте, але цей канал не зареєстрований ні на кого. Тому не можу зняти його з реєстрації"}
-        await notion.remove_channel(page["id"])
+        await notion.clear_channel(page["id"])
         return {"output": "Готово. Тепер цей канал не зареєстрований ні на кого."}
     except Exception:
         return {"output": "Спробуй трохи піздніше. Я тут пораюсь по хаті."}
@@ -79,9 +84,9 @@ async def handle_unregister(payload):
 
 ## Tests
 - Unit:
-  - **Channel exists** – mock `notion.find_channel` to return a page and ensure `remove_channel` is called.
+  - **Channel exists** – mock `notion.find_channel` to return a page and ensure `clear_channel` is called.
   - **Channel missing** – mock `notion.find_channel` to return `None` and verify the "not registered" message.
-  - **Notion error** – mock `remove_channel` to raise an exception and assert fallback message.
+  - **Notion error** – mock `clear_channel` to raise an exception and assert fallback message.
   - Example Notion lookup when channel missing: `null`.
   - Example Notion lookup when channel exists:
     ```json

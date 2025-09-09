@@ -5,7 +5,7 @@ Implement `handle_connects_thisweek` so the router records remaining Upwork conn
 
 ## Business Logic
 - Pull the numeric connects value from the payload and mark the `connects_thisweek` survey step complete.
-- Send the value to the connects database with an HTTP `POST` request to `https://tech2.etcetera.kiev.ua/set-db-connects` using body `{ "name": <user>, "connects": <count> }`.
+- Send the value to the connects database with an HTTP `POST` request to a configurable endpoint (default `https://tech2.etcetera.kiev.ua/set-db-connects`) using body `{ "name": <user>, "connects": <count> }`.
 - If a profile stats page exists, write the connects value to it, ignoring failures.
 - Any failure in these operations returns the generic error message.
 
@@ -67,14 +67,17 @@ Implement `handle_connects_thisweek` so the router records remaining Upwork conn
 
 ## Pseudocode
 ```python
+import os
+
 async def handle_connects_thisweek(payload):
     try:
         connects = int(payload["result"]["connects"])
         await survey.mark_step(payload["userId"], "connects_thisweek")
-        await http.post(
-            "https://tech2.etcetera.kiev.ua/set-db-connects",
-            json={"name": payload["author"], "connects": connects},
-        )
+         connects_url = os.environ.get("CONNECTS_URL", "https://tech2.etcetera.kiev.ua/set-db-connects")
+         await http.post(
+             connects_url,
+             json={"name": payload["author"], "connects": connects},
+         )
         stats = await notion.get_profile_stats(payload["author"])
         if stats:
             try:

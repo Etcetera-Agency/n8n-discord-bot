@@ -5,9 +5,11 @@ Implement `handle_register` for the `!register` prefix command so the router can
 
 ## Business Logic
 - Search the Team Directory in Notion for a page with the current `channelId`.
+- If nothing is found, search by the desired display name to reuse an existing page.
 - Each entry exposes `Name`, `Discord ID`, `Discord channel ID`, and `ToDo` properties.
 - If a page exists for another user, respond that the channel is taken.
-- If no page exists, create one with the provided display name and associate it with the channel and `userId`.
+- If a page is found by name but lacks IDs, update it with the current `userId` and `channelId`.
+- If still no page exists, create one with the provided display name and associate it with the channel and `userId`.
 
 ### Input Variants
 - **New registration** – user issues `!register` with a display name.
@@ -63,7 +65,9 @@ Implement `handle_register` for the `!register` prefix command so the router can
      ]
    }
    ```
-3. **Write to Notion** – if no page exists, `POST /v1/pages` with:
+3. If no page is found by channel ID, query `TD_DB` again filtering by
+   `"Name" == name`. If a page exists, patch it with the new IDs; otherwise
+   create one with:
    ```json
    {
      "parent": {"database_id": "{TD_DB}"},
@@ -86,6 +90,10 @@ async def handle_register(payload):
         if page and page["discord_id"] != payload["userId"]:
             return {"output": "Канал вже зареєстрований на когось іншого."}
         if not page:
+            page = await notion.find_by_name(name)
+        if page:
+            await notion.update_channel(page["id"], payload["userId"], payload["channelId"])
+        else:
             await notion.create_channel(payload["channelId"], payload["userId"], name)
         return {"output": f"Канал успішно зареєстровано на {name}"}
     except Exception:
