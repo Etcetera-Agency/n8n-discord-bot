@@ -128,18 +128,16 @@ This file provides examples of the JSON payloads sent by the Discord bot to the 
 {
   "command": "survey",
   "status": "end",
-  "message": "",
-  "result": {
-    "stepName": "last_step_name",
-    "value": "last_step_value"
-  },
   "userId": "YOUR_USER_ID",
   "channelId": "YOUR_CHANNEL_ID",
   "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
-  "author": "YourUsername#Discriminator",
-  "channelName": "channel-name",
-  "timestamp": 1678886400
+  "results": {
+    "step1": "value1",
+    "step2": "value2"
+  }
 }
+```
+
 ## Slash Commands
 
 ### Generic Slash Command Payload
@@ -244,17 +242,10 @@ This file provides examples of the JSON payloads sent by the Discord bot to the 
 ```json
 {
   "command": "check_channel",
-  "status": "ok",
-  "message": "",
-  "result": {},
-  "userId": "YOUR_USER_ID",
   "channelId": "YOUR_CHANNEL_ID",
-  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
-  "author": "system",
-  "channelName": "channel-name",
-  "timestamp": 1678886400
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID"
 }
-
+```
 
 ## Mention Command
 
