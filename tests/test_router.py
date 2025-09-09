@@ -45,6 +45,7 @@ def load_notion_lookup():
     return {"results": [{"name": name, "discord_id": "321", "channel_id": "123", "to_do": todo_url}]}
 # Stub config to avoid heavy imports
 class DummyConfig:
+    DATABASE_URL = ""
     NOTION_TEAM_DIRECTORY_DB_ID = ""
     NOTION_TOKEN = ""
     NOTION_WORKLOAD_DB_ID = ""
