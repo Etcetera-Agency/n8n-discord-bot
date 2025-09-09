@@ -6,7 +6,7 @@
 - [ ] Task04_InternalDispatcher.md
 - [ ] Task05_PrefixCommands.md
 - [ ] Task06_RegisterHandler.md
-- [ ] Task07_UnregisterHandler.md
+- [x] Task07_UnregisterHandler.md
 - [ ] Task08_WorkloadTodayHandler.md
 - [ ] Task09_WorkloadNextWeekHandler.md
 - [ ] Task10_ConnectsThisWeekHandler.md

@@ -42,7 +42,18 @@ def load_notion_lookup():
     text = Path(ROOT / "responses").read_text()
     name = re.search(r'plain_text": "([^"]+Lernichenko)"', text).group(1)
     todo_url = re.search(r'https://www.notion.so/[0-9a-f-]+', text).group(0)
-    return {"results": [{"name": name, "discord_id": "321", "channel_id": "123", "to_do": todo_url}]}
+    page_id = re.search(r'id": "([0-9a-f-]{36})"', text).group(1)
+    return {
+        "results": [
+            {
+                "id": page_id,
+                "name": name,
+                "discord_id": "321",
+                "channel_id": "123",
+                "to_do": todo_url,
+            }
+        ]
+    }
 # Stub config to avoid heavy imports
 class DummyConfig:
     NOTION_TEAM_DIRECTORY_DB_ID = ""
@@ -58,6 +69,7 @@ sys.modules["config"] = types.SimpleNamespace(
 )
 
 import router
+from services.cmd import unregister as unregister_cmd
 
 survey_manager = router.survey_manager
 
@@ -201,6 +213,37 @@ async def test_dispatch_user_not_found(tmp_path, monkeypatch):
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
     assert result == {"output": "Користувач не знайдений"}
+
+
+@pytest.mark.asyncio
+async def test_dispatch_unregister(tmp_path, monkeypatch):
+    log = tmp_path / "dispatch_unregister_log.txt"
+    payload = load_payload_example("!unregister Command Payload")
+    payload["channelId"] = "123"
+    log.write_text(f"Input: {payload}\n")
+
+    lookup = load_notion_lookup()
+    called = []
+
+    async def fake_find(channel_id):
+        return lookup
+
+    async def fake_clear(page_id):
+        called.append(page_id)
+        return {"status": "ok"}
+
+    monkeypatch.setattr(router._notio, "find_team_directory_by_channel", fake_find)
+    monkeypatch.setattr(unregister_cmd._notio, "find_team_directory_by_channel", fake_find)
+    monkeypatch.setattr(unregister_cmd._notio, "clear_team_directory_ids", fake_clear)
+
+    with open(log, "a") as f:
+        f.write("Step: dispatch\n")
+    result = await router.dispatch(payload)
+    with open(log, "a") as f:
+        f.write(f"Output: {result}\n")
+
+    assert result == {"output": "Готово. Тепер цей канал не зареєстрований ні на кого."}
+    assert called == [lookup["results"][0]["id"]]
 
 
 def test_parse_prefix_register(tmp_path):
