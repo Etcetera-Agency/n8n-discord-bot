@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Utilities for formatting and validating dates."""
+
 from datetime import datetime
 
 _MONTHS = [
