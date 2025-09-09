@@ -5,7 +5,9 @@ Implement `handle_workload_today` so the router can record today's workload dire
 
 ## Business Logic
 - Extract `hours` from the payload and treat `0` as a valid value.
-- Fetch the user's workload page URL and stats from Notion using their name.
+- Fetch the user's workload page URL and stats from Notion using their name,
+  retrieving both current `Fact` and weekly `Capacity` values for the
+  response template.
 - Determine the correct `day_field` (e.g., `Mon Plan`) for today's date.
 - Write the hours to Notion and mark the `workload_today` survey step as completed.
 - On any Notion failure return the generic error message.

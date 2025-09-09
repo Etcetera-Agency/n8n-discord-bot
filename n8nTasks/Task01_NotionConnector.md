@@ -5,10 +5,13 @@ Implement a reusable async wrapper around the Notion REST API. The existing
 workflow only **queries** databases and **updates** properties on existing
 pages; it never creates new ones. The connector should expose helpers that
 replace n8n's Notion nodes.
+Database IDs such as the Team Directory, Workload, and Profile Stats must be
+supplied via configuration or environment variables rather than hardcoded
+inside the connector.
 
 ## Supported operations
 1. **Team Directory lookups**
-   - find by employee name
+   - find a page by the `Name` property
    - find by Discord channel ID
    - update a page with Discord user ID and channel ID
 2. **Workload database**

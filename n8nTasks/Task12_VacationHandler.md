@@ -10,7 +10,8 @@ Implement `handle_vacation` so users can log vacations directly through the bot.
   - `start`: `"{start_date} 00:00:00"`
   - `end`:   `"{end_date} 23:59:59"`
   and mark `vacation` as completed.
-- Respond with a summary of the scheduled vacation.
+- Respond with a summary of the scheduled vacation, formatting dates as
+  `WEEKDAY DD MMMM` using a date utility.
 - Any calendar failure returns the generic error message.
 
 ### Input Variants
@@ -45,7 +46,7 @@ Implement `handle_vacation` so users can log vacations directly through the bot.
 1. Extract start and end dates from `payload["result"]`.
 2. Call `calendar.create_event("Vacation: {user.name}", f"{start_date} 00:00:00", f"{end_date} 23:59:59")`.
 3. Mark the survey step complete if part of a survey.
-4. Return a confirmation or error message using the vacation template.
+4. Format the dates for the template and return a confirmation or error message using the vacation template.
 
 ## Pseudocode
 ```python

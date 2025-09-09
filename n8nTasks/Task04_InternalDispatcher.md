@@ -1,7 +1,7 @@
 # Task 04: Internal webhook dispatcher
 
 ## Goal
-Replace the external n8n webhook call with an internal router that routes payloads to Python handlers, distinguishing between standalone commands, mention queries, and survey steps.
+Replace the external n8n webhook call with an internal router that routes payloads to Python handlers, distinguishing between standalone commands, mention queries, and survey steps. The router reproduces the n8n AI Agent's routing decisions but does not attempt to replace the underlying language model.
 
 ## Steps
 1. Use the Notion connector to look up the channel in the Team Directory (`payload["channelId"]`) and enrich the payload with the user's name, Discord ID, and to-do URL. Example lookup result:
@@ -15,17 +15,18 @@ Replace the external n8n webhook call with an internal router that routes payloa
      "to_do": "https://www.notion.so/11cc3573e5108104a0f1d579c3f9a648"
    }
    ```
-2. Create a `router` module with a registry mapping command names to handler coroutines (e.g., `register`, `mention`). Survey steps reuse these same handlers.
-3. Modify `services/webhook.py` so `send_webhook` builds the payload and forwards it to `router.dispatch` instead of performing an HTTP request.
-4. Inside `router.dispatch`, determine whether the payload is part of an active survey:
+2. Apply the workflow's "Check register" rules before registration: if the Team Directory record has `is_public == true`, return a message that public channels cannot be registered. If a 19‑digit `Discord channel ID` already exists, return the "channel already registered" message. Proceed only when neither condition applies.
+3. Create a `router` module with a registry mapping command names to handler coroutines (e.g., `register`, `mention`). Survey steps reuse these same handlers.
+4. Modify `services/webhook.py` so `send_webhook` builds the payload and forwards it to `router.dispatch` instead of performing an HTTP request.
+5. Inside `router.dispatch`, determine whether the payload is part of an active survey. The survey manager relies on the Survey Steps database to determine which steps remain:
    - If `payload["command"] == "survey"` or `survey_manager.is_active(payload["userId"])`, treat it as a survey step and use `payload["result"]["stepName"]` to select the handler.
    - If `payload["type"] == "mention"`, route directly to the mention handler.
    - Otherwise, treat it as a standalone command and use `payload["command"]`.
-5. After invoking the handler, wrap its result:
+6. After invoking the handler, wrap its result:
    - For survey steps, include survey metadata (`status`, `next_step`) along with the handler's output. Append the `user.to_do` URL retrieved in step 1 when the survey ends.
    - For standalone commands and mentions, return only the handler's output.
-6. Implement a `handle_mention` helper that returns the placeholder message defined in `n8n-workflow.json`.
-7. Ensure the dispatcher returns the same response structure currently produced by n8n.
+7. Implement a `handle_mention` helper that returns the placeholder message defined in `n8n-workflow.json`.
+8. Ensure the dispatcher returns the same response structure currently produced by n8n.
 
 ### Input Variants
 - **Standalone command** – `payload["command"]` matches a handler name such as `register` or `workload_today`.

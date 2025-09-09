@@ -12,6 +12,7 @@ Implement `handle_day_off` to record days off for either the current or upcoming
 - When the user selects `"Nothing"`, skip calendar writes and mark the step complete.
 - Mark the corresponding survey step (`day_off_thisweek` or `day_off_nextweek`) as completed.
 - Choose response template based on whether zero, one, or many dates were provided and whether the command targeted this week or next week.
+- Format dates in responses using a helper that outputs `DD MMMM YY`.
 - Any calendar failure returns the generic error message.
 
 ### Input Variants
@@ -48,7 +49,7 @@ Implement `handle_day_off` to record days off for either the current or upcoming
 2. If the value is `"Nothing"` or an empty list, mark the step and return the "no dates" template.
 3. Otherwise, call `calendar.create_event("Day-off: {user.name}", day, day)` for each date.
 4. Mark the survey step complete.
-5. Choose the one-date or many-date template and return it.
+5. Choose the one-date or many-date template, formatting dates as `DD MMMM YY`, and return it.
 6. On calendar failure, return the error message.
 
 ## Pseudocode

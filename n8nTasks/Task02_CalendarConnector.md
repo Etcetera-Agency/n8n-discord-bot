@@ -2,6 +2,8 @@
 
 ## Goal
 Implement an async client for the calendar service so handlers can create day-off and vacation events without n8n.
+The target calendar ID must be provided via configuration or environment
+variables rather than hardcoded.
 
 ## Supported operations
 1. **Create day-off event**
@@ -49,6 +51,9 @@ Failure template for any operation:
 def base_headers():
     token = os.environ["CALENDAR_TOKEN"]
     return {"Authorization": f"Bearer {token}"}
+
+CALENDAR_ID = os.environ["CALENDAR_ID"]
+CALENDAR_URL = f"https://www.googleapis.com/calendar/v3/calendars/{CALENDAR_ID}/events"
 
 async def create_event(summary, start, end):
     payload = {"summary": summary, "start": start, "end": end}
