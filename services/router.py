@@ -45,7 +45,9 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
             if chan and len(chan) == 19:
                 return {"output": "Канал вже зареєстрований на когось іншого."}
 
-    if payload.get("command") == "survey" or survey_manager.is_active(payload.get("userId", "")):
+    user_id = payload.get("userId", "")
+    active = any(s.user_id == user_id for s in survey_manager.surveys.values())
+    if payload.get("command") == "survey" or active:
         step = payload.get("result", {}).get("stepName")
         handler = HANDLERS.get(step)
         if not handler:

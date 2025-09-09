@@ -188,10 +188,6 @@ class SurveyManager:
         pass # No survey found for session ID {session_id}
         return None
 
-    def is_active(self, user_id: str) -> bool:
-        """Return True if the given user has an active survey."""
-        return any(s.user_id == user_id for s in self.surveys.values())
-
     def remove_survey(self, channel_id: str) -> None:
         """Remove a survey for a channel.
 
