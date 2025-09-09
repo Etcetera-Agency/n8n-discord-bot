@@ -1,17 +1,53 @@
 import os
 import sys
+import json
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import pytest
+import types
+import logging
 
 # Add project and services directories to import path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "services"))
 
+
+class DummyConfig:
+    NOTION_TEAM_DIRECTORY_DB_ID = ""
+    NOTION_TOKEN = ""
+    NOTION_WORKLOAD_DB_ID = ""
+    NOTION_PROFILE_STATS_DB_ID = ""
+    N8N_WEBHOOK_URL = ""
+    WEBHOOK_AUTH_TOKEN = ""
+    SESSION_TTL = 1
+
+
+sys.modules["config"] = types.SimpleNamespace(
+    Config=DummyConfig, logger=logging.getLogger("test"), Strings=object()
+)
+
 from notion_connector import NotionConnector
-from config.config import Config
+from config import Config
+
+
+def load_team_directory():
+    text = Path(ROOT / "responses").read_text()
+    name = re.search(r'plain_text": "([^"]+Lernichenko)"', text).group(1)
+    href = re.search(r'https://www.notion.so/[0-9a-f-]+', text).group(0)
+    page_id = re.search(r'id": "([0-9a-f-]{36})"', text).group(1)
+    return {
+        "id": page_id,
+        "url": href,
+        "properties": {
+            "Name": {"title": [{"plain_text": name}]},
+            "Discord ID": {"rich_text": []},
+            "Discord channel ID": {"rich_text": []},
+            "ToDo": {"rich_text": [{"plain_text": "Todo - " + name, "href": href}]},
+        },
+    }
 
 
 class MockResponse:
@@ -62,27 +98,8 @@ async def test_query_database_normalizes(tmp_path):
     Config.NOTION_TEAM_DIRECTORY_DB_ID = "TD_DB"
 
     session = DummySession()
-    response_data = {
-        "results": [
-            {
-                "id": "PAGE_ID",
-                "url": "https://www.notion.so/Roman-Lernichenko-b02bf04c43e4404ca4e21707ae8b61cc",
-                "properties": {
-                    "Name": {"title": [{"plain_text": "Roman Lernichenko"}]},
-                    "Discord ID": {"rich_text": []},
-                    "Discord channel ID": {"rich_text": []},
-                    "ToDo": {
-                        "rich_text": [
-                            {
-                                "plain_text": "Todo - Roman Lernichenko",
-                                "href": "https://www.notion.so/11cc3573e5108104a0f1d579c3f9a648",
-                            }
-                        ]
-                    },
-                },
-            }
-        ]
-    }
+    page = load_team_directory()
+    response_data = {"results": [page]}
     session.post_response = MockResponse(200, response_data)
 
     connector = NotionConnector(session=session)
@@ -97,7 +114,7 @@ async def test_query_database_normalizes(tmp_path):
     assert url == "https://api.notion.com/v1/databases/TD_DB/query"
     assert headers["Authorization"] == "Bearer token"
     assert payload["filter"]["rich_text"]["contains"] == "1234567890"
-    assert result["results"][0]["name"] == "Roman Lernichenko"
+    assert result["results"][0]["name"] == page["properties"]["Name"]["title"][0]["plain_text"]
 
 
 @pytest.mark.asyncio
@@ -108,7 +125,7 @@ async def test_update_page_success(tmp_path):
     os.environ["NOTION_TOKEN"] = "token"
 
     session = DummySession()
-    session.patch_response = MockResponse(200, {"object": "page"})
+    session.patch_response = MockResponse(200, load_team_directory())
 
     connector = NotionConnector(session=session)
 
