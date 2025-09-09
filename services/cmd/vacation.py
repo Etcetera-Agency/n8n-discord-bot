@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from datetime import datetime
 
 from services.calendar_connector import CalendarConnector
-
-# Optional survey step tracker; tests may monkeypatch this.
-survey_db: Optional[Any] = None
 
 # Reusable calendar connector instance
 calendar = CalendarConnector()
@@ -59,9 +56,6 @@ async def handle(payload: Dict[str, Any]) -> str:
         )
         if resp.get("status") != "ok":
             raise Exception("calendar error")
-
-        if survey_db and payload.get("command") == "survey":
-            await survey_db.upsert_step(payload.get("userId", ""), "vacation", True)
 
         return f"Записав! Відпустка: {_fmt(start)}—{_fmt(end)}."
     except Exception:

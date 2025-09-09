@@ -73,39 +73,23 @@ async def test_handle_vacation_success(tmp_path, monkeypatch):
 
     start_date, end_date, event_id = load_response_data()
     payload = load_payload("/vacation Command Payload")
-    payload.update({
-        "command": "survey",
-        "result": {
-            "stepName": "vacation",
-            "start_date": start_date,
-            "end_date": end_date,
-        },
-        "userId": "321",
-        "channelId": "123",
-        "sessionId": "123_321",
-    })
+    payload["result"]["start_date"] = start_date
+    payload["result"]["end_date"] = end_date
 
     async def fake_create(name, start, end, tz):
         assert name == payload["author"]
         assert start == start_date and end == end_date and tz == "Europe/Kyiv"
         return {"status": "ok", "event_id": event_id}
 
-    called = {}
-
-    class DummySurvey:
-        async def upsert_step(self, session_id, step, completed):
-            called["args"] = (session_id, step, completed)
-
-    monkeypatch.setattr(vacation, "calendar", types.SimpleNamespace(create_vacation_event=fake_create))
-    monkeypatch.setattr(vacation, "survey_db", DummySurvey())
+    monkeypatch.setattr(
+        vacation, "calendar", types.SimpleNamespace(create_vacation_event=fake_create)
+    )
 
     with open(log, "a") as f:
         f.write("Step: handle\n")
     result = await vacation.handle(payload)
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
-
-    assert called["args"] == ("321", "vacation", True)
 
     # Compute expected formatted dates
     def fmt(d):
@@ -129,12 +113,9 @@ async def test_handle_vacation_calendar_error(tmp_path, monkeypatch):
     async def fake_create(name, start, end, tz):
         raise RuntimeError("calendar down")
 
-    class DummySurvey:
-        async def upsert_step(self, *args, **kwargs):
-            raise AssertionError("should not be called")
-
-    monkeypatch.setattr(vacation, "calendar", types.SimpleNamespace(create_vacation_event=fake_create))
-    monkeypatch.setattr(vacation, "survey_db", DummySurvey())
+    monkeypatch.setattr(
+        vacation, "calendar", types.SimpleNamespace(create_vacation_event=fake_create)
+    )
 
     with open(log, "a") as f:
         f.write("Step: handle\n")
@@ -163,8 +144,9 @@ async def test_vacation_e2e(tmp_path, monkeypatch):
         return {"status": "ok", "event_id": event_id}
 
     monkeypatch.setattr(router._notio, "find_team_directory_by_channel", fake_lookup)
-    monkeypatch.setattr(vacation, "calendar", types.SimpleNamespace(create_vacation_event=fake_create))
-    monkeypatch.setattr(vacation, "survey_db", None)
+    monkeypatch.setattr(
+        vacation, "calendar", types.SimpleNamespace(create_vacation_event=fake_create)
+    )
 
     payload = load_payload("/vacation Command Payload")
     payload["channelId"] = "123"
