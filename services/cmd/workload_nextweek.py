@@ -27,7 +27,10 @@ async def handle(payload: Dict[str, Any]) -> str:
     try:
         hours = int(payload["result"]["value"])
         page_data = await _notion.get_workload_page_by_name(payload["author"])
-        page = page_data["results"][0]
+        results = page_data.get("results", [])
+        if not results:
+            raise Exception("User not found in Notion Workload DB")
+        page = results[0]
         await _notion.update_workload_day(page["id"], "Next week plan", hours)
         if _steps:
             await _steps.upsert_step(payload["channelId"], "workload_nextweek", True)

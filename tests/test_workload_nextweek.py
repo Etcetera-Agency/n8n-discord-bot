@@ -131,6 +131,42 @@ async def test_handle_notion_failure(monkeypatch, tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_handle_user_not_found(monkeypatch, tmp_path):
+    payload = load_payload_example("Workload Slash Command Payload (e.g., /workload_today)")
+    payload["command"] = "workload_nextweek"
+    log_file = tmp_path / "user_not_found_log.txt"
+    log_file.write_text(f"Input: {payload}\n")
+
+    async def fake_get(name):
+        return {"results": []}
+
+    update_mock = AsyncMock()
+    steps_mock = AsyncMock()
+    monkeypatch.setattr(
+        workload_nextweek,
+        "_notion",
+        types.SimpleNamespace(
+            get_workload_page_by_name=fake_get,
+            update_workload_day=update_mock,
+        ),
+    )
+    monkeypatch.setattr(
+        workload_nextweek,
+        "_steps",
+        types.SimpleNamespace(upsert_step=steps_mock),
+    )
+
+    result = await workload_nextweek.handle(payload)
+    with open(log_file, "a") as f:
+        f.write("Step: handle missing user\n")
+        f.write(f"Output: {result}\n")
+
+    update_mock.assert_not_awaited()
+    steps_mock.assert_not_awaited()
+    assert result == "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+
+
+@pytest.mark.asyncio
 async def test_workload_nextweek_e2e(monkeypatch, tmp_path):
     payload = load_payload_example("Workload Slash Command Payload (e.g., /workload_today)")
     payload["command"] = "workload_nextweek"
