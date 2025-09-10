@@ -235,12 +235,12 @@ class NotionConnector:
 
     async def get_profile_stats_by_name(self, name: str) -> Dict[str, Any]:
         filter = {"property": "Name", "title": {"equals": name}}
-        mapping = {"name": "Name", "connects": "Upwork connects"}
+        mapping = {"name": "Name", "connects": "Connects"}
         return await self.query_database(Config.NOTION_PROFILE_STATS_DB_ID, filter, mapping)
 
     async def update_profile_stats_connects(
         self, page_id: str, connects: int
     ) -> Dict[str, str]:
-        properties = {"Upwork connects": {"number": connects}}
+        properties = {"Connects": {"number": connects}}
         return await self.update_page(page_id, properties)
 
