@@ -51,9 +51,14 @@ async def handle(payload: Dict[str, Any]) -> str:
     log = get_logger()
     try:
         result = payload.get("result", {})
-        start = result["start_date"]
-        end = result["end_date"]
-        log.debug("dates parsed", extra={"start": start, "end": end})
+        start_raw = result["start_date"]
+        end_raw = result["end_date"]
+        log.debug("dates parsed", extra={"start": start_raw, "end": end_raw})
+
+        # Payload dates may include a time component, but the calendar
+        # connector expects bare ``YYYY-MM-DD`` strings.
+        start = start_raw.split("T")[0]
+        end = end_raw.split("T")[0]
 
         resp = await calendar.create_vacation_event(
             payload.get("author", ""), start, end, "Europe/Kyiv"
@@ -71,7 +76,7 @@ async def handle(payload: Dict[str, Any]) -> str:
         finally:
             await db.close()
 
-        return f"Записав! Відпустка: {_fmt(start)}—{_fmt(end)}."
+        return f"Записав! Відпустка: {_fmt(start_raw)}—{_fmt(end_raw)}."
     except Exception:
         log.exception("vacation failed")
         return "Спробуй трохи піздніше. Я тут пораюсь по хаті."
