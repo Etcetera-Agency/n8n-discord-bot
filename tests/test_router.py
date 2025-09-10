@@ -299,3 +299,31 @@ def test_parse_prefix_unregister(tmp_path):
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
     assert result == {"command": "unregister", "result": {}}
+
+
+@pytest.mark.asyncio
+async def test_dispatch_connects_alias(tmp_path, monkeypatch):
+    log = tmp_path / "connects_alias_log.txt"
+    log.write_text("Input: connects_alias\n")
+
+    async def fake_lookup(channel_id):
+        return load_notion_lookup()
+
+    async def dummy(payload):
+        return "ok"
+
+    monkeypatch.setattr(router._notio, "find_team_directory_by_channel", fake_lookup)
+    assert "connects_thisweek" in router.HANDLERS
+    monkeypatch.setitem(router.HANDLERS, "connects_thisweek", dummy)
+
+    payload = load_payload_example("/connects_thisweek Command Payload")
+    payload["channelId"] = "123"
+    payload["userId"] = "321"
+    payload["sessionId"] = "123_321"
+
+    with open(log, "a") as f:
+        f.write("Step: dispatch\n")
+    result = await router.dispatch(payload)
+    with open(log, "a") as f:
+        f.write(f"Output: {result}\n")
+    assert result == {"output": "ok"}

@@ -25,8 +25,6 @@ match = re.search(
     re.S,
 )
 COMMAND_PAYLOAD = json.loads(match.group(1))
-# command in code uses underscores
-COMMAND_PAYLOAD["command"] = "connects_this_week"
 
 # Extract sample Notion page id and url from responses
 page_id_match = re.search(r'"id":\s*"([0-9a-f-]{36})"', responses_text)
