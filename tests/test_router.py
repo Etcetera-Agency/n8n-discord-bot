@@ -155,7 +155,8 @@ async def test_dispatch_survey_end(tmp_path, monkeypatch):
         "survey": "end",
         "url": lookup_data["results"][0]["to_do"],
     }
-    assert survey_manager.get_survey("123") is None
+    assert survey_manager.get_survey("123") is not None
+    survey_manager.remove_survey("123")
 
 
 @pytest.mark.asyncio

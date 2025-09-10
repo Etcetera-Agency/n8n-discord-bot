@@ -105,23 +105,28 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
             handler = HANDLERS.get(step)
             if not handler:
                 return finalize({"output": f"No handler for step {step}", "survey": "cancel"})
+
+            # Normalize survey payloads for handlers
+            result = payload.setdefault("result", {})
+            if step == "connects_thisweek" and "connects" not in result:
+                result["connects"] = result.get("value")
+
             try:
                 output = await handler(payload)
             except Exception as err:  # pragma: no cover - handler failure
                 log.exception("handler error")
                 return finalize({"output": str(err), "survey": "cancel"})
+
             survey = survey_manager.get_survey(payload.get("channelId"))
             flag = "cancel"
             next_step = None
             if survey:
-                survey.add_result(step, payload.get("result", {}).get("value"))
-                survey.next_step()
-                next_step = survey.current_step()
-                if survey.is_done():
-                    flag = "end"
-                    survey_manager.remove_survey(payload.get("channelId"))
-                else:
+                survey.add_result(step, result.get("value"))
+                if survey.current_index + 1 < len(survey.steps):
                     flag = "continue"
+                    next_step = survey.steps[survey.current_index + 1]
+                else:
+                    flag = "end"
             response = {"output": output, "survey": flag}
             if next_step:
                 response["next_step"] = next_step
