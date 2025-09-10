@@ -517,24 +517,22 @@ def create_day_off_view(
     view.command_msg = command_msg
     view.buttons_msg = buttons_msg
 
-    current_date = datetime.datetime.now(constants.KYIV_TIMEZONE)
-    current_weekday = current_date.weekday()
+    days = [
+        "Понеділок",
+        "Вівторок",
+        "Середа",
+        "Четвер",
+        "П'ятниця",
+    ]
 
-    if "day_off_nextweek" in cmd_or_step:
-        days_until_next_monday = (7 - current_weekday) % 7
-        if days_until_next_monday == 0:
-             days_until_next_monday = 7
-        start_date = current_date + datetime.timedelta(days=days_until_next_monday)
-    else:
-        start_date = current_date
-
-    for i in range(7):
-        date_to_show = start_date + datetime.timedelta(days=i)
-        day_name = constants.WEEKDAY_OPTIONS[date_to_show.weekday()].label
+    for day in days:
+        date_to_show = view.get_date_for_day(day)
+        if date_to_show is None:
+            continue
         button = DayOffButton_survey(
-            label=day_name,
-            custom_id=f"day_off_{day_name.lower()}_{user_id}",
-            cmd_or_step=cmd_or_step
+            label=day,
+            custom_id=f"day_off_{day.lower()}_{user_id}",
+            cmd_or_step=cmd_or_step,
         )
         view.add_item(button)
 

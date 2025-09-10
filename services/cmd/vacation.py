@@ -8,10 +8,7 @@ from datetime import datetime
 from config import Config
 from services.calendar_connector import CalendarConnector
 from services.logging_utils import get_logger
-try:  # pragma: no cover - optional dependency
-    from services.survey_steps_db import SurveyStepsDB
-except Exception:  # pragma: no cover - missing databases package
-    SurveyStepsDB = None  # type: ignore
+from services.survey_steps_db import SurveyStepsDB
 
 # Reusable calendar connector instance
 calendar = CalendarConnector()
@@ -46,7 +43,7 @@ def _fmt(date_str: str) -> str:
     dt = datetime.fromisoformat(date_str)
     weekday = WEEKDAYS[dt.weekday()]
     month = MONTHS[dt.month - 1]
-    return f"{weekday} {dt.day:02d} {month}"
+    return f"{weekday} {dt.day:02d} {month} {dt.year}"
 
 
 async def handle(payload: Dict[str, Any]) -> str:
@@ -54,9 +51,14 @@ async def handle(payload: Dict[str, Any]) -> str:
     log = get_logger()
     try:
         result = payload.get("result", {})
-        start = result["start_date"]
-        end = result["end_date"]
-        log.debug("dates parsed", extra={"start": start, "end": end})
+        start_raw = result["start_date"]
+        end_raw = result["end_date"]
+        log.debug("dates parsed", extra={"start": start_raw, "end": end_raw})
+
+        # Payload dates may include a time component, but the calendar
+        # connector expects bare ``YYYY-MM-DD`` strings.
+        start = start_raw.split("T")[0]
+        end = end_raw.split("T")[0]
 
         resp = await calendar.create_vacation_event(
             payload.get("author", ""), start, end, "Europe/Kyiv"
@@ -65,16 +67,16 @@ async def handle(payload: Dict[str, Any]) -> str:
             raise Exception("calendar error")
         log.info("calendar event created", extra={"event_id": resp.get("event_id")})
 
-        db_url = getattr(Config, "DATABASE_URL", "")
-        if SurveyStepsDB and db_url:
-            db = SurveyStepsDB(db_url)
-            try:
-                await db.upsert_step(str(payload.get("channelId")), "vacation", True)
-                log.info("step recorded")
-            finally:
-                await db.close()
+        db = SurveyStepsDB(getattr(Config, "DATABASE_URL", ""))
+        try:
+            await db.upsert_step(
+                str(payload.get("channelId")), "vacation", True
+            )
+            log.info("step recorded")
+        finally:
+            await db.close()
 
-        return f"Записав! Відпустка: {_fmt(start)}—{_fmt(end)}."
+        return f"Записав! Відпустка: {_fmt(start_raw)}—{_fmt(end_raw)}."
     except Exception:
         log.exception("vacation failed")
         return "Спробуй трохи піздніше. Я тут пораюсь по хаті."

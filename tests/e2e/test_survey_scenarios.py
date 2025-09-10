@@ -14,7 +14,7 @@ sys.path.append(str(ROOT / "services"))
 @pytest.fixture
 def setup_env(monkeypatch):
     class DummyConfig:
-        DATABASE_URL = ""
+        DATABASE_URL = "sqlite://"
         NOTION_TEAM_DIRECTORY_DB_ID = ""
         NOTION_TOKEN = ""
         NOTION_WORKLOAD_DB_ID = ""
@@ -214,5 +214,9 @@ async def test_survey_scenario(monkeypatch, scenario_path, setup_env):
             resp = await router.dispatch(payload)
             log.debug("dispatch response", extra={"response": resp})
             log.info("step done", extra={"step": step["stepName"]})
+            if resp.get("survey") == "continue":
+                router.survey_manager.get_survey("123").next_step()
+            elif resp.get("survey") == "end":
+                router.survey_manager.remove_survey("123")
     finally:
         log.handlers.clear()

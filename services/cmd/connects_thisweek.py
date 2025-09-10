@@ -9,11 +9,7 @@ import aiohttp
 from config import Config
 from services.notion_connector import NotionConnector
 from services.logging_utils import get_logger
-
-try:  # pragma: no cover - optional dependency
-    from services.survey_steps_db import SurveyStepsDB
-except Exception:  # pragma: no cover - missing databases package
-    SurveyStepsDB = None  # type: ignore
+from services.survey_steps_db import SurveyStepsDB
 
 
 ERROR_MESSAGE = "Спробуй трохи піздніше. Я тут пораюсь по хаті."
@@ -27,13 +23,12 @@ async def handle(payload: Dict[str, Any]) -> str:
         log.debug("parsed connects", extra={"connects": connects})
 
         # mark survey step as completed using channel id as session id
-        if SurveyStepsDB and Config.DATABASE_URL:
-            db = SurveyStepsDB(Config.DATABASE_URL)
-            try:
-                await db.upsert_step(payload["channelId"], "connects_thisweek", True)
-                log.info("step recorded")
-            finally:
-                await db.close()
+        db = SurveyStepsDB(Config.DATABASE_URL)
+        try:
+            await db.upsert_step(payload["channelId"], "connects_thisweek", True)
+            log.info("step recorded")
+        finally:
+            await db.close()
 
         # post connects count to external database
         url = Config.CONNECTS_URL
@@ -61,6 +56,6 @@ async def handle(payload: Dict[str, Any]) -> str:
             f"Записав! Upwork connects: залишилось {connects} на цьому тиждні."
         )
     except Exception:
-        log.exception("connects_this_week failed")
+        log.exception("connects_thisweek failed")
         return ERROR_MESSAGE
 

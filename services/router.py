@@ -7,7 +7,7 @@ from services.cmd import (
     unregister,
     workload_today,
     workload_nextweek,
-    connects_this_week,
+    connects_thisweek,
     day_off,
     vacation,
     check_channel,
@@ -30,7 +30,7 @@ HANDLERS: Dict[str, Callable[[Dict[str, Any]], Awaitable[str]]] = {
     "unregister": wrap_handler("unregister", unregister.handle),
     "workload_today": wrap_handler("workload_today", workload_today.handle),
     "workload_nextweek": wrap_handler("workload_nextweek", workload_nextweek.handle),
-    "connects_this_week": wrap_handler("connects_this_week", connects_this_week.handle),
+    "connects_thisweek": wrap_handler("connects_thisweek", connects_thisweek.handle),
     "day_off": wrap_handler("day_off", day_off.handle),
     "day_off_thisweek": wrap_handler("day_off_thisweek", day_off.handle),
     "day_off_nextweek": wrap_handler("day_off_nextweek", day_off.handle),
@@ -90,6 +90,10 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
         payload["author"] = user.get("name", payload.get("author"))
         todo_url = user.get("to_do")
 
+        survey_state = survey_manager.get_survey(channel)
+        if survey_state and todo_url:
+            survey_state.todo_url = todo_url
+
         if payload.get("command") == "register":
             if user.get("is_public"):
                 return finalize({"output": "Публічні канали не можна реєструвати."})
@@ -105,23 +109,30 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
             handler = HANDLERS.get(step)
             if not handler:
                 return finalize({"output": f"No handler for step {step}", "survey": "cancel"})
+
+            # Normalize survey payloads for handlers
+            result = payload.setdefault("result", {})
+            if step == "connects_thisweek" and "connects" not in result:
+                result["connects"] = result.get("value")
+            if step in ("day_off_thisweek", "day_off_nextweek") and "value" not in result:
+                result["value"] = result.get("daysSelected")
+
             try:
                 output = await handler(payload)
             except Exception as err:  # pragma: no cover - handler failure
                 log.exception("handler error")
                 return finalize({"output": str(err), "survey": "cancel"})
+
             survey = survey_manager.get_survey(payload.get("channelId"))
             flag = "cancel"
             next_step = None
             if survey:
-                survey.add_result(step, payload.get("result", {}).get("value"))
-                survey.next_step()
-                next_step = survey.current_step()
-                if survey.is_done():
-                    flag = "end"
-                    survey_manager.remove_survey(payload.get("channelId"))
-                else:
+                survey.add_result(step, result.get("value"))
+                if survey.current_index + 1 < len(survey.steps):
                     flag = "continue"
+                    next_step = survey.steps[survey.current_index + 1]
+                else:
+                    flag = "end"
             response = {"output": output, "survey": flag}
             if next_step:
                 response["next_step"] = next_step

@@ -64,7 +64,7 @@ def load_notion_lookup():
 base_logger = logging.getLogger("discord_bot")
 
 class DummyConfig:
-    DATABASE_URL = ""
+    DATABASE_URL = "sqlite://"
     NOTION_TEAM_DIRECTORY_DB_ID = ""
     NOTION_TOKEN = ""
     NOTION_WORKLOAD_DB_ID = ""

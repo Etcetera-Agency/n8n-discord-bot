@@ -14,6 +14,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "services"))
 
+# Load shared fixtures from files
+payload_text = (ROOT / "payload_examples.txt").read_text()
+responses_text = (ROOT / "responses").read_text()
+
 
 class DummyConfig:
     NOTION_TEAM_DIRECTORY_DB_ID = ""
@@ -32,7 +36,7 @@ from config import Config
 
 
 def load_team_directory():
-    text = Path(ROOT / "responses").read_text()
+    text = responses_text
     name = re.search(r'plain_text": "([^"]+Lernichenko)"', text).group(1)
     href = re.search(r'https://www.notion.so/[0-9a-f-]+', text).group(0)
     page_id = re.search(r'id": "([0-9a-f-]{36})"', text).group(1)
@@ -138,4 +142,25 @@ async def test_update_page_success(tmp_path):
     assert headers["Authorization"] == "Bearer token"
     assert payload["properties"]["Discord ID"]["rich_text"][0]["text"]["content"] == "321"
     assert result == {"status": "ok"}
+
+
+@pytest.mark.asyncio
+async def test_update_profile_stats_connects(tmp_path):
+    log_file = tmp_path / "profile_log.txt"
+    log_file.write_text("Input: page_id=PAGE, connects=5\n")
+
+    os.environ["NOTION_TOKEN"] = "token"
+
+    session = DummySession()
+    session.patch_response = MockResponse(200, {})
+
+    connector = NotionConnector(session=session)
+
+    await connector.update_profile_stats_connects("PAGE", 5)
+    url, headers, payload = session.patch_calls[0]
+    with open(log_file, "a") as f:
+        f.write("Step: called update_profile_stats_connects\n")
+        f.write(f"Output: {payload}\n")
+
+    assert payload["properties"] == {"Connects": {"number": 5}}
 

@@ -82,9 +82,15 @@ async def test_handle_vacation_success(tmp_path, monkeypatch):
     log.write_text("Input: vacation survey step\n")
 
     start_date, end_date, event_id = load_response_data()
+    start_iso = f"{start_date}T00:00:00+03:00"
+    end_iso = f"{end_date}T00:00:00+03:00"
     payload = load_payload("/vacation Command Payload")
-    payload["result"]["start_date"] = start_date
-    payload["result"]["end_date"] = end_date
+    payload["result"]["start_date"] = start_iso
+    payload["result"]["end_date"] = end_iso
+
+    fake_db = FakeDB()
+    monkeypatch.setattr(vacation, "SurveyStepsDB", lambda *_: fake_db)
+    monkeypatch.setattr(vacation, "Config", types.SimpleNamespace(DATABASE_URL="sqlite://"))
 
     async def fake_create(name, start, end, tz):
         assert name == payload["author"]
@@ -104,9 +110,12 @@ async def test_handle_vacation_success(tmp_path, monkeypatch):
     # Compute expected formatted dates
     def fmt(d):
         dt = vacation.datetime.fromisoformat(d)
-        return f"{vacation.WEEKDAYS[dt.weekday()]} {dt.day:02d} {vacation.MONTHS[dt.month-1]}"
+        return (
+            f"{vacation.WEEKDAYS[dt.weekday()]} "
+            f"{dt.day:02d} {vacation.MONTHS[dt.month-1]} {dt.year}"
+        )
 
-    expected = f"Записав! Відпустка: {fmt(start_date)}—{fmt(end_date)}."
+    expected = f"Записав! Відпустка: {fmt(start_iso)}—{fmt(end_iso)}."
     assert result == expected
 
 
@@ -116,9 +125,15 @@ async def test_handle_vacation_calendar_error(tmp_path, monkeypatch):
     log.write_text("Input: vacation calendar error\n")
 
     start_date, end_date, _ = load_response_data()
+    start_iso = f"{start_date}T00:00:00+03:00"
+    end_iso = f"{end_date}T00:00:00+03:00"
     payload = load_payload("/vacation Command Payload")
-    payload["result"]["start_date"] = start_date
-    payload["result"]["end_date"] = end_date
+    payload["result"]["start_date"] = start_iso
+    payload["result"]["end_date"] = end_iso
+
+    fake_db = FakeDB()
+    monkeypatch.setattr(vacation, "SurveyStepsDB", lambda *_: fake_db)
+    monkeypatch.setattr(vacation, "Config", types.SimpleNamespace(DATABASE_URL="sqlite://"))
 
     async def fake_create(name, start, end, tz):
         raise RuntimeError("calendar down")
@@ -149,10 +164,16 @@ async def test_vacation_e2e(tmp_path, monkeypatch):
         return {"results": [{"name": name, "discord_id": "321", "channel_id": "123"}]}
 
     start_date, end_date, event_id = load_response_data()
+    start_iso = f"{start_date}T00:00:00+03:00"
+    end_iso = f"{end_date}T00:00:00+03:00"
 
     async def fake_create(name, start, end, tz):
+        assert start == start_date and end == end_date
         return {"status": "ok", "event_id": event_id}
 
+    fake_db = FakeDB()
+    monkeypatch.setattr(vacation, "SurveyStepsDB", lambda *_: fake_db)
+    monkeypatch.setattr(vacation, "Config", types.SimpleNamespace(DATABASE_URL="sqlite://"))
     monkeypatch.setattr(router._notio, "find_team_directory_by_channel", fake_lookup)
     monkeypatch.setattr(
         vacation, "calendar", types.SimpleNamespace(create_vacation_event=fake_create)
@@ -162,8 +183,8 @@ async def test_vacation_e2e(tmp_path, monkeypatch):
     payload["channelId"] = "123"
     payload["userId"] = "321"
     payload["sessionId"] = "123_321"
-    payload["result"]["start_date"] = start_date
-    payload["result"]["end_date"] = end_date
+    payload["result"]["start_date"] = start_iso
+    payload["result"]["end_date"] = end_iso
 
     with open(log, "a") as f:
         f.write("Step: router.dispatch\n")
@@ -173,9 +194,12 @@ async def test_vacation_e2e(tmp_path, monkeypatch):
 
     def fmt(d):
         dt = vacation.datetime.fromisoformat(d)
-        return f"{vacation.WEEKDAYS[dt.weekday()]} {dt.day:02d} {vacation.MONTHS[dt.month-1]}"
+        return (
+            f"{vacation.WEEKDAYS[dt.weekday()]} "
+            f"{dt.day:02d} {vacation.MONTHS[dt.month-1]} {dt.year}"
+        )
 
-    expected = f"Записав! Відпустка: {fmt(start_date)}—{fmt(end_date)}."
+    expected = f"Записав! Відпустка: {fmt(start_iso)}—{fmt(end_iso)}."
     assert result == {"output": expected}
 
 
@@ -185,9 +209,11 @@ async def test_handle_vacation_records_step(monkeypatch, tmp_path):
     log.write_text("Input: vacation survey db\n")
 
     start_date, end_date, _ = load_response_data()
+    start_iso = f"{start_date}T00:00:00+03:00"
+    end_iso = f"{end_date}T00:00:00+03:00"
     payload = load_payload("/vacation Command Payload")
-    payload["result"]["start_date"] = start_date
-    payload["result"]["end_date"] = end_date
+    payload["result"]["start_date"] = start_iso
+    payload["result"]["end_date"] = end_iso
 
     fake_db = FakeDB()
     monkeypatch.setattr(vacation, "SurveyStepsDB", lambda *_: fake_db)
