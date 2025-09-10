@@ -23,7 +23,7 @@ async def handle(payload: Dict[str, Any]) -> str:
             log.info("channel taken", extra={"discord_id": page.get("discord_id")})
             return "Канал вже зареєстрований на когось іншого."
         if not page:
-            log.debug("lookup name", extra={"name": name})
+            log.debug("lookup name", extra={"member_name": name})
             result = await _notio.find_team_directory_by_name(name)
             results = result.get("results", [])
             page = results[0] if results else None

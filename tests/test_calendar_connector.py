@@ -33,31 +33,34 @@ sys.modules["google.auth.transport.requests"] = requests_mod
 sys.modules["google.oauth2"] = oauth2
 sys.modules["google.oauth2.service_account"] = service_account
 
-class DummyConfig:
-    CALENDAR_ID = ""
-    GOOGLE_SERVICE_ACCOUNT_B64 = ""
-    NOTION_TEAM_DIRECTORY_DB_ID = ""
-    NOTION_TOKEN = ""
-    NOTION_WORKLOAD_DB_ID = ""
-    NOTION_PROFILE_STATS_DB_ID = ""
-    WEBHOOK_AUTH_TOKEN = ""
-    SESSION_TTL = 1
 
-config_pkg = types.ModuleType("config")
-config_pkg.Config = DummyConfig
-config_pkg.logger = logging.getLogger("test")
-config_pkg.Strings = object()
-config_pkg.WebhookService = object()
+def _stub_config(monkeypatch):
+    class DummyConfig:
+        CALENDAR_ID = ""
+        GOOGLE_SERVICE_ACCOUNT_B64 = ""
+        NOTION_TEAM_DIRECTORY_DB_ID = ""
+        NOTION_TOKEN = ""
+        NOTION_WORKLOAD_DB_ID = ""
+        NOTION_PROFILE_STATS_DB_ID = ""
+        SESSION_TTL = 1
 
-config_sub = types.ModuleType("config.config")
-config_sub.Config = DummyConfig
+    config_pkg = types.ModuleType("config")
+    config_pkg.Config = DummyConfig
+    config_pkg.logger = logging.getLogger("test")
+    config_pkg.Strings = object()
+    config_pkg.WebhookService = object()
 
-sys.modules["config"] = config_pkg
-sys.modules["config.config"] = config_sub
+    config_sub = types.ModuleType("config.config")
+    config_sub.Config = DummyConfig
 
-import calendar_connector as cc
-from calendar_connector import CalendarConnector
-from config.config import Config
+    monkeypatch.setitem(sys.modules, "config", config_pkg)
+    monkeypatch.setitem(sys.modules, "config.config", config_sub)
+
+    import importlib
+
+    cc = importlib.import_module("calendar_connector")
+    cc = importlib.reload(cc)
+    return cc, config_pkg.Config
 
 
 def load_team_directory():
@@ -116,6 +119,7 @@ class DummySession:
 
 @pytest.mark.asyncio
 async def test_create_day_off_event_success(tmp_path, monkeypatch):
+    cc, Config = _stub_config(monkeypatch)
     page = load_team_directory()
     name = page["properties"]["Name"]["title"][0]["plain_text"]
     event_id = page["id"]
@@ -128,7 +132,7 @@ async def test_create_day_off_event_success(tmp_path, monkeypatch):
     session = DummySession()
     session.post_response = MockResponse(200, {"id": event_id})
 
-    connector = CalendarConnector(session=session)
+    connector = cc.CalendarConnector(session=session)
 
     result = await connector.create_day_off_event(name, "2024-02-05")
     with open(log_file, "a") as f:
@@ -146,6 +150,7 @@ async def test_create_day_off_event_success(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_create_day_off_event_failure(tmp_path, monkeypatch):
+    cc, Config = _stub_config(monkeypatch)
     page = load_team_directory()
     name = page["properties"]["Name"]["title"][0]["plain_text"]
     author = load_author()
@@ -158,7 +163,7 @@ async def test_create_day_off_event_failure(tmp_path, monkeypatch):
     session = DummySession()
     session.post_response = MockResponse(500, {"error": author})
 
-    connector = CalendarConnector(session=session)
+    connector = cc.CalendarConnector(session=session)
 
     result = await connector.create_day_off_event(name, "2024-02-05")
     with open(log_file, "a") as f:
@@ -171,6 +176,7 @@ async def test_create_day_off_event_failure(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_create_vacation_event_success(tmp_path, monkeypatch):
+    cc, Config = _stub_config(monkeypatch)
     page = load_team_directory()
     name = page["properties"]["Name"]["title"][0]["plain_text"]
     event_id = page["id"]
@@ -183,7 +189,7 @@ async def test_create_vacation_event_success(tmp_path, monkeypatch):
     session = DummySession()
     session.post_response = MockResponse(200, {"id": event_id})
 
-    connector = CalendarConnector(session=session)
+    connector = cc.CalendarConnector(session=session)
 
     result = await connector.create_vacation_event(
         name, "2024-02-05", "2024-02-10", "Europe/Kyiv"
@@ -206,6 +212,7 @@ async def test_create_vacation_event_success(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_create_vacation_event_failure(tmp_path, monkeypatch):
+    cc, Config = _stub_config(monkeypatch)
     page = load_team_directory()
     name = page["properties"]["Name"]["title"][0]["plain_text"]
     author = load_author()
@@ -218,7 +225,7 @@ async def test_create_vacation_event_failure(tmp_path, monkeypatch):
     session = DummySession()
     session.post_response = MockResponse(500, {"error": author})
 
-    connector = CalendarConnector(session=session)
+    connector = cc.CalendarConnector(session=session)
 
     result = await connector.create_vacation_event(
         name, "2024-02-05", "2024-02-10", "Europe/Kyiv"

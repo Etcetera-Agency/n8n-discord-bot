@@ -98,7 +98,7 @@ class CalendarConnector:
         log = get_logger("calendar.create_event")
         log.debug("request", extra={"payload": payload})
         session = await self._get_session()
-        calendar_id = os.environ.get("CALENDAR_ID", Config.CALENDAR_ID)
+        calendar_id = Config.CALENDAR_ID
         if not calendar_id:
             raise CalendarError("CALENDAR_ID is not configured")
         url = f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events"

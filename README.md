@@ -346,11 +346,6 @@ The request should include:
 }
 ```
 
-The request must include an Authorization header with the webhook token:
-```
-Authorization: Bearer YOUR_WEBHOOK_AUTH_TOKEN
-```
-
 Before starting the survey, the bot will:
 1. Validate the request and check if the channel exists
 2. Verify channel registration by sending a check_channel request to n8n:
@@ -465,11 +460,14 @@ Configuration is now managed through the `Config` class in `config/config.py`. C
 # Discord Bot Token - Your Discord bot's token
 DISCORD_TOKEN=YOUR_DISCORD_BOT_TOKEN
 
-# Webhook Auth Token (optional) - Token to authenticate internal webhook requests
-WEBHOOK_AUTH_TOKEN=YOUR_WEBHOOK_AUTH_TOKEN
-
-# Notion API Token - Required for fetching ToDo tasks from Notion
+# Notion API Token - Required for fetching tasks from Notion
 NOTION_TOKEN=YOUR_NOTION_TOKEN
+
+# Google service account credentials (base64 encoded JSON)
+GOOGLE_SERVICE_ACCOUNT_B64=YOUR_GOOGLE_SERVICE_ACCOUNT_B64
+
+# Database password for PostgreSQL connection
+DB_POSTGRESDB_PASSWORD=YOUR_DB_PASSWORD
 
 # Session TTL in seconds (optional, default: 86400 - 24 hours)
 SESSION_TTL=86400
@@ -481,7 +479,7 @@ SSL_CERT_PATH=/path/to/cert.pem
 SSL_KEY_PATH=/path/to/key.pem
 ```
 
-The webhook authentication token in n8n is optional but highly recommended. The current implementation uses an Authorization header for authentication.
+Configuration values such as Notion database IDs, calendar ID, and database host are defined in `config/constants.py`.
 
 ### n8n Workflow Setup
 

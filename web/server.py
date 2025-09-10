@@ -14,12 +14,6 @@ class WebServer:
         """Handle HTTP requests to start surveys"""
         try:
             logger.info("Received request to /start_survey")
-            # Verify authorization
-            auth_header = request.headers.get("Authorization")
-            expected_header = f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"
-            if not auth_header or auth_header != expected_header:
-                logger.warning("Unauthorized request attempt")
-                return web.json_response({"error": "Unauthorized"}, status=401)
 
             # Parse JSON payload
             data = await request.json()
