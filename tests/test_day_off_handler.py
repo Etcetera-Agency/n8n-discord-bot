@@ -146,7 +146,10 @@ async def test_one_date(tmp_path, monkeypatch):
 
     assert cal.calls == [(load_author(), "2024-02-05")]
     assert steps.calls == [("123", "day_off_thisweek", True)]
-    expected = f"Вихідний: {format_date_ua('2024-02-05')} записано.\nНе забудь попередити клієнтів."
+    expected = (
+        f"Вихідний: {format_date_ua('2024-02-05')} записано.\n"
+        "Не забудь попередити клієнтів.\n"
+    )
     assert out == expected
 
 
@@ -177,8 +180,14 @@ async def test_many_dates(tmp_path, monkeypatch):
         (load_author(), "2024-02-06"),
     ]
     assert steps.calls == [("123", "day_off_nextweek", True)]
-    formatted = ", ".join([format_date_ua("2024-02-05"), format_date_ua("2024-02-06")])
-    expected = f"Вихідні: {formatted} записані.\nНе забудь попередити клієнтів."
+    formatted = ", ".join([
+        format_date_ua("2024-02-05"),
+        format_date_ua("2024-02-06"),
+    ])
+    expected = (
+        f"Вихідні: {formatted} записані.\n"
+        "Не забудь попередити клієнтів.\n"
+    )
     assert out == expected
 
 
@@ -233,7 +242,10 @@ async def test_single_string_value(tmp_path, monkeypatch):
 
     assert cal.calls == [(load_author(), "2024-02-05")]
     assert steps.calls == [("123", "day_off_thisweek", True)]
-    expected = f"Вихідний: {format_date_ua('2024-02-05')} записано.\nНе забудь попередити клієнтів."
+    expected = (
+        f"Вихідний: {format_date_ua('2024-02-05')} записано.\n"
+        "Не забудь попередити клієнтів.\n"
+    )
     assert out == expected
 
 
@@ -265,8 +277,14 @@ async def test_days_selected_key(tmp_path, monkeypatch):
         (load_author(), "2024-02-06"),
     ]
     assert steps.calls == [("123", "day_off_nextweek", True)]
-    formatted = ", ".join([format_date_ua("2024-02-05"), format_date_ua("2024-02-06")])
-    expected = f"Вихідні: {formatted} записані.\nНе забудь попередити клієнтів."
+    formatted = ", ".join([
+        format_date_ua("2024-02-05"),
+        format_date_ua("2024-02-06"),
+    ])
+    expected = (
+        f"Вихідні: {formatted} записані.\n"
+        "Не забудь попередити клієнтів.\n"
+    )
     assert out == expected
 
 

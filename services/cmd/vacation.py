@@ -43,7 +43,7 @@ def _fmt(date_str: str) -> str:
     dt = datetime.fromisoformat(date_str)
     weekday = WEEKDAYS[dt.weekday()]
     month = MONTHS[dt.month - 1]
-    return f"{weekday} {dt.day:02d} {month}"
+    return f"{weekday} {dt.day:02d} {month} {dt.year}"
 
 
 async def handle(payload: Dict[str, Any]) -> str:

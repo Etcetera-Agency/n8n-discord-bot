@@ -65,13 +65,13 @@ async def handle(payload: Dict[str, Any]) -> str:
         if len(value) == 1:
             result = (
                 f"Вихідний: {format_date_ua(value[0])} записано.\n"
-                "Не забудь попередити клієнтів."
+                "Не забудь попередити клієнтів.\n"
             )
         else:
             formatted = ", ".join(format_date_ua(v) for v in value)
             result = (
                 f"Вихідні: {formatted} записані.\n"
-                "Не забудь попередити клієнтів."
+                "Не забудь попередити клієнтів.\n"
             )
         log.info("done", extra={"output": result})
         return result

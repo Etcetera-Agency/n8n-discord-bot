@@ -110,7 +110,10 @@ async def test_handle_vacation_success(tmp_path, monkeypatch):
     # Compute expected formatted dates
     def fmt(d):
         dt = vacation.datetime.fromisoformat(d)
-        return f"{vacation.WEEKDAYS[dt.weekday()]} {dt.day:02d} {vacation.MONTHS[dt.month-1]}"
+        return (
+            f"{vacation.WEEKDAYS[dt.weekday()]} "
+            f"{dt.day:02d} {vacation.MONTHS[dt.month-1]} {dt.year}"
+        )
 
     expected = f"Записав! Відпустка: {fmt(start_iso)}—{fmt(end_iso)}."
     assert result == expected
@@ -191,7 +194,10 @@ async def test_vacation_e2e(tmp_path, monkeypatch):
 
     def fmt(d):
         dt = vacation.datetime.fromisoformat(d)
-        return f"{vacation.WEEKDAYS[dt.weekday()]} {dt.day:02d} {vacation.MONTHS[dt.month-1]}"
+        return (
+            f"{vacation.WEEKDAYS[dt.weekday()]} "
+            f"{dt.day:02d} {vacation.MONTHS[dt.month-1]} {dt.year}"
+        )
 
     expected = f"Записав! Відпустка: {fmt(start_iso)}—{fmt(end_iso)}."
     assert result == {"output": expected}
