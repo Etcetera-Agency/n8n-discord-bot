@@ -62,11 +62,23 @@ def test_start_survey_without_steps(monkeypatch):
     # Stub services package and submodules
     services_stub = types.ModuleType("services")
     services_stub.__path__ = []
+    created: dict = {}
+
+    def create_survey(u, c, s, sess):
+        survey = types.SimpleNamespace(
+            user_id=u,
+            channel_id=c,
+            steps=s,
+            session_id=sess,
+            current_index=0,
+            todo_url=None,
+        )
+        created["survey"] = survey
+        return survey
+
     services_stub.survey_manager = types.SimpleNamespace(
-        get_survey=lambda _cid: None,
-        create_survey=lambda u, c, s, sess: types.SimpleNamespace(
-            user_id=u, channel_id=c, steps=s, session_id=sess, current_index=0
-        ),
+        get_survey=lambda _cid: created.get("survey"),
+        create_survey=create_survey,
         remove_survey=lambda _cid: None,
     )
     services_stub.webhook_service = types.SimpleNamespace(
@@ -101,10 +113,13 @@ def test_start_survey_without_steps(monkeypatch):
     expected["sessionId"] = session_id
 
     response = load_check_channel_response()
-    called = {}
+    called = {"payloads": []}
 
     async def fake_send_webhook(target, payload_arg, headers):
-        called["payload"] = payload_arg
+        called["payloads"].append(payload_arg)
+        # Simulate router populating todo_url on second call
+        if len(called["payloads"]) == 2 and created.get("survey"):
+            created["survey"].todo_url = "https://todo.url"
         return True, response
 
     monkeypatch.setattr(
@@ -127,8 +142,9 @@ def test_start_survey_without_steps(monkeypatch):
         survey_cmd.handle_start_daily_survey(bot, user_id, channel_id, session_id)
     )
 
-    assert called["payload"] == expected
+    assert called["payloads"] == [expected, expected]
     assert channel.messages == [Strings.SURVEY_COMPLETE_MESSAGE]
+    assert created["survey"].todo_url == "https://todo.url"
 
 
 def test_start_survey_no_required_steps(monkeypatch):
@@ -155,11 +171,20 @@ def test_start_survey_no_required_steps(monkeypatch):
     created = {}
 
     def create_survey(u, c, s, sess):
+        survey = types.SimpleNamespace(
+            user_id=u,
+            channel_id=c,
+            steps=s,
+            session_id=sess,
+            current_index=0,
+            todo_url=None,
+        )
+        created["survey"] = survey
         created["steps"] = s
-        return types.SimpleNamespace(user_id=u, channel_id=c, steps=s, session_id=sess, current_index=0)
+        return survey
 
     services_stub.survey_manager = types.SimpleNamespace(
-        get_survey=lambda _cid: None,
+        get_survey=lambda _cid: created.get("survey"),
         create_survey=create_survey,
         remove_survey=lambda _cid: None,
     )
@@ -192,10 +217,12 @@ def test_start_survey_no_required_steps(monkeypatch):
     expected["sessionId"] = session_id
 
     response = load_check_channel_nonmatching_response()
-    called = {}
+    called = {"payloads": []}
 
     async def fake_send_webhook(target, payload_arg, headers):
-        called["payload"] = payload_arg
+        called["payloads"].append(payload_arg)
+        if len(called["payloads"]) == 2 and created.get("survey"):
+            created["survey"].todo_url = "https://todo.url"
         return True, response
 
     monkeypatch.setattr(
@@ -218,6 +245,7 @@ def test_start_survey_no_required_steps(monkeypatch):
         survey_cmd.handle_start_daily_survey(bot, user_id, channel_id, session_id)
     )
 
-    assert called["payload"] == expected
+    assert called["payloads"] == [expected, expected]
     assert channel.messages == [Strings.SURVEY_COMPLETE_MESSAGE]
     assert created["steps"] == []
+    assert created["survey"].todo_url == "https://todo.url"

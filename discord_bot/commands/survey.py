@@ -132,6 +132,18 @@ async def finish_empty_survey(
         return
     try:
         minimal = survey_manager.create_survey(user_id, channel_id, [], session_id)
+        # Second check_channel call to populate survey.todo_url before finishing
+        payload = {
+            "command": "check_channel",
+            "channelId": channel_id,
+            "sessionId": session_id,
+        }
+        try:
+            await webhook_service.send_webhook_with_retry(None, payload, {})
+        except Exception as e:
+            logger.warning(
+                f"check_channel failed to refresh todo_url for channel {channel_id}: {e}"
+            )
         minimal.current_index = len(minimal.steps)
         await finish_survey(bot, channel, minimal)
     except ValueError as e:
