@@ -32,6 +32,7 @@ class SurveyFlow:
         self.buttons_message: Optional[discord.Message] = None
         self.start_message: Optional[discord.Message] = None
         self.current_question_message_id: Optional[int] = None
+        self.todo_url: Optional[str] = None
         logger.info(f"[{user_id}] - Created survey flow for user {user_id} with steps: {steps}") # Modified log
 
     async def cleanup(self) -> None:

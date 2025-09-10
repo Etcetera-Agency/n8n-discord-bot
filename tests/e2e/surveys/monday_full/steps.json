@@ -1,0 +1,30 @@
+[
+  {
+    "title": "Survey Step Submission Payload (Workload)",
+    "stepName": "workload_today",
+    "bot": "wt",
+    "expected": {"survey": "continue", "next_step": "workload_nextweek"},
+    "dbExpected": {"active": true}
+  },
+  {
+    "title": "Survey Step Submission Payload (Workload)",
+    "stepName": "workload_nextweek",
+    "bot": "wn",
+    "expected": {"survey": "continue", "next_step": "connects_thisweek"},
+    "dbExpected": {"active": true}
+  },
+  {
+    "title": "Survey Step Submission Payload (Connects)",
+    "stepName": "connects_thisweek",
+    "bot": "conn",
+    "expected": {"survey": "continue", "next_step": "day_off_nextweek"},
+    "dbExpected": {"active": true}
+  },
+  {
+    "title": "Survey Step Submission Payload (Day Off)",
+    "stepName": "day_off_nextweek",
+    "bot": "day",
+    "expected": {"survey": "end", "url": "$TODO_URL"},
+    "dbExpected": {"active": false}
+  }
+]
