@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "services" / "cmd"))
 
-import connects_this_week
+import connects_thisweek
 
 # Load payload examples and responses once
 payload_text = (ROOT / "payload_examples.txt").read_text()
@@ -68,18 +68,18 @@ async def test_profile_exists(monkeypatch, tmp_path):
     log_file.write_text(f"Input: {COMMAND_PAYLOAD}\n")
 
     session = DummySession()
-    monkeypatch.setattr(connects_this_week.aiohttp, "ClientSession", lambda: session)
-    monkeypatch.setattr(connects_this_week, "Config", SimpleNamespace(DATABASE_URL="sqlite://", CONNECTS_URL="http://example.com"))
+    monkeypatch.setattr(connects_thisweek.aiohttp, "ClientSession", lambda: session)
+    monkeypatch.setattr(connects_thisweek, "Config", SimpleNamespace(DATABASE_URL="sqlite://", CONNECTS_URL="http://example.com"))
 
     fake_notion = SimpleNamespace(
         get_profile_stats_by_name=AsyncMock(return_value=SAMPLE_PROFILE),
         update_profile_stats_connects=AsyncMock(),
         close=AsyncMock(),
     )
-    monkeypatch.setattr(connects_this_week, "NotionConnector", lambda: fake_notion)
-    monkeypatch.setattr(connects_this_week, "SurveyStepsDB", FakeDB)
+    monkeypatch.setattr(connects_thisweek, "NotionConnector", lambda: fake_notion)
+    monkeypatch.setattr(connects_thisweek, "SurveyStepsDB", FakeDB)
 
-    result = await connects_this_week.handle(COMMAND_PAYLOAD)
+    result = await connects_thisweek.handle(COMMAND_PAYLOAD)
 
     with open(log_file, "a") as f:
         f.write("Step: handle called\n")
@@ -99,18 +99,18 @@ async def test_no_profile(monkeypatch, tmp_path):
     log_file.write_text(f"Input: {COMMAND_PAYLOAD}\n")
 
     session = DummySession()
-    monkeypatch.setattr(connects_this_week.aiohttp, "ClientSession", lambda: session)
-    monkeypatch.setattr(connects_this_week, "Config", SimpleNamespace(DATABASE_URL="sqlite://", CONNECTS_URL="http://example.com"))
+    monkeypatch.setattr(connects_thisweek.aiohttp, "ClientSession", lambda: session)
+    monkeypatch.setattr(connects_thisweek, "Config", SimpleNamespace(DATABASE_URL="sqlite://", CONNECTS_URL="http://example.com"))
 
     fake_notion = SimpleNamespace(
         get_profile_stats_by_name=AsyncMock(return_value={"results": []}),
         update_profile_stats_connects=AsyncMock(),
         close=AsyncMock(),
     )
-    monkeypatch.setattr(connects_this_week, "NotionConnector", lambda: fake_notion)
-    monkeypatch.setattr(connects_this_week, "SurveyStepsDB", FakeDB)
+    monkeypatch.setattr(connects_thisweek, "NotionConnector", lambda: fake_notion)
+    monkeypatch.setattr(connects_thisweek, "SurveyStepsDB", FakeDB)
 
-    result = await connects_this_week.handle(COMMAND_PAYLOAD)
+    result = await connects_thisweek.handle(COMMAND_PAYLOAD)
 
     with open(log_file, "a") as f:
         f.write("Step: handle called\n")
@@ -125,24 +125,24 @@ async def test_database_error(monkeypatch, tmp_path):
     log_file.write_text(f"Input: {COMMAND_PAYLOAD}\n")
 
     session = DummySession(should_fail=True)
-    monkeypatch.setattr(connects_this_week.aiohttp, "ClientSession", lambda: session)
-    monkeypatch.setattr(connects_this_week, "Config", SimpleNamespace(DATABASE_URL="sqlite://", CONNECTS_URL="http://example.com"))
+    monkeypatch.setattr(connects_thisweek.aiohttp, "ClientSession", lambda: session)
+    monkeypatch.setattr(connects_thisweek, "Config", SimpleNamespace(DATABASE_URL="sqlite://", CONNECTS_URL="http://example.com"))
 
     fake_notion = SimpleNamespace(
         get_profile_stats_by_name=AsyncMock(return_value=SAMPLE_PROFILE),
         update_profile_stats_connects=AsyncMock(),
         close=AsyncMock(),
     )
-    monkeypatch.setattr(connects_this_week, "NotionConnector", lambda: fake_notion)
-    monkeypatch.setattr(connects_this_week, "SurveyStepsDB", FakeDB)
+    monkeypatch.setattr(connects_thisweek, "NotionConnector", lambda: fake_notion)
+    monkeypatch.setattr(connects_thisweek, "SurveyStepsDB", FakeDB)
 
-    result = await connects_this_week.handle(COMMAND_PAYLOAD)
+    result = await connects_thisweek.handle(COMMAND_PAYLOAD)
 
     with open(log_file, "a") as f:
         f.write("Step: handle called\n")
         f.write(f"Output: {result}\n")
 
-    assert result == connects_this_week.ERROR_MESSAGE
+    assert result == connects_thisweek.ERROR_MESSAGE
 
 
 @pytest.mark.asyncio
@@ -152,18 +152,18 @@ async def test_end_to_end(monkeypatch, tmp_path):
     log_file.write_text(f"Input: {COMMAND_PAYLOAD}\n")
 
     session = DummySession()
-    monkeypatch.setattr(connects_this_week.aiohttp, "ClientSession", lambda: session)
-    monkeypatch.setattr(connects_this_week, "Config", SimpleNamespace(DATABASE_URL="sqlite://", CONNECTS_URL="http://example.com"))
+    monkeypatch.setattr(connects_thisweek.aiohttp, "ClientSession", lambda: session)
+    monkeypatch.setattr(connects_thisweek, "Config", SimpleNamespace(DATABASE_URL="sqlite://", CONNECTS_URL="http://example.com"))
 
     fake_notion = SimpleNamespace(
         get_profile_stats_by_name=AsyncMock(return_value=SAMPLE_PROFILE),
         update_profile_stats_connects=AsyncMock(),
         close=AsyncMock(),
     )
-    monkeypatch.setattr(connects_this_week, "NotionConnector", lambda: fake_notion)
-    monkeypatch.setattr(connects_this_week, "SurveyStepsDB", FakeDB)
+    monkeypatch.setattr(connects_thisweek, "NotionConnector", lambda: fake_notion)
+    monkeypatch.setattr(connects_thisweek, "SurveyStepsDB", FakeDB)
 
-    result = await connects_this_week.handle(COMMAND_PAYLOAD.copy())
+    result = await connects_thisweek.handle(COMMAND_PAYLOAD.copy())
 
     with open(log_file, "a") as f:
         f.write("Step: handle called\n")

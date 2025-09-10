@@ -56,6 +56,6 @@ async def handle(payload: Dict[str, Any]) -> str:
             f"Записав! Upwork connects: залишилось {connects} на цьому тиждні."
         )
     except Exception:
-        log.exception("connects_this_week failed")
+        log.exception("connects_thisweek failed")
         return ERROR_MESSAGE
 

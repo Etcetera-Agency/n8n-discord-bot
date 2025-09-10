@@ -302,9 +302,9 @@ def test_parse_prefix_unregister(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_dispatch_connects_alias(tmp_path, monkeypatch):
-    log = tmp_path / "connects_alias_log.txt"
-    log.write_text("Input: connects_alias\n")
+async def test_dispatch_connects(tmp_path, monkeypatch):
+    log = tmp_path / "connects_log.txt"
+    log.write_text("Input: connects\n")
 
     async def fake_lookup(channel_id):
         return load_notion_lookup()
