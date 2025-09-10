@@ -86,6 +86,10 @@ async def test_handle_vacation_success(tmp_path, monkeypatch):
     payload["result"]["start_date"] = start_date
     payload["result"]["end_date"] = end_date
 
+    fake_db = FakeDB()
+    monkeypatch.setattr(vacation, "SurveyStepsDB", lambda *_: fake_db)
+    monkeypatch.setattr(vacation, "Config", types.SimpleNamespace(DATABASE_URL="sqlite://"))
+
     async def fake_create(name, start, end, tz):
         assert name == payload["author"]
         assert start == start_date and end == end_date and tz == "Europe/Kyiv"
@@ -120,6 +124,10 @@ async def test_handle_vacation_calendar_error(tmp_path, monkeypatch):
     payload["result"]["start_date"] = start_date
     payload["result"]["end_date"] = end_date
 
+    fake_db = FakeDB()
+    monkeypatch.setattr(vacation, "SurveyStepsDB", lambda *_: fake_db)
+    monkeypatch.setattr(vacation, "Config", types.SimpleNamespace(DATABASE_URL="sqlite://"))
+
     async def fake_create(name, start, end, tz):
         raise RuntimeError("calendar down")
 
@@ -153,6 +161,9 @@ async def test_vacation_e2e(tmp_path, monkeypatch):
     async def fake_create(name, start, end, tz):
         return {"status": "ok", "event_id": event_id}
 
+    fake_db = FakeDB()
+    monkeypatch.setattr(vacation, "SurveyStepsDB", lambda *_: fake_db)
+    monkeypatch.setattr(vacation, "Config", types.SimpleNamespace(DATABASE_URL="sqlite://"))
     monkeypatch.setattr(router._notio, "find_team_directory_by_channel", fake_lookup)
     monkeypatch.setattr(
         vacation, "calendar", types.SimpleNamespace(create_vacation_event=fake_create)

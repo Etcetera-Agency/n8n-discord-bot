@@ -5,20 +5,27 @@ from typing import Any, Dict
 from config import Config
 from services.calendar_connector import CalendarConnector
 from services.logging_utils import get_logger
-try:  # pragma: no cover - optional dependency
-    from services.survey_steps_db import SurveyStepsDB
-except Exception:  # pragma: no cover - databases package missing
-    SurveyStepsDB = None
+from services.survey_steps_db import SurveyStepsDB
 from services.date_utils import format_date_ua, is_valid_iso_date
 
 calendar = CalendarConnector()
-db_url = getattr(Config, "DATABASE_URL", "")
-_steps_db = SurveyStepsDB(db_url) if SurveyStepsDB and db_url else None
+_steps_db: SurveyStepsDB | None = None
+
+
+def _ensure_db() -> SurveyStepsDB:
+    """Return a SurveyStepsDB instance using the configured DATABASE_URL."""
+    global _steps_db
+    if _steps_db is None:
+        db_url = getattr(Config, "DATABASE_URL", "")
+        if not db_url:
+            raise RuntimeError("DATABASE_URL not configured")
+        _steps_db = SurveyStepsDB(db_url)
+    return _steps_db
 
 
 async def _mark_step(channel_id: str, step: str) -> None:
-    if _steps_db:
-        await _steps_db.upsert_step(channel_id, step, True)
+    db = _ensure_db()
+    await db.upsert_step(channel_id, step, True)
 
 
 async def handle(payload: Dict[str, Any]) -> str:

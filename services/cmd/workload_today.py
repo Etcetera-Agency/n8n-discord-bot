@@ -15,20 +15,21 @@ from typing import Any, Dict, Optional
 from config import Config
 from services.notion_connector import NotionConnector, NotionError
 from services.logging_utils import get_logger
-
-try:  # pragma: no cover - optional dependency
-    from services.survey_steps_db import SurveyStepsDB
-except Exception:  # pragma: no cover - missing databases package
-    SurveyStepsDB = None  # type: ignore
+from services.survey_steps_db import SurveyStepsDB
 
 
 _notio = NotionConnector()
-_steps_db: Optional[SurveyStepsDB]
-db_url = getattr(Config, "DATABASE_URL", "")
-if SurveyStepsDB and db_url:
-    _steps_db = SurveyStepsDB(db_url)
-else:  # pragma: no cover - executed only when DB is unavailable
-    _steps_db = None
+_steps_db: Optional[SurveyStepsDB] = None
+
+
+def _ensure_db() -> SurveyStepsDB:
+    global _steps_db
+    if _steps_db is None:
+        db_url = getattr(Config, "DATABASE_URL", "")
+        if not db_url:
+            raise RuntimeError("DATABASE_URL not configured")
+        _steps_db = SurveyStepsDB(db_url)
+    return _steps_db
 
 # Day name mappings for Ukrainian output and Notion fields
 DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -90,11 +91,11 @@ async def handle(payload: Dict[str, Any]) -> str:
         await _notio.update_workload_day(page_id, plan_field, hours)
         log.info("workload updated", extra={"page_id": page_id, "field": plan_field})
 
-        if _steps_db:
-            await _steps_db.upsert_step(
-                str(payload.get("channelId")), "workload_today", True
-            )
-            log.info("step recorded")
+        db = _ensure_db()
+        await db.upsert_step(
+            str(payload.get("channelId")), "workload_today", True
+        )
+        log.info("step recorded")
 
         day_acc = DAY_ACC[idx]
         day_gen = DAY_GEN[idx]

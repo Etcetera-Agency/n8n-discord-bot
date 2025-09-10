@@ -19,7 +19,12 @@ async def handle(payload: Dict[str, Any], repo: Optional[SurveyStepsDB] = None) 
     """Return pending survey steps for the channel or an error message."""
     log = get_logger()
     try:
-        db = repo or SurveyStepsDB(Config.DATABASE_URL)
+        db = repo
+        if db is None:
+            db_url = getattr(Config, "DATABASE_URL", "")
+            if not db_url:
+                raise RuntimeError("DATABASE_URL not configured")
+            db = SurveyStepsDB(db_url)
         now = datetime.now(ZoneInfo("Europe/Kyiv"))
         start = (now - timedelta(days=now.weekday())).replace(
             hour=0, minute=0, second=0, microsecond=0
@@ -35,7 +40,7 @@ async def handle(payload: Dict[str, Any], repo: Optional[SurveyStepsDB] = None) 
             "message": "Спробуй трохи піздніше. Я тут пораюсь по хаті.",
         }
     finally:
-        if repo is None:
+        if repo is None and db:
             try:
                 await db.close()
             except Exception:  # pragma: no cover - defensive cleanup

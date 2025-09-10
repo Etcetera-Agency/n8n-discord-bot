@@ -14,7 +14,7 @@ sys.path.append(str(ROOT / "services"))
 @pytest.fixture
 def setup_env(monkeypatch):
     class DummyConfig:
-        DATABASE_URL = ""
+        DATABASE_URL = "sqlite://"
         NOTION_TEAM_DIRECTORY_DB_ID = ""
         NOTION_TOKEN = ""
         NOTION_WORKLOAD_DB_ID = ""

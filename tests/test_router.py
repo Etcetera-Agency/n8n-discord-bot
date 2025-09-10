@@ -56,7 +56,7 @@ def load_notion_lookup():
     }
 # Stub config to avoid heavy imports
 class DummyConfig:
-    DATABASE_URL = ""
+    DATABASE_URL = "sqlite://"
     NOTION_TEAM_DIRECTORY_DB_ID = ""
     NOTION_TOKEN = ""
     NOTION_WORKLOAD_DB_ID = ""

@@ -143,7 +143,16 @@ async def test_handle_workload_today_error(tmp_path, monkeypatch):
 
     monkeypatch.setattr(workload_today._notio, "query_database", fake_query)
     monkeypatch.setattr(workload_today._notio, "update_workload_day", fake_update)
-    monkeypatch.setattr(workload_today, "_steps_db", None)
+    monkeypatch.setattr(
+        workload_today,
+        "_steps_db",
+        types.SimpleNamespace(upsert_step=lambda *a, **k: None),
+    )
+    monkeypatch.setattr(
+        workload_today,
+        "Config",
+        types.SimpleNamespace(DATABASE_URL="sqlite://", NOTION_WORKLOAD_DB_ID="db"),
+    )
 
     result = await workload_today.handle(payload)
 
@@ -165,8 +174,19 @@ async def test_handle_workload_today_user_not_found(tmp_path, monkeypatch):
         return {"status": "ok", "results": []}
 
     monkeypatch.setattr(workload_today._notio, "query_database", fake_query)
-    monkeypatch.setattr(workload_today._notio, "update_workload_day", lambda *a, **k: None)
-    monkeypatch.setattr(workload_today, "_steps_db", None)
+    monkeypatch.setattr(
+        workload_today._notio, "update_workload_day", lambda *a, **k: None
+    )
+    monkeypatch.setattr(
+        workload_today,
+        "_steps_db",
+        types.SimpleNamespace(upsert_step=lambda *a, **k: None),
+    )
+    monkeypatch.setattr(
+        workload_today,
+        "Config",
+        types.SimpleNamespace(DATABASE_URL="sqlite://", NOTION_WORKLOAD_DB_ID="db"),
+    )
 
     result = await workload_today.handle(payload)
 

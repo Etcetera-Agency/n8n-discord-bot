@@ -8,10 +8,7 @@ from datetime import datetime
 from config import Config
 from services.calendar_connector import CalendarConnector
 from services.logging_utils import get_logger
-try:  # pragma: no cover - optional dependency
-    from services.survey_steps_db import SurveyStepsDB
-except Exception:  # pragma: no cover - missing databases package
-    SurveyStepsDB = None  # type: ignore
+from services.survey_steps_db import SurveyStepsDB
 
 # Reusable calendar connector instance
 calendar = CalendarConnector()
@@ -65,14 +62,14 @@ async def handle(payload: Dict[str, Any]) -> str:
             raise Exception("calendar error")
         log.info("calendar event created", extra={"event_id": resp.get("event_id")})
 
-        db_url = getattr(Config, "DATABASE_URL", "")
-        if SurveyStepsDB and db_url:
-            db = SurveyStepsDB(db_url)
-            try:
-                await db.upsert_step(str(payload.get("channelId")), "vacation", True)
-                log.info("step recorded")
-            finally:
-                await db.close()
+        db = SurveyStepsDB(getattr(Config, "DATABASE_URL", ""))
+        try:
+            await db.upsert_step(
+                str(payload.get("channelId")), "vacation", True
+            )
+            log.info("step recorded")
+        finally:
+            await db.close()
 
         return f"Записав! Відпустка: {_fmt(start)}—{_fmt(end)}."
     except Exception:
