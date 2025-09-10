@@ -151,7 +151,7 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
         "channelId": channel_id,
         "sessionId": session_id,
     }
-    headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
+    headers = {}
     logger.info(
         f"First check_channel call for channel {channel_id} with payload: {payload}"
     )
@@ -553,7 +553,7 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
             "sessionId": current_survey.session_id, # Added session_id
             "results": current_survey.results
         }
-        headers = {"Authorization": f"Bearer {Config.WEBHOOK_AUTH_TOKEN}"}
+        headers = {}
         logger.info(f"[{current_survey.session_id}] - Sending 'end' status webhook to n8n with payload: {payload}")
         success, data = await webhook_service.send_webhook_with_retry(channel, payload, headers)
         logger.info(f"[{current_survey.session_id}] - 'end' status webhook response: success={success}, data={data}")

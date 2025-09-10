@@ -1,7 +1,7 @@
 import sys
 import re
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -42,7 +42,11 @@ CREATE_TABLE_NO_UNIQUE = (
 
 
 def week_start_str():
-    return (datetime.utcnow() - timedelta(days=1)).replace(microsecond=0).isoformat(" ")
+    return (
+        (datetime.now(timezone.utc) - timedelta(days=1))
+        .replace(tzinfo=None, microsecond=0)
+        .isoformat(" ")
+    )
 
 
 @pytest.mark.asyncio
@@ -131,7 +135,9 @@ async def test_fetch_week_returns_latest(tmp_path):
     await database.execute(CREATE_TABLE_NO_UNIQUE)
     repo = SurveyStepsDB(db_url, db=database)
 
-    week_start = datetime.utcnow() - timedelta(days=1)
+    week_start = (
+        datetime.now(timezone.utc) - timedelta(days=1)
+    ).replace(tzinfo=None)
     week_start_str = week_start.replace(microsecond=0).isoformat(" ")
     first = (week_start + timedelta(hours=1)).isoformat(" ")
     second = (week_start + timedelta(hours=2)).isoformat(" ")

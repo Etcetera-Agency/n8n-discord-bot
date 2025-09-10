@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from typing import Any, Dict
 
 import aiohttp
@@ -37,9 +36,8 @@ async def handle(payload: Dict[str, Any]) -> str:
                 await db.close()
 
         # post connects count to external database
-        url = os.environ.get(
-            "CONNECTS_URL", "https://tech2.etcetera.kiev.ua/set-db-connects"
-        )
+        url = Config.CONNECTS_URL
+
         async with aiohttp.ClientSession() as session:
             await session.post(
                 url, json={"name": payload["author"], "connects": connects}

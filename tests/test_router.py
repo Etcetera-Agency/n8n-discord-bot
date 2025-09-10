@@ -61,7 +61,6 @@ class DummyConfig:
     NOTION_TOKEN = ""
     NOTION_WORKLOAD_DB_ID = ""
     NOTION_PROFILE_STATS_DB_ID = ""
-    WEBHOOK_AUTH_TOKEN = ""
     SESSION_TTL = 1
 
 sys.modules["config"] = types.SimpleNamespace(

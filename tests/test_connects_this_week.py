@@ -71,7 +71,7 @@ async def test_profile_exists(monkeypatch, tmp_path):
 
     session = DummySession()
     monkeypatch.setattr(connects_this_week.aiohttp, "ClientSession", lambda: session)
-    monkeypatch.setattr(connects_this_week, "Config", SimpleNamespace(DATABASE_URL="sqlite://"))
+    monkeypatch.setattr(connects_this_week, "Config", SimpleNamespace(DATABASE_URL="sqlite://", CONNECTS_URL="http://example.com"))
 
     fake_notion = SimpleNamespace(
         get_profile_stats_by_name=AsyncMock(return_value=SAMPLE_PROFILE),
@@ -102,7 +102,7 @@ async def test_no_profile(monkeypatch, tmp_path):
 
     session = DummySession()
     monkeypatch.setattr(connects_this_week.aiohttp, "ClientSession", lambda: session)
-    monkeypatch.setattr(connects_this_week, "Config", SimpleNamespace(DATABASE_URL="sqlite://"))
+    monkeypatch.setattr(connects_this_week, "Config", SimpleNamespace(DATABASE_URL="sqlite://", CONNECTS_URL="http://example.com"))
 
     fake_notion = SimpleNamespace(
         get_profile_stats_by_name=AsyncMock(return_value={"results": []}),
@@ -128,7 +128,7 @@ async def test_database_error(monkeypatch, tmp_path):
 
     session = DummySession(should_fail=True)
     monkeypatch.setattr(connects_this_week.aiohttp, "ClientSession", lambda: session)
-    monkeypatch.setattr(connects_this_week, "Config", SimpleNamespace(DATABASE_URL="sqlite://"))
+    monkeypatch.setattr(connects_this_week, "Config", SimpleNamespace(DATABASE_URL="sqlite://", CONNECTS_URL="http://example.com"))
 
     fake_notion = SimpleNamespace(
         get_profile_stats_by_name=AsyncMock(return_value=SAMPLE_PROFILE),
@@ -155,7 +155,7 @@ async def test_end_to_end(monkeypatch, tmp_path):
 
     session = DummySession()
     monkeypatch.setattr(connects_this_week.aiohttp, "ClientSession", lambda: session)
-    monkeypatch.setattr(connects_this_week, "Config", SimpleNamespace(DATABASE_URL="sqlite://"))
+    monkeypatch.setattr(connects_this_week, "Config", SimpleNamespace(DATABASE_URL="sqlite://", CONNECTS_URL="http://example.com"))
 
     fake_notion = SimpleNamespace(
         get_profile_stats_by_name=AsyncMock(return_value=SAMPLE_PROFILE),
