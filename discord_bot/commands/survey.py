@@ -155,16 +155,19 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
     logger.info(
         f"First check_channel call for channel {channel_id} with payload: {payload}"
     )
-    success, data = await webhook_service.send_webhook_with_retry(None, payload, headers)
+    success, data = await webhook_service.send_webhook_with_retry(
+        None, payload, headers
+    )
     logger.info(
         f"First check_channel webhook response: success={success}, raw_data={data}"
     )
-    if not success or not data or str(data.get("output", "false")).lower() != "true":
+    resp = data.get("output") if data else None
+    if not success or not resp or resp.get("output") is not True:
         logger.warning(f"Channel {channel_id} not registered for surveys")
         return
 
     # Check channel response data
-    steps = data.get("steps", []) if data else []
+    steps = resp.get("steps", [])
     # logger.debug(f"Extracted steps from webhook data: {steps}") # Log extracted steps at debug level
     channel = await bot.fetch_channel(channel_id)
     if not channel:

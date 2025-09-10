@@ -2115,6 +2115,11 @@ Profile stats database
       "request_id": "0505b1e0-f786-413b-a749-949d3539e161"
     }
   ]
+
+====
+check_channel empty steps response
+
+{"output": {"output": true, "steps": []}}
   
   
 
