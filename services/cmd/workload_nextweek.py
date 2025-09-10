@@ -29,7 +29,9 @@ async def handle(payload: Dict[str, Any]) -> str:
     """Handle the `workload_nextweek` command."""
     log = get_logger()
     try:
-        hours = int(payload["result"]["value"])
+        result = payload.get("result", {})
+        hours_raw = result.get("value", result.get("workload"))
+        hours = int(hours_raw)
         log.debug("parsed hours", extra={"hours": hours})
         page_data = await _notion.get_workload_page_by_name(payload["author"])
         results = page_data.get("results", [])

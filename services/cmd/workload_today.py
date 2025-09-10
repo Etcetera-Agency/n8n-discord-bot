@@ -60,7 +60,9 @@ async def handle(payload: Dict[str, Any]) -> str:
 
     log = get_logger()
     try:
-        hours = int(payload["result"]["value"])  # 0 is valid
+        result = payload.get("result", {})
+        hours_raw = result.get("value", result.get("workload"))
+        hours = int(hours_raw)  # 0 is valid
         log.debug("parsed hours", extra={"hours": hours})
         ts = payload.get("timestamp")
         now = (

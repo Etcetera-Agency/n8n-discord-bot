@@ -50,9 +50,12 @@ def load_workload_response() -> dict:
 
 
 @pytest.mark.asyncio
-async def test_handle_workload_today_success(tmp_path, monkeypatch):
+@pytest.mark.parametrize("hours_key", ["value", "workload"])
+async def test_handle_workload_today_success(tmp_path, monkeypatch, hours_key):
     payload = load_payload_example("Workload Slash Command Payload")
     payload.update({"channelId": "123", "author": "Tester"})
+    value = payload["result"]["value"]
+    payload["result"] = {hours_key: value}
     log = tmp_path / "workload_today_success.txt"
     log.write_text(f"Input: {payload}\n")
 
@@ -89,7 +92,7 @@ async def test_handle_workload_today_success(tmp_path, monkeypatch):
     day_short = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][idx]
     day_field = f"{day_short} Plan"
     assert called["day_field"] == day_field
-    assert called["hours"] == int(payload["result"]["value"])
+    assert called["hours"] == int(value)
     assert called["db"] == (payload["channelId"], "workload_today", True)
 
     day_acc = [
@@ -116,7 +119,7 @@ async def test_handle_workload_today_success(tmp_path, monkeypatch):
         + resp["results"][0]["fact_2"]
     )
     capacity = int(resp["results"][0]["capacity"])
-    hours = int(payload["result"]["value"])
+    hours = int(value)
     expected = (
         "Записав! \n"
         f"Заплановане навантаження у {day_acc}: {hours} год. \n"
@@ -198,9 +201,12 @@ async def test_handle_workload_today_user_not_found(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_workload_today_e2e(tmp_path, monkeypatch):
+@pytest.mark.parametrize("hours_key", ["value", "workload"])
+async def test_workload_today_e2e(tmp_path, monkeypatch, hours_key):
     payload = load_payload_example("Workload Slash Command Payload")
     payload.update({"userId": "321", "channelId": "123", "sessionId": "123_321"})
+    value = payload["result"]["value"]
+    payload["result"] = {hours_key: value}
     log = tmp_path / "workload_today_e2e.txt"
     log.write_text(f"Input: {payload}\n")
 
@@ -274,7 +280,7 @@ async def test_workload_today_e2e(tmp_path, monkeypatch):
         + resp["results"][0]["fact_2"]
     )
     capacity = int(resp["results"][0]["capacity"])
-    hours = int(payload["result"]["value"])
+    hours = int(value)
     expected = (
         "Записав! \n"
         f"Заплановане навантаження у {day_acc}: {hours} год. \n"

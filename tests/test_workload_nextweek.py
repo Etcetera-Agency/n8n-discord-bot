@@ -52,9 +52,12 @@ def load_notion_lookup() -> dict:
 
 
 @pytest.mark.asyncio
-async def test_handle_valid_write(monkeypatch, tmp_path):
+@pytest.mark.parametrize("hours_key", ["value", "workload"])
+async def test_handle_valid_write(monkeypatch, tmp_path, hours_key):
     payload = load_payload_example("Workload Slash Command Payload (e.g., /workload_today)")
     payload["command"] = "workload_nextweek"
+    value = payload["result"]["value"]
+    payload["result"] = {hours_key: value}
     log_file = tmp_path / "valid_write_log.txt"
     log_file.write_text(f"Input: {payload}\n")
 
@@ -84,11 +87,9 @@ async def test_handle_valid_write(monkeypatch, tmp_path):
         f.write("Step: handle\n")
         f.write(f"Output: {result}\n")
 
-    update_mock.assert_awaited_with(
-        page["id"], "Next week plan", payload["result"]["value"]
-    )
+    update_mock.assert_awaited_with(page["id"], "Next week plan", value)
     steps_mock.assert_awaited_with(payload["channelId"], "workload_nextweek", True)
-    assert result == workload_nextweek.template(payload["result"]["value"])
+    assert result == workload_nextweek.template(value)
 
 
 @pytest.mark.asyncio
@@ -165,9 +166,12 @@ async def test_handle_user_not_found(monkeypatch, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_workload_nextweek_e2e(monkeypatch, tmp_path):
+@pytest.mark.parametrize("hours_key", ["value", "workload"])
+async def test_workload_nextweek_e2e(monkeypatch, tmp_path, hours_key):
     payload = load_payload_example("Workload Slash Command Payload (e.g., /workload_today)")
     payload["command"] = "workload_nextweek"
+    value = payload["result"]["value"]
+    payload["result"] = {hours_key: value}
     log_file = tmp_path / "e2e_log.txt"
     log_file.write_text(f"Input: {payload}\n")
 
@@ -207,6 +211,6 @@ async def test_workload_nextweek_e2e(monkeypatch, tmp_path):
         f.write("Step: dispatch\n")
         f.write(f"Output: {result}\n")
 
-    expected = workload_nextweek.template(payload["result"]["value"])
+    expected = workload_nextweek.template(value)
     assert result == {"output": expected}
 
