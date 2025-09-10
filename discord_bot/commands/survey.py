@@ -116,6 +116,30 @@ async def handle_survey_incomplete(bot: commands.Bot, session_id: str) -> None: 
     survey_manager.remove_survey(survey.channel_id) # Remove by channel_id
     logger.info(f"Survey for user {survey.session_id} (session {session_id}) timed out with incomplete steps: {incomplete}")
 
+
+async def finish_empty_survey(
+    bot: commands.Bot,
+    channel: discord.TextChannel,
+    user_id: str,
+    channel_id: str,
+    session_id: str,
+) -> None:
+    """Create and immediately finish a survey with no steps."""
+    if not channel:
+        logger.warning(
+            f"Channel {channel_id} not found while finishing empty survey session {session_id}"
+        )
+        return
+    try:
+        minimal = survey_manager.create_survey(user_id, channel_id, [], session_id)
+        minimal.current_index = len(minimal.steps)
+        await finish_survey(bot, channel, minimal)
+    except ValueError as e:
+        logger.error(f"Failed to create minimal survey for channel {channel_id}: {e}")
+        await channel.send(
+            f"<@{user_id}> {Strings.SURVEY_START_ERROR}: Failed to initialize survey."
+        )
+
 async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id: str, session_id: str) -> None: # Added bot parameter
     """Initiates or resumes the daily survey for a channel.
     Checks for existing sessions, verifies channel registration with n8n,
@@ -175,24 +199,11 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
         return
 
     # Handle cases based on received data
-    if steps:
-        # Steps provided - proceed with survey
-        pass
-    else:
-        # No steps provided - finish the survey flow
-        logger.info(f"No survey steps provided for channel {channel_id}, finishing survey.")
-        # Create a minimal survey object to pass to finish_survey
-        # Use create_survey so it's added to the manager and can be retrieved by finish_survey
-        try:
-            minimal_survey = survey_manager.create_survey(user_id, channel_id, [], session_id)
-            # Mark the minimal survey as done immediately
-            minimal_survey.current_index = len(minimal_survey.steps) # Set index to indicate completion
-            await finish_survey(bot, channel, minimal_survey)
-        except ValueError as e:
-            logger.error(f"Failed to create minimal survey for channel {channel_id}: {e}")
-            # Optionally send an error message to the channel here if creation fails
-            if channel:
-                 await channel.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}: Failed to initialize survey.")
+    if not steps:
+        logger.info(
+            f"No survey steps provided for channel {channel_id}, finishing survey."
+        )
+        await finish_empty_survey(bot, channel, user_id, channel_id, session_id)
         return
 
     logger.info(f"Starting survey with steps: {steps}")
@@ -205,9 +216,10 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
     final_steps = [step for step in constants.SURVEY_FLOW if step in steps]
 
     if not final_steps:
-        logger.info(f"No *required* survey steps found for channel {channel_id} after filtering {steps}.")
-        channel = await bot.fetch_channel(int(channel_id))
-        if channel: await channel.send(f"{Strings.SURVEY_COMPLETE_MESSAGE}")
+        logger.info(
+            f"No *required* survey steps found for channel {channel_id} after filtering {steps}."
+        )
+        await finish_empty_survey(bot, channel, user_id, channel_id, session_id)
         return
 
     logger.info(f"Starting new survey for user {user_id} in channel {channel_id} with steps: {final_steps}")

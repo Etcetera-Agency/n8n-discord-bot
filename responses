@@ -3120,3 +3120,8 @@ todo page
       "content": "@Dmytro Bronfain please update All work profile - Dmytro Bronfain "
     }
   ]
+
+====
+check_channel nonmatching steps response
+
+{"output": {"output": true, "steps": ["day_off_thisweek", "vacation"]}}
