@@ -90,6 +90,10 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
         payload["author"] = user.get("name", payload.get("author"))
         todo_url = user.get("to_do")
 
+        survey_state = survey_manager.get_survey(channel)
+        if survey_state and todo_url:
+            survey_state.todo_url = todo_url
+
         if payload.get("command") == "register":
             if user.get("is_public"):
                 return finalize({"output": "Публічні канали не можна реєструвати."})
@@ -110,6 +114,8 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
             result = payload.setdefault("result", {})
             if step == "connects_thisweek" and "connects" not in result:
                 result["connects"] = result.get("value")
+            if step in ("day_off_thisweek", "day_off_nextweek") and "value" not in result:
+                result["value"] = result.get("daysSelected")
 
             try:
                 output = await handler(payload)

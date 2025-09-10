@@ -160,6 +160,40 @@ async def test_dispatch_survey_end(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_dispatch_day_off_results(tmp_path, monkeypatch):
+    log = tmp_path / "survey_dayoff_log.txt"
+    log.write_text("Input: survey-dayoff\n")
+
+    async def fake_lookup(channel_id):
+        return load_notion_lookup()
+
+    async def day(payload):
+        return "done"
+
+    monkeypatch.setattr(router._notio, "find_team_directory_by_channel", fake_lookup)
+    monkeypatch.setitem(router.HANDLERS, "day_off_nextweek", day)
+    survey_manager.create_survey("321", "123", ["day_off_nextweek"], "sess")
+    payload = load_payload_example("Survey Step Submission Payload (Day Off)")
+    payload["channelId"] = "123"
+    payload["userId"] = "321"
+    payload["sessionId"] = "123_321"
+    payload["result"]["daysSelected"] = ["2025-09-16", "2025-09-21"]
+    with open(log, "a") as f:
+        f.write("Step: dispatch\n")
+    result = await router.dispatch(payload)
+    lookup = load_notion_lookup()
+    assert result == {
+        "output": "done",
+        "survey": "end",
+        "url": lookup["results"][0]["to_do"],
+    }
+    survey = survey_manager.get_survey("123")
+    assert survey.todo_url == lookup["results"][0]["to_do"]
+    assert survey.results["day_off_nextweek"] == ["2025-09-16", "2025-09-21"]
+    survey_manager.remove_survey("123")
+
+
+@pytest.mark.asyncio
 async def test_dispatch_survey_continue(tmp_path, monkeypatch):
     log = tmp_path / "survey_continue_log.txt"
     log.write_text("Input: survey-continue\n")
