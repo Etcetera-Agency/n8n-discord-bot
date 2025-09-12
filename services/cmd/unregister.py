@@ -1,6 +1,7 @@
 from typing import Any, Dict
 
 from services.notion_connector import NotionConnector
+from config import Strings
 from services.logging_utils import get_logger
 
 _notio = NotionConnector()
@@ -24,4 +25,4 @@ async def handle(payload: Dict[str, Any]) -> str:
         return "Готово. Тепер цей канал не зареєстрований ні на кого."
     except Exception:
         log.exception("unregister failed")
-        return "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+        return Strings.TRY_AGAIN_LATER

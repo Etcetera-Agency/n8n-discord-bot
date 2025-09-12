@@ -44,7 +44,11 @@ class DummyConfig:
 
 
 sys.modules["config"] = types.SimpleNamespace(
-    Config=DummyConfig, logger=logging.getLogger("test"), Strings=object()
+    Config=DummyConfig,
+    logger=logging.getLogger("test"),
+    Strings=types.SimpleNamespace(
+        TRY_AGAIN_LATER="Спробуй трохи піздніше. Я тут пораюсь по хаті."
+    ),
 )
 
 from services.cmd import vacation

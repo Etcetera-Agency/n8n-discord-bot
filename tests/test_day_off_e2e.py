@@ -43,7 +43,11 @@ class DummyConfig:
 
 
 config_mod = types.SimpleNamespace(
-    Config=DummyConfig, logger=logging.getLogger("test"), Strings=object()
+    Config=DummyConfig,
+    logger=logging.getLogger("test"),
+    Strings=types.SimpleNamespace(
+        TRY_AGAIN_LATER="Спробуй трохи піздніше. Я тут пораюсь по хаті."
+    ),
 )
 sys.modules["config"] = config_mod
 
@@ -167,4 +171,3 @@ async def test_day_off_nextweek_e2e(tmp_path, monkeypatch):
         "Не забудь попередити клієнтів.\n"
     )
     assert result == {"output": expected}
-

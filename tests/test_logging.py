@@ -74,7 +74,9 @@ class DummyConfig:
 config_mod = types.ModuleType("config")
 config_mod.Config = DummyConfig
 config_mod.logger = base_logger
-config_mod.Strings = object()
+config_mod.Strings = types.SimpleNamespace(
+    TRY_AGAIN_LATER="Спробуй трохи піздніше. Я тут пораюсь по хаті."
+)
 sys.modules["config"] = config_mod
 
 import router

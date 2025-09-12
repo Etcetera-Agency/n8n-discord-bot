@@ -23,7 +23,11 @@ class DummyConfig:
 
 
 sys.modules["config"] = types.SimpleNamespace(
-    Config=DummyConfig, logger=logging.getLogger("test"), Strings=object()
+    Config=DummyConfig,
+    logger=logging.getLogger("test"),
+    Strings=types.SimpleNamespace(
+        TRY_AGAIN_LATER="Спробуй трохи піздніше. Я тут пораюсь по хаті."
+    ),
 )
 
 import router
@@ -213,4 +217,3 @@ async def test_workload_nextweek_e2e(monkeypatch, tmp_path, hours_key):
 
     expected = workload_nextweek.template(value)
     assert result == {"output": expected}
-

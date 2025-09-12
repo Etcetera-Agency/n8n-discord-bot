@@ -1,6 +1,7 @@
 from typing import Any, Dict
 
 from services.notion_connector import NotionConnector
+from config import Strings
 from services.logging_utils import get_logger
 
 
@@ -28,7 +29,7 @@ async def handle(payload: Dict[str, Any]) -> str:
             results = result.get("results", [])
             page = results[0] if results else None
         if not page:
-            return "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+            return Strings.TRY_AGAIN_LATER
         if page.get("discord_id") and page.get("discord_id") != user_id:
             log.info("channel taken", extra={"discord_id": page.get("discord_id")})
             return "Канал вже зареєстрований на когось іншого."
@@ -37,4 +38,4 @@ async def handle(payload: Dict[str, Any]) -> str:
         return f"Канал успішно зареєстровано на {name}"
     except Exception:
         log.exception("register failed")
-        return "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+        return Strings.TRY_AGAIN_LATER

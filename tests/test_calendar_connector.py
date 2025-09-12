@@ -46,7 +46,9 @@ def _stub_config(monkeypatch):
     config_pkg = types.ModuleType("config")
     config_pkg.Config = DummyConfig
     config_pkg.logger = logging.getLogger("test")
-    config_pkg.Strings = object()
+    config_pkg.Strings = types.SimpleNamespace(
+        TRY_AGAIN_LATER="Спробуй трохи піздніше. Я тут пораюсь по хаті."
+    )
 
     config_sub = types.ModuleType("config.config")
     config_sub.Config = DummyConfig

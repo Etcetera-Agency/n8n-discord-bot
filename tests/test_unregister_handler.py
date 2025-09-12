@@ -41,7 +41,11 @@ class DummyConfig:
 
 
 sys.modules["config"] = types.SimpleNamespace(
-    Config=DummyConfig, logger=logging.getLogger("test"), Strings=object()
+    Config=DummyConfig,
+    logger=logging.getLogger("test"),
+    Strings=types.SimpleNamespace(
+        TRY_AGAIN_LATER="Спробуй трохи піздніше. Я тут пораюсь по хаті."
+    ),
 )
 
 import unregister
@@ -148,4 +152,3 @@ async def test_unregister_notion_error(tmp_path, monkeypatch):
         f.write(f"Output: {result}\n")
 
     assert result == "Спробуй трохи піздніше. Я тут пораюсь по хаті."
-

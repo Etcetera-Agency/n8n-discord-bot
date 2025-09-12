@@ -6,13 +6,13 @@ from typing import Any, Dict
 
 import aiohttp
 
-from config import Config
+from config import Config, Strings
 from services.notion_connector import NotionConnector
 from services.logging_utils import get_logger
 from services.survey_steps_db import SurveyStepsDB
 
 
-ERROR_MESSAGE = "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+ERROR_MESSAGE = Strings.TRY_AGAIN_LATER
 
 
 async def handle(payload: Dict[str, Any]) -> str:
@@ -58,4 +58,3 @@ async def handle(payload: Dict[str, Any]) -> str:
     except Exception:
         log.exception("connects_thisweek failed")
         return ERROR_MESSAGE
-

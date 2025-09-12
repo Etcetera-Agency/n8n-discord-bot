@@ -27,7 +27,11 @@ class DummyConfig:
 
 
 sys.modules["config"] = types.SimpleNamespace(
-    Config=DummyConfig, logger=logging.getLogger("test"), Strings=object()
+    Config=DummyConfig,
+    logger=logging.getLogger("test"),
+    Strings=types.SimpleNamespace(
+        TRY_AGAIN_LATER="Спробуй трохи піздніше. Я тут пораюсь по хаті."
+    ),
 )
 
 from notion_connector import NotionConnector
@@ -162,4 +166,3 @@ async def test_update_profile_stats_connects(tmp_path):
         f.write(f"Output: {payload}\n")
 
     assert payload["properties"] == {"Connects": {"number": 5}}
-

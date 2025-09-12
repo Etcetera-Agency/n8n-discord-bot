@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from config import Config
+from config import Config, Strings
 from services.calendar_connector import CalendarConnector
 from services.logging_utils import get_logger
 from services.survey_steps_db import SurveyStepsDB
@@ -62,11 +62,11 @@ async def handle(payload: Dict[str, Any]) -> str:
                 resp = await calendar.create_day_off_event(author, day)
             except Exception:  # pragma: no cover - defensive
                 log.exception("create_day_off_event failed", extra={"day": day})
-                return "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+                return Strings.TRY_AGAIN_LATER
             if resp.get("status") != "ok":
                 msg = resp.get("message", "")
                 log.error("Calendar error", extra={"day": day, "error": msg})
-                return msg or "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+                return msg or Strings.TRY_AGAIN_LATER
         await _mark_step(payload.get("channelId", ""), step)
         if len(value) == 1:
             result = (
@@ -83,4 +83,4 @@ async def handle(payload: Dict[str, Any]) -> str:
         return result
     except Exception:  # pragma: no cover - defensive
         log.exception("failed")
-        return "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+        return Strings.TRY_AGAIN_LATER

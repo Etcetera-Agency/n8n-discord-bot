@@ -7,6 +7,7 @@ from datetime import datetime
 
 from config import Config
 from services.calendar_connector import CalendarConnector
+from config import Strings
 from services.logging_utils import get_logger
 from services.survey_steps_db import SurveyStepsDB
 
@@ -79,4 +80,4 @@ async def handle(payload: Dict[str, Any]) -> str:
         return f"Записав! Відпустка: {_fmt(start_raw)}—{_fmt(end_raw)}."
     except Exception:
         log.exception("vacation failed")
-        return "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+        return Strings.TRY_AGAIN_LATER

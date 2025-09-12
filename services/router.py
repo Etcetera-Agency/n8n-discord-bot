@@ -1,6 +1,7 @@
 from typing import Any, Callable, Awaitable, Dict, Optional
 
 from services.notion_connector import NotionConnector
+from config import Strings
 from services.survey import survey_manager
 from services.cmd import (
     register,
@@ -137,13 +138,13 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         handler = HANDLERS.get(command)
         if not handler:
-            return finalize({"output": "Спробуй трохи піздніше. Я тут пораюсь по хаті."})
+            return finalize({"output": Strings.TRY_AGAIN_LATER})
         try:
             output = await handler(payload)
         except Exception:  # pragma: no cover - handler failure
             log.exception("handler error")
-            return finalize({"output": "Спробуй трохи піздніше. Я тут пораюсь по хаті."})
+            return finalize({"output": Strings.TRY_AGAIN_LATER})
         return finalize({"output": output})
     except Exception:  # pragma: no cover - defensive
         log.exception("failed")
-        return finalize({"output": "Спробуй трохи піздніше. Я тут пораюсь по хаті."})
+        return finalize({"output": Strings.TRY_AGAIN_LATER})

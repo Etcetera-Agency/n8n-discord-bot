@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from typing import Any, Dict, Optional
 
-from config import Config
+from config import Config, Strings
 from services.survey_steps_db import SurveyStepsDB
 from services.logging_utils import get_logger
 
@@ -37,7 +37,7 @@ async def handle(payload: Dict[str, Any], repo: Optional[SurveyStepsDB] = None) 
         log.exception("check_channel failed")
         return {
             "output": False,
-            "message": "Спробуй трохи піздніше. Я тут пораюсь по хаті.",
+            "message": Strings.TRY_AGAIN_LATER,
         }
     finally:
         if repo is None and db:

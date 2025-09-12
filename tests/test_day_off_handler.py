@@ -43,7 +43,11 @@ class DummyConfig:
 
 
 config_mod = types.SimpleNamespace(
-    Config=DummyConfig, logger=logging.getLogger("test"), Strings=object()
+    Config=DummyConfig,
+    logger=logging.getLogger("test"),
+    Strings=types.SimpleNamespace(
+        TRY_AGAIN_LATER="Спробуй трохи піздніше. Я тут пораюсь по хаті."
+    ),
 )
 sys.modules["config"] = config_mod
 
@@ -340,4 +344,3 @@ async def test_invalid_date_format(tmp_path, monkeypatch):
     assert cal.calls == []
     assert steps.calls == []
     assert out == "Некоректна дата: 2024-02-30"
-

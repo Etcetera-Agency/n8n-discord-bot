@@ -1,10 +1,10 @@
 from typing import Any, Dict, Optional, Union
 from services.notion_connector import NotionConnector
-from config import Config
+from config import Config, Strings
 from services.logging_utils import get_logger
 from services.survey_steps_db import SurveyStepsDB
 
-ERROR_MSG = "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+ERROR_MSG = Strings.TRY_AGAIN_LATER
 
 _notion = NotionConnector()
 _steps: Optional[SurveyStepsDB] = None

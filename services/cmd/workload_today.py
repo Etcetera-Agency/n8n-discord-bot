@@ -12,7 +12,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from config import Config
+from config import Config, Strings
 from services.notion_connector import NotionConnector, NotionError
 from services.logging_utils import get_logger
 from services.survey_steps_db import SurveyStepsDB
@@ -52,7 +52,7 @@ DAY_GEN = [
     "неділі",
 ]
 
-ERROR_MSG = "Спробуй трохи піздніше. Я тут пораюсь по хаті."
+ERROR_MSG = Strings.TRY_AGAIN_LATER
 
 
 async def handle(payload: Dict[str, Any]) -> str:
