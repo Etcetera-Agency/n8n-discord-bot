@@ -1,20 +1,23 @@
-# Task 04 — Deduplicate mention handling
+# Task 04 — Remove config/service coupling
 
 Summary
-- Stop parsing `!register/!unregister` in `on_message`. For mentions, send a `mention` request through the `AppRouter` and rely on routing.
+- Stop re-exporting services from `config`. Remove router/service exports from `config/__init__.py` and fix imports.
 
 Steps
-- In `bot.py:on_message`, remove manual prefix parsing after a mention.
-- Always call the router to handle mentions (e.g., `app_router.dispatch(...)`), not per‑message manual parsing.
-- Keep reactions/placeholder message behavior consistent.
+- Edit `config/__init__.py` to export only config, constants, logger, strings.
+- Replace `from config import WebhookService` with direct imports from services (e.g., `from services.webhook import WebhookService`, or `from services.app_router import AppRouter` after the rename in Task 08).
+- Ensure no circular imports remain.
 
 Acceptance Criteria
-- Mention interactions handled once via router; no duplicate command paths.
-- `!register/!unregister` via prefix commands still work through command handlers.
+- `config` package contains no service imports/exports.
+- App runs without circular import errors.
 
 Validation
-- Mention the bot with and without known commands and observe consistent behavior.
-- Run: `pytest -q tests/test_check_channel.py tests/test_router.py`.
+- Grep for bad imports: `rg "from config import (WebhookService|AppRouter)"` should return nothing.
+- Run: `python main.py` and `pytest -q`.
 
 Testing Note
-- Tests should continue to read fixtures from `payload_examples.txt` and `responses`.
+- New/updated tests must read fixtures from `payload_examples.txt` and `responses`.
+
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.

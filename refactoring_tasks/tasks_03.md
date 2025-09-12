@@ -1,20 +1,26 @@
-# Task 03 — Fix survey continuation
+# Task 03 — Unify Entrypoint
 
 Summary
-- Use `survey_manager` as the single source of truth. Index survey state by channel ID consistently.
+- Make `main.py` the single start path. Move bot construction into a factory in `discord_bot/client.py`. Remove `main()` from `bot.py`. Ensure server starts once from `main.py`.
 
 Steps
-- Remove any direct `SURVEYS` dict logic from services; do not key by `userId`.
-- Replace lookups with channelId-based access via `survey_manager.get_survey(channel_id)`.
-- Ensure continuation (`survey == "continue"`) is handled in Discord handlers using `survey_manager` (not inside router/service).
+- Extract bot creation to `discord_bot/client.py:create_bot()` and export it.
+- Update `main.py` to: create bot, start web server, start bot, handle lifecycle.
+- Remove `async def main()` and `if __name__ == "__main__"` block from `bot.py`.
+- Verify imports and remove any now-unused code.
 
 Acceptance Criteria
-- Continuation works when n8n returns `{"survey": "continue"}`.
-- No KeyError on user-based SURVEYS; state retrieved via `survey_manager`.
+- Running `python main.py` starts both Discord bot and web server.
+- No entrypoint code remains in `bot.py`.
+- No duplicate server starts.
 
 Validation
-- Manual: run a survey flow end-to-end.
-- Tests for continuation pass: `pytest -q tests/test_survey_start.py` and related.
+- Run: `python main.py` locally; observe bot login and server bind.
+- Run basic tests: `pytest -q`.
 
 Testing Note
-- Tests must load payloads from `payload_examples.txt` and sample responses from `responses`.
+- Any new/updated tests must read payloads from `payload_examples.txt` and responses from `responses`.
+
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.
+- Router payload/response fields driving UI (`output`, `survey`, `url`, `next_step`) must remain stable.

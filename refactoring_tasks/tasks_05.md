@@ -1,21 +1,23 @@
-# Task 05 — Remove stray/duplicate files
+# Task 05 — Fix survey continuation
 
 Summary
-- Remove accidental duplicates (e.g., files with spaces in names) and dead code.
+- Use `survey_manager` as the single source of truth. Index survey state by channel ID consistently.
 
 Steps
-- If present, delete `discord_bot/views/day_off 2.py` and any duplicates.
-- Remove commented/unused imports in `bot.py` and elsewhere.
-- Enforce no spaces in filenames under repo.
+- Remove any direct `SURVEYS` dict logic from services; do not key by `userId`.
+- Replace lookups with channelId-based access via `survey_manager.get_survey(channel_id)`.
+- Ensure continuation (`survey == "continue"`) is handled in Discord handlers using `survey_manager` (not inside router/service).
 
 Acceptance Criteria
-- No file paths with spaces remain.
-- Import graphs are clean; no unused imports flagged by linters.
+- Continuation works when n8n returns `{"survey": "continue"}`.
+- No KeyError on user-based SURVEYS; state retrieved via `survey_manager`.
 
 Validation
-- List suspicious names: `rg -n "\s\w+\.py$" -g '!venv'` and manual review.
-- Run: `pytest -q`.
+- Manual: run a survey flow end-to-end.
+- Tests for continuation pass: `pytest -q tests/test_survey_start.py` and related.
 
 Testing Note
-- Keep using `payload_examples.txt` and `responses` for test data; do not hardcode values.
+- Tests must load payloads from `payload_examples.txt` and sample responses from `responses`.
 
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.

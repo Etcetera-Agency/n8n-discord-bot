@@ -1,18 +1,21 @@
-# Task 19 — Graceful shutdown
+# Task 19 — Web server hardening
 
 Summary
-- Trap SIGTERM/SIGINT in `main.py` and shut down Discord client and aiohttp server cleanly.
+- Require `WEB_AUTH_TOKEN` on all write/trigger endpoints; protect or remove `/debug_log` in production.
 
 Steps
-- Add signal handlers; cancel tasks and await shutdown.
-- Ensure HTTP server and bot close sequences run without errors.
+- Enforce auth header on all non-read routes.
+- Add size limits and content-type checks where appropriate.
+- Hide `/debug_log` unless explicitly enabled.
 
 Acceptance Criteria
-- Process exits cleanly; no hanging tasks or warnings.
+- Unauthorized requests fail with 401; endpoints validate input.
 
 Validation
-- Run locally and send SIGINT (Ctrl+C) to verify graceful exit.
+- Curl endpoints with/without proper headers; confirm 401. Run `pytest -q`.
 
 Testing Note
-- No test hardcoding; use repo fixtures if adding tests.
+- Tests should load payload/response fixtures from repo files.
 
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.

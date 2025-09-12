@@ -1,21 +1,23 @@
-# Task 10 — Consolidate views and factory
+# Task 10 — Split slash commands into cogs
 
 Summary
-- Remove duplicated survey vs slash views; factor shared logic into generic components and a small factory.
+- Break `discord_bot/commands/slash.py` into domain cogs.
 
 Steps
-- Identify duplicated classes across `discord_bot/views/*_slash.py` and `*_survey.py`.
-- Extract shared pieces to `views/generic.py` or `views/components.py`.
-- Ensure `views/factory.py` can build dynamic views for both contexts.
+- Create cogs: `workload.py`, `day_off.py`, `connects.py`, `vacation.py`, `register.py`, `survey.py`.
+- Move command groups/handlers accordingly; keep shared helpers in `commands/utils.py`.
+- Update bot setup to load these cogs.
 
 Acceptance Criteria
-- No duplicated view classes for identical UI.
-- `factory.create_view()` covers all supported commands/steps.
+- `slash.py` is removed or trimmed to loading cogs only.
+- All slash commands function as before.
 
 Validation
-- Manual: trigger buttons/selects for workload/day off flows.
-- Run: `pytest -q` UI-related tests (if any).
+- Run: `python main.py` and exercise slash commands.
+- Run focused tests: `pytest -q tests/test_survey_start.py tests/test_vacation.py`.
 
 Testing Note
-- Tests must load fixtures from `payload_examples.txt` and `responses`.
+- Tests should keep using repository fixtures (`payload_examples.txt`, `responses`).
 
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.

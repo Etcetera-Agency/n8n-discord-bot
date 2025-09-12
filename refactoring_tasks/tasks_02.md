@@ -1,20 +1,20 @@
-# Task 02 — Remove config/service coupling
+# Task 02 — Normalize naming
 
 Summary
-- Stop re-exporting services from `config`. Remove router/service exports from `config/__init__.py` and fix imports.
+- Enforce snake_case for files; remove spaces; standardize module names.
 
 Steps
-- Edit `config/__init__.py` to export only config, constants, logger, strings.
-- Replace `from config import WebhookService` with direct imports from services (e.g., `from services.webhook import WebhookService`, or `from services.app_router import AppRouter` after the rename in Task 08).
-- Ensure no circular imports remain.
+- Review filenames; rename as needed (avoid spaces/case inconsistencies).
+- Update imports to match new names.
 
 Acceptance Criteria
-- `config` package contains no service imports/exports.
-- App runs without circular import errors.
+- No filenames with spaces or mixed casing remain.
 
 Validation
-- Grep for bad imports: `rg "from config import (WebhookService|AppRouter)"` should return nothing.
-- Run: `python main.py` and `pytest -q`.
+- Search: `rg -n "[A-Z]" --iglob "**/*.py"` for uppercase names; fix as needed.
 
 Testing Note
-- New/updated tests must read fixtures from `payload_examples.txt` and `responses`.
+- After renames, run `pytest -q`; tests still load fixtures from repo files.
+
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.

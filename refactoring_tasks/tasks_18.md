@@ -1,19 +1,21 @@
-# Task 18 — Web server hardening
+# Task 18 — Logging consistency
 
 Summary
-- Require `WEB_AUTH_TOKEN` on all write/trigger endpoints; protect or remove `/debug_log` in production.
+- Use `config.logger.setup_logging()` everywhere; remove ad-hoc loggers.
 
 Steps
-- Enforce auth header on all non-read routes.
-- Add size limits and content-type checks where appropriate.
-- Hide `/debug_log` unless explicitly enabled.
+- Ensure `setup_logging()` initializes once (e.g., in `main.py`).
+- Replace module-level loggers with imports from `config.logger` where needed.
+- Add structured context where beneficial.
 
 Acceptance Criteria
-- Unauthorized requests fail with 401; endpoints validate input.
+- Single, consistent logging format; no duplicate initialization.
 
 Validation
-- Curl endpoints with/without proper headers; confirm 401. Run `pytest -q`.
+- Run locally; inspect log output consistency. Run `pytest -q`.
 
 Testing Note
-- Tests should load payload/response fixtures from repo files.
+- Tests remain fixture-driven using `payload_examples.txt` and `responses`.
 
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.

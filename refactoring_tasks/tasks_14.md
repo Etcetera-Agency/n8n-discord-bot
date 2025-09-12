@@ -1,19 +1,21 @@
-# Task 14 — Timeout and cleanup centralization
+# Task 14 — Explicit survey models
 
 Summary
-- Centralize survey timeout and cleanup logic to ensure consistent resource handling.
+- Introduce dataclasses for survey steps/results to replace ad-hoc dicts.
 
 Steps
-- Add `SurveyFlow.cleanup()` to handle UI/message cleanup.
-- Ensure all completion/cancel/timeout paths call cleanup.
-- Verify timeout task references same state source and correct keys.
+- Add `SurveyStep` and `SurveyResult` (e.g., in `services/survey_models.py`).
+- Update `survey_manager` to use these types for storage and transitions.
+- Adapt handlers to construct/consume these models.
 
 Acceptance Criteria
-- No orphaned buttons/messages after survey end/cancel/timeout.
+- Survey flow uses typed models; no implicit dict structure assumptions.
 
 Validation
-- Simulate timeout; confirm cleanup runs. Run: `pytest -q tests/test_survey_e2e.py`.
+- Type-check locally if using annotations; run `pytest -q`.
 
 Testing Note
-- Continue using fixtures from `payload_examples.txt` and `responses`.
+- Tests should keep loading fixtures from `payload_examples.txt` and `responses`.
 
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.

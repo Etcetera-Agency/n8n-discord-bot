@@ -1,23 +1,42 @@
-# Task 01 — Unify Entrypoint
+# Task 01 — Remove stray/duplicate files
 
 Summary
-- Make `main.py` the single start path. Move bot construction into a factory in `discord_bot/client.py`. Remove `main()` from `bot.py`. Ensure server starts once from `main.py`.
+- Remove accidental duplicates (e.g., files with spaces in names) and dead code.
 
 Steps
-- Extract bot creation to `discord_bot/client.py:create_bot()` and export it.
-- Update `main.py` to: create bot, start web server, start bot, handle lifecycle.
-- Remove `async def main()` and `if __name__ == "__main__"` block from `bot.py`.
-- Verify imports and remove any now-unused code.
+- If present, delete `discord_bot/views/day_off 2.py` and any duplicates.
+- Remove commented/unused imports in `bot.py` and elsewhere.
+- Enforce no spaces in filenames under repo.
 
 Acceptance Criteria
-- Running `python main.py` starts both Discord bot and web server.
-- No entrypoint code remains in `bot.py`.
-- No duplicate server starts.
+- No file paths with spaces remain.
+- Import graphs are clean; no unused imports flagged by linters.
 
 Validation
-- Run: `python main.py` locally; observe bot login and server bind.
-- Run basic tests: `pytest -q`.
+- List suspicious names: `rg -n "\\s\\w+\\.py$" -g '!venv'` and manual review.
+- Run: `pytest -q`.
 
 Testing Note
-- Any new/updated tests must read payloads from `payload_examples.txt` and responses from `responses`.
+- Keep using `payload_examples.txt` and `responses` for test data; do not hardcode values.
 
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.
+
+---
+# Task 22 — Normalize naming
+
+Summary
+- Enforce snake_case for files; remove spaces; standardize module names.
+
+Steps
+- Review filenames; rename as needed (avoid spaces/case inconsistencies).
+- Update imports to match new names.
+
+Acceptance Criteria
+- No filenames with spaces or mixed casing remain.
+
+Validation
+- Search: `rg -n "[A-Z]" --iglob "**/*.py"` for uppercase names; fix as needed.
+
+Testing Note
+- After renames, run `pytest -q`; tests still load fixtures from repo files.

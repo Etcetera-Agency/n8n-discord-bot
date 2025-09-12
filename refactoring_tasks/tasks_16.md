@@ -1,19 +1,22 @@
-# Task 16 — Error taxonomy mapping
+# Task 16 — Typed payload/response models
 
 Summary
-- Map service exceptions to user-safe messages and log appropriately.
+- Introduce `BotRequestPayload` and `RouterResponse` (dataclasses or Pydantic) and validate at the `AppRouter` boundary.
 
 Steps
-- Define/confirm exceptions: `NotionError`, `CalendarError`, `WebhookError`.
-- Map to messages in `Strings` and use consistent try/except in handlers.
-- Ensure secrets never appear in logs.
+- Define models with required/optional fields and minimal coercion (e.g., `userId`, `channelId`, `command`, `result`).
+- Parse/validate inputs before dispatch; convert router outputs to `RouterResponse`.
+- Map validation errors to user-safe messages and structured logs.
 
 Acceptance Criteria
-- Errors are categorized and produce friendly, localized output.
+- `AppRouter.dispatch` accepts `BotRequestPayload` and returns `RouterResponse`.
+- Invalid inputs fail fast with clear logs; no ambiguous KeyErrors.
 
 Validation
-- Force errors in Notion/webhook paths; verify outputs/logs. Run `pytest -q`.
+- Unit tests for model validation; run `pytest -q`.
 
 Testing Note
-- Tests use repository fixtures (`payload_examples.txt`, `responses`).
+- Tests must read payloads from `payload_examples.txt` and responses from `responses`.
 
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.

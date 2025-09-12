@@ -1,20 +1,23 @@
-# Task 12 — Single survey state source
+# Task 12 — Centralize strings/i18n
 
 Summary
-- Route all survey state reads/writes through `survey_manager`, keyed by channel where appropriate.
+- Keep user-facing strings in `config/strings.py` and add light interpolation helpers.
 
 Steps
-- Remove any direct dict access to survey state outside `survey_manager`.
-- Ensure consistent keying (prefer `channel_id`) across handlers and services.
-- Update start/continue/end paths to use the same retrieval method.
+- Audit inline f-strings in commands/views; move static text to `Strings` with placeholders.
+- Add helper for interpolation if needed (e.g., `Strings.format(template, **kwargs)`).
+- Replace usage sites to call `Strings` constants/helpers.
 
 Acceptance Criteria
-- One authoritative store for survey state with consistent keys.
+- No duplicated literal strings for user messages in handlers.
+- All messages defined in `config/strings.py`.
 
 Validation
-- End-to-end survey run with continue/cancel/end works.
-- `pytest -q tests/test_survey_steps_db.py tests/test_survey_start.py` pass.
+- Grep: `rg -n "Помилка|Дякую|Вибрано|Select" discord_bot` and migrate.
+- Run: `pytest -q`.
 
 Testing Note
-- Tests read payloads/responses from repository fixtures.
+- Keep tests reading fixture data from `payload_examples.txt` and `responses`.
 
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.

@@ -1,18 +1,21 @@
-# Task 21 — Rate limiting and retries
+# Task 21 — Remove legacy/unreachable branches
 
 Summary
-- Add simple rate-limit/backoff wrappers for Notion and webhook calls; surface friendly messages.
+- Clean up dead code paths (e.g., router branches checking `payload["type"] == "mention"`).
 
 Steps
-- Implement retry with exponential backoff; cap attempts.
-- Handle 429/5xx with user-safe messages via `Strings`.
+- Identify unreachable conditionals and old branches in router/handlers.
+- Remove or refactor to the current payload schema.
 
 Acceptance Criteria
-- Transient failures recover; user gets clear feedback when limits reached.
+- Router/handlers contain only relevant, reachable logic.
 
 Validation
-- Simulate failures; confirm backoff behavior and outputs. Run `pytest -q`.
+- Run `rg -n "type\"\] == \"mention\"|legacy|TODO"` and review.
+- `pytest -q` green.
 
 Testing Note
-- Tests remain fixture-based; do not hardcode payloads.
+- Tests should continue to read from `payload_examples.txt` and `responses`.
 
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.

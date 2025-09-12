@@ -1,19 +1,20 @@
-# Task 23 — Remove legacy/unreachable branches
+# Task 23 — Document architecture boundaries
 
 Summary
-- Clean up dead code paths (e.g., router branches checking `payload["type"] == "mention"`).
+- Update README with a simple diagram and clarify boundaries between `discord_bot`, `services`, and `web`.
 
 Steps
-- Identify unreachable conditionals and old branches in router/handlers.
-- Remove or refactor to the current payload schema.
+- Add a brief diagram (ASCII or image under `assets/`).
+- Document ownership and direction of dependencies.
 
 Acceptance Criteria
-- Router/handlers contain only relevant, reachable logic.
+- README explains architecture and module boundaries succinctly.
 
 Validation
-- Run `rg -n "type\"\] == \"mention\"|legacy|TODO"` and review.
-- `pytest -q` green.
+- Render README locally; ensure clarity.
 
 Testing Note
-- Tests should continue to read from `payload_examples.txt` and `responses`.
+- No test changes required; if added, use repo fixtures.
 
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.

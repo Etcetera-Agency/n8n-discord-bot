@@ -1,19 +1,21 @@
-# Task 17 — Logging consistency
+# Task 17 — Error taxonomy mapping
 
 Summary
-- Use `config.logger.setup_logging()` everywhere; remove ad-hoc loggers.
+- Map service exceptions to user-safe messages and log appropriately.
 
 Steps
-- Ensure `setup_logging()` initializes once (e.g., in `main.py`).
-- Replace module-level loggers with imports from `config.logger` where needed.
-- Add structured context where beneficial.
+- Define/confirm exceptions: `NotionError`, `CalendarError`, `WebhookError`.
+- Map to messages in `Strings` and use consistent try/except in handlers.
+- Ensure secrets never appear in logs.
 
 Acceptance Criteria
-- Single, consistent logging format; no duplicate initialization.
+- Errors are categorized and produce friendly, localized output.
 
 Validation
-- Run locally; inspect log output consistency. Run `pytest -q`.
+- Force errors in Notion/webhook paths; verify outputs/logs. Run `pytest -q`.
 
 Testing Note
-- Tests remain fixture-driven using `payload_examples.txt` and `responses`.
+- Tests use repository fixtures (`payload_examples.txt`, `responses`).
 
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.

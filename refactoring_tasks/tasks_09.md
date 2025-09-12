@@ -1,21 +1,26 @@
-# Task 09 — Split slash commands into cogs
+# Task 09 — Introduce AppRouter (rename WebhookService)
 
 Summary
-- Break `discord_bot/commands/slash.py` into domain cogs.
+- Rename `WebhookService` to `AppRouter` and keep it pure: build/validate/dispatch only. Move UI/state side-effects to Discord handlers.
 
 Steps
-- Create cogs: `workload.py`, `day_off.py`, `connects.py`, `vacation.py`, `register.py`, `survey.py`.
-- Move command groups/handlers accordingly; keep shared helpers in `commands/utils.py`.
-- Update bot setup to load these cogs.
+- Rename file/class: `services/webhook.py -> services/app_router.py` (`WebhookService -> AppRouter`). Keep a thin import alias temporarily if needed.
+- Add typed boundaries: `BotRequestPayload` (input), `RouterResponse` (output) using dataclasses or Pydantic.
+- Remove survey side-effects (continue/cancel/end) from the router; return flags/data to callers.
+- Update imports across the codebase to use `AppRouter` and adapt calls (e.g., `app_router.dispatch(...)`).
 
 Acceptance Criteria
-- `slash.py` is removed or trimmed to loading cogs only.
-- All slash commands function as before.
+- `services/` contains no Discord UI code (`add_reaction`, `send`, etc.).
+- `AppRouter.dispatch` returns typed `RouterResponse` and does not mutate Discord state.
+- Callers (commands/views) handle survey transitions via `survey_manager`.
 
 Validation
-- Run: `python main.py` and exercise slash commands.
-- Run focused tests: `pytest -q tests/test_survey_start.py tests/test_vacation.py`.
+- Grep for Discord API usage inside `services/` — should be none.
+- Run: `pytest -q` relevant survey tests.
 
 Testing Note
-- Tests should keep using repository fixtures (`payload_examples.txt`, `responses`).
+- Use `payload_examples.txt` and `responses` in any new tests.
 
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.
+- Router response shape that drives UI (`output`, `survey`, `url`, `next_step`) must remain unchanged.

@@ -1,20 +1,23 @@
-# Task 06 — Minimal web auth for endpoints
+# Task 06 — Deduplicate mention handling
 
 Summary
-- Protect `/start_survey` and `/debug_log` with a shared secret header `X-Auth-Token` (env: `WEB_AUTH_TOKEN`).
+- Stop parsing `!register/!unregister` in `on_message`. For mentions, send a `mention` request through the `AppRouter` and rely on routing.
 
 Steps
-- In `web/server.py`, check header on protected routes; return 401 on missing/mismatch.
-- Make token optional: if env is unset, allow requests (dev mode).
-- Add small helper to validate header consistently.
+- In `bot.py:on_message`, remove manual prefix parsing after a mention.
+- Always call the router to handle mentions (e.g., `app_router.dispatch(...)`), not per‑message manual parsing.
+- Keep reactions/placeholder message behavior consistent.
 
 Acceptance Criteria
-- Requests without correct `X-Auth-Token` receive 401 when `WEB_AUTH_TOKEN` is set.
+- Mention interactions handled once via router; no duplicate command paths.
+- `!register/!unregister` via prefix commands still work through command handlers.
 
 Validation
-- Set `WEB_AUTH_TOKEN=abc` and curl: `curl -i -H 'X-Auth-Token: wrong' ...` -> 401.
-- Run: `pytest -q tests/test_logging.py tests/test_survey_e2e.py`.
+- Mention the bot with and without known commands and observe consistent behavior.
+- Run: `pytest -q tests/test_check_channel.py tests/test_router.py`.
 
 Testing Note
-- Any tests for these routes should load payloads from `payload_examples.txt` and responses from `responses`.
+- Tests should continue to read fixtures from `payload_examples.txt` and `responses`.
 
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.

@@ -1,19 +1,22 @@
-# Task 13 — Explicit survey models
+# Task 13 — Single survey state source
 
 Summary
-- Introduce dataclasses for survey steps/results to replace ad-hoc dicts.
+- Route all survey state reads/writes through `survey_manager`, keyed by channel where appropriate.
 
 Steps
-- Add `SurveyStep` and `SurveyResult` (e.g., in `services/survey_models.py`).
-- Update `survey_manager` to use these types for storage and transitions.
-- Adapt handlers to construct/consume these models.
+- Remove any direct dict access to survey state outside `survey_manager`.
+- Ensure consistent keying (prefer `channel_id`) across handlers and services.
+- Update start/continue/end paths to use the same retrieval method.
 
 Acceptance Criteria
-- Survey flow uses typed models; no implicit dict structure assumptions.
+- One authoritative store for survey state with consistent keys.
 
 Validation
-- Type-check locally if using annotations; run `pytest -q`.
+- End-to-end survey run with continue/cancel/end works.
+- `pytest -q tests/test_survey_steps_db.py tests/test_survey_start.py` pass.
 
 Testing Note
-- Tests should keep loading fixtures from `payload_examples.txt` and `responses`.
+- Tests read payloads/responses from repository fixtures.
 
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.

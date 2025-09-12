@@ -8,9 +8,15 @@ This plan proposes targeted improvements to structure, reliability, testability,
 - Clear module boundaries and ownership (no cross‑package leaks)
 - Robust survey flow with consistent state and fewer globals
 - Smaller, focused modules and views with less duplication
-- Safer web surface (authn, logging, shutdown)
+- Safer web surface (authn, logging)
 - Stronger typing and payload validation
 - Faster, reproducible tests that follow repository fixtures
+
+## Behavior Constraints
+
+- Do not change Discord user-visible behavior during refactors.
+- Preserve: message texts (via `config/strings.py`), mentions, reactions, component layout, custom_id/labels, ephemeral vs public responses, and edit/delete flow and timing (defer, followup vs original).
+- Keep router payload/response shapes stable (e.g., `output`, `survey`, `url`, `next_step`).
 
 ## Key Observations (Current State)
 
@@ -74,9 +80,10 @@ This plan proposes targeted improvements to structure, reliability, testability,
 - Break `discord_bot/commands/slash.py` into cogs by domain: `workload.py`, `day_off.py`, `connects.py`, `vacation.py`, `register.py`, `survey.py`.
 - Keep common helpers in `discord_bot/commands/utils.py`.
 
-4) Views consolidation
-- Remove duplicated survey vs slash views where possible; factor shared pieces into `views/generic.py` or `views/components.py`.
-- Use a small factory for dynamic survey UI in `views/factory.py`.
+4) Views safety and minimal helpers
+- Preserve separate survey vs slash views due to Discord flow constraints.
+- Add only non-invasive helpers (constants/tiny functions) to avoid duplication.
+- Keep `views/factory.py` as-is; extend cautiously only when strictly necessary.
 
 5) Strings and i18n
 - Keep user‑facing Ukrainian strings in `config/strings.py`. Add interpolation helpers; avoid inline f‑strings with logic in Discord handlers.
@@ -110,27 +117,19 @@ This plan proposes targeted improvements to structure, reliability, testability,
 - Use `config.logger.setup_logging()` everywhere. Remove ad‑hoc loggers and duplicate initialization.
 - Add structured context to logs via `services.logging_utils.current_context` (already present in router).
 
-## Phase 4 — Security, Ops, CI (2–4 days)
+## Phase 4 — Security & Ops (2–3 days)
 
 1) Web server hardening
 - Require `WEB_AUTH_TOKEN` for all write/trigger endpoints; return 401 otherwise.
 - Remove `/debug_log` in production or protect behind auth. Add size limits and content‑type.
 
-2) Graceful shutdown
-- Trap SIGTERM/SIGINT in `main.py` to close Discord client and stop `aiohttp` server cleanly.
-
-3) CI
-- Add GitHub Actions: lint (ruff/flake8), format (black), pytest.
-- Cache pip; run tests on 3.10–3.12.
-
-4) Rate limiting and retries
+2) Rate limiting and retries
 - Add simple rate‑limit/backoff wrappers around Notion and web calls; propagate friendly messages to users.
 
 ## Phase 5 — Cleanup and Polish (ongoing)
 
 - Normalize naming: prefer snake_case files, no spaces in filenames.
 - Remove legacy/unreachable branches (e.g., `router` branch checking `payload["type"] == "mention"`).
-- Consolidate `responses` and remove `responses_leonid` if obsolete.
 - Document architecture boundaries in README with a simple diagram.
 
 ## Acceptance Criteria per Phase
@@ -144,7 +143,7 @@ Phase 0
 Phase 1
 - Slash commands split into 5–6 cogs; imports simplified; no circulars.
 - `AppRouter` (renamed from `WebhookService`) returns typed `RouterResponse`; no Discord/UI code in services.
-- Views organized; no duplicate files; factory used for dynamic survey rendering.
+- Views preserved; no functional changes to step-by-step flows; only accidental duplicates removed and minimal helpers added.
 
 Phase 2
 - Survey state transitions tested for continue/cancel/end, including timeout, using only `survey_manager`.
@@ -153,13 +152,13 @@ Phase 3
 - Payloads validated; type errors surface early; logs are structured and non‑sensitive.
 
 Phase 4
-- CI green on lint+tests across supported Python versions; server shuts down gracefully.
+- Protected endpoints enforce auth; basic rate limiting/backoff in place.
 
 ## Test Strategy
 
 - Continue using `payload_examples.txt` and `responses` for test fixtures. Do not hardcode payloads or responses in tests. If using typed models, parse strings from these files into `BotRequestPayload`/`RouterResponse` objects within the tests.
 - Add targeted unit tests:
-  - `services/webhook.WebhookService.build_payload` and continuation logic (now caller‑driven)
+  - Router payload builder/dispatcher (now caller‑driven)
   - `services/router.dispatch` survey paths for continue/end/cancel
   - `discord_bot/views/start_survey.py` happy/error paths (with auth on `/start_survey`)
   - `services/survey.SurveyManager` transitions and cleanup
@@ -177,10 +176,10 @@ Phase 4
 2. Make `main.py` the sole entry; move bot creation to `discord_bot/client.py` and patch `main.py`.
 3. Fix survey continuation to use `survey_manager` by `channel_id` everywhere; remove side‑effects from `WebhookService`.
 4. Add `WEB_AUTH_TOKEN` validation to web handlers; guard `/debug_log`.
-5. Split `slash.py` into cogs; consolidate views.
+5. Split `slash.py` into cogs; keep views separate and add minimal helpers only.
 6. Add new tests that consume `payload_examples.txt` and `responses` only.
 7. Introduce payload/response models (optional pydantic) and stricter logging.
-8. Add CI and graceful shutdown.
+8. Add basic rate limiting/backoff.
 
 ---
 

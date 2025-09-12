@@ -1,21 +1,22 @@
-# Task 07 — Enforce module boundaries
+# Task 07 — Minimal web auth for endpoints
 
 Summary
-- Keep config, Discord, and services concerns in their packages without cross-leaks.
+- Protect `/start_survey` and `/debug_log` with a shared secret header `X-Auth-Token` (env: `WEB_AUTH_TOKEN`).
 
 Steps
-- Verify `config/` exports only config, constants, logger, strings.
-- Ensure Discord-specific code lives in `discord_bot/` only.
-- Ensure business logic lives in `services/` and is Discord-agnostic.
+- In `web/server.py`, check header on protected routes; return 401 on missing/mismatch.
+- Make token optional: if env is unset, allow requests (dev mode).
+- Add small helper to validate header consistently.
 
 Acceptance Criteria
-- No imports from `discord` under `services/`.
-- No services re-exported by `config`.
+- Requests without correct `X-Auth-Token` receive 401 when `WEB_AUTH_TOKEN` is set.
 
 Validation
-- Search: `rg -n "from discord|import discord" services` should be empty.
-- Run: `pytest -q`.
+- Set `WEB_AUTH_TOKEN=abc` and curl: `curl -i -H 'X-Auth-Token: wrong' ...` -> 401.
+- Run: `pytest -q tests/test_logging.py tests/test_survey_e2e.py`.
 
 Testing Note
-- Tests must use fixtures from `payload_examples.txt` and `responses`.
+- Any tests for these routes should load payloads from `payload_examples.txt` and responses from `responses`.
 
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.

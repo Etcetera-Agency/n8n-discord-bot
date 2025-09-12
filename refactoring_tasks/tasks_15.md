@@ -1,19 +1,21 @@
-# Task 15 — Typed payload/response models
+# Task 15 — Timeout and cleanup centralization
 
 Summary
-- Introduce `BotRequestPayload` and `RouterResponse` (dataclasses or Pydantic) and validate at the `AppRouter` boundary.
+- Centralize survey timeout and cleanup logic to ensure consistent resource handling.
 
 Steps
-- Define models with required/optional fields and minimal coercion (e.g., `userId`, `channelId`, `command`, `result`).
-- Parse/validate inputs before dispatch; convert router outputs to `RouterResponse`.
-- Map validation errors to user-safe messages and structured logs.
+- Add `SurveyFlow.cleanup()` to handle UI/message cleanup.
+- Ensure all completion/cancel/timeout paths call cleanup.
+- Verify timeout task references same state source and correct keys.
 
 Acceptance Criteria
-- `AppRouter.dispatch` accepts `BotRequestPayload` and returns `RouterResponse`.
-- Invalid inputs fail fast with clear logs; no ambiguous KeyErrors.
+- No orphaned buttons/messages after survey end/cancel/timeout.
 
 Validation
-- Unit tests for model validation; run `pytest -q`.
+- Simulate timeout; confirm cleanup runs. Run: `pytest -q tests/test_survey_e2e.py`.
 
 Testing Note
-- Tests must read payloads from `payload_examples.txt` and responses from `responses`.
+- Continue using fixtures from `payload_examples.txt` and `responses`.
+
+Behavior Constraints
+- Do not change Discord behavior: user-visible messages, mentions, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical.
