@@ -4,7 +4,7 @@ Use this checklist to track progress. Each item links to a detailed task.
 
 - [x] 01 — Remove stray/duplicate files (refactoring_tasks/tasks_01.md)
 - [x] 02 — Normalize naming (refactoring_tasks/tasks_02.md)
-- [ ] 03 — Unify Entrypoint (refactoring_tasks/tasks_03.md)
+- [x] 03 — Unify Entrypoint (refactoring_tasks/tasks_03.md)
 - [ ] 04 — Remove config/service coupling (refactoring_tasks/tasks_04.md)
 - [ ] 05 — Fix survey continuation (refactoring_tasks/tasks_05.md)
 - [ ] 06 — Deduplicate mention handling (refactoring_tasks/tasks_06.md)

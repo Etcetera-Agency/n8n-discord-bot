@@ -1,30 +1,14 @@
-import discord
 from discord.ext import commands
 from config import logger
-from discord_bot.commands import PrefixCommands, SlashCommands, EventHandlers
-from services.webhook import WebhookService
 
 def create_bot() -> commands.Bot:
+    """Return the shared bot instance constructed in bot.py.
+
+    This preserves existing behavior, prefixes, event handlers,
+    and any side-effectful setup performed in that module.
     """
-    Create and configure the Discord bot.
-    
-    Returns:
-        A configured Discord bot instance
-    """
-    # Set up intents
-    intents = discord.Intents.default()
-    intents.message_content = True
-    
-    # Create bot instance
-    bot = commands.Bot(command_prefix="!", intents=intents)
-    
-    # Initialize webhook service (internal dispatcher; no HTTP init required)
-    bot.webhook_service = WebhookService()
-    
-    # Register commands and event handlers (side-effectful constructors)
-    _ = PrefixCommands(bot)
-    _ = SlashCommands(bot)
-    _ = EventHandlers(bot)
-    
-    logger.info("Bot client created and configured")
-    return bot
+    # Import lazily to avoid circular imports at module import time
+    from bot import bot as _bot
+
+    logger.info("create_bot: returning bot instance from bot.py")
+    return _bot

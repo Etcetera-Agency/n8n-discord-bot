@@ -1,7 +1,7 @@
 import asyncio
 from config import Config, logger
 from web import create_and_start_server
-from bot import bot # Import the bot instance from bot.py
+from discord_bot.client import create_bot
 
 async def main():
     """
@@ -14,8 +14,8 @@ async def main():
     except ValueError as e:
         logger.error(f"Configuration error: {e}")
         return
-    
-    # Bot instance is created in bot.py and imported
+    # Create bot instance via factory
+    bot = create_bot()
     
     # Start web server
     server_task = asyncio.create_task(create_and_start_server(bot))
