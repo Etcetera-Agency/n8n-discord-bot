@@ -52,13 +52,8 @@ async def get_custom_prefix(bot, message):
 # Create bot instance
 bot = commands.Bot(command_prefix=get_custom_prefix, intents=intents)
 
-# Initialize webhook service
-# Assuming WebhookService is available in this scope (imported earlier)
+# Initialize webhook service; no async init required
 bot.webhook_service = WebhookService()
-# Start initialization in background (might need adjustment based on WebhookService.initialize)
-# Consider if await is needed or if create_task is appropriate here
-# For simplicity, let's assume direct call or background task is handled elsewhere/not needed immediately
-# asyncio.create_task(bot.webhook_service.initialize()) # Revisit if needed
 
 # Import command handlers
 

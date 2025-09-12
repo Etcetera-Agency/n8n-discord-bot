@@ -1,9 +1,12 @@
 import discord
+from typing import TYPE_CHECKING
 from config import logger, Strings
 from services import survey_manager
 from services.survey import SurveyFlow
-from services.webhook import WebhookService # Import WebhookService type hint
-from discord.ext import commands # Import commands for bot type hint
+from discord.ext import commands  # Import commands for bot type hint
+
+if TYPE_CHECKING:  # only for type checking, avoids runtime import in tests
+    from services.webhook import WebhookService
 
 # ==================================
 # Survey-Specific Modals
@@ -16,7 +19,7 @@ class ConnectsModal(discord.ui.Modal):
         survey: SurveyFlow,
         step_name: str,
         finish_survey_func, # Function to call to finish the survey
-        webhook_service_instance: WebhookService, # Webhook service instance
+        webhook_service_instance: 'WebhookService', # Webhook service instance
         bot_instance: commands.Bot # Bot instance
     ):
         """Initializes the ConnectsModal with necessary dependencies."""

@@ -92,9 +92,6 @@ def test_start_survey_without_steps(monkeypatch):
     survey_stub = types.ModuleType("services.survey")
     survey_stub.SurveyFlow = object
     monkeypatch.setitem(sys.modules, "services.survey", survey_stub)
-    webhook_stub = types.ModuleType("services.webhook")
-    webhook_stub.WebhookService = object
-    monkeypatch.setitem(sys.modules, "services.webhook", webhook_stub)
 
     # Import survey module after stubbing
     spec = importlib.util.spec_from_file_location(
@@ -197,9 +194,6 @@ def test_start_survey_no_required_steps(monkeypatch):
     survey_stub = types.ModuleType("services.survey")
     survey_stub.SurveyFlow = object
     monkeypatch.setitem(sys.modules, "services.survey", survey_stub)
-    webhook_stub = types.ModuleType("services.webhook")
-    webhook_stub.WebhookService = object
-    monkeypatch.setitem(sys.modules, "services.webhook", webhook_stub)
 
     spec = importlib.util.spec_from_file_location(
         "discord_bot.commands.survey", ROOT / "discord_bot" / "commands" / "survey.py"

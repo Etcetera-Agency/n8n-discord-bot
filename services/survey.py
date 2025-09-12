@@ -7,7 +7,7 @@ class SurveyFlow:
     Holds a list of survey steps for dynamic surveys.
     Manages the state of a survey in progress.
     """
-    def __init__(self, channel_id: str, steps: List[str], user_id: str, session_id: str):
+    def __init__(self, channel_id: str, steps: List[str], user_id: str, session_id: str, client: Optional[discord.Client] = None):
         # Existing properties
         self.active_view: Optional[discord.ui.View] = None  # Add this
         """Initialize survey with required IDs:
@@ -32,6 +32,7 @@ class SurveyFlow:
         self.start_message: Optional[discord.Message] = None
         self.current_question_message_id: Optional[int] = None
         self.todo_url: Optional[str] = None
+        self.client: Optional[discord.Client] = client
         logger.info(f"[{user_id}] - Created survey flow for user {user_id} with steps: {steps}") # Modified log
 
     async def cleanup(self) -> None:
@@ -76,12 +77,17 @@ class SurveyFlow:
     def _get_channel(self) -> Optional[discord.TextChannel]:
         """Get the Discord channel if possible"""
         try:
-            # Try to use the global bot instance cache to get the channel
-            from bot import bot as _bot  # Local import to avoid circulars at import time
-            ch = _bot.get_channel(int(self.channel_id)) if _bot else None
+            client = self.client
+            if not client:
+                return None
+            ch = client.get_channel(int(self.channel_id))
             return ch if isinstance(ch, discord.TextChannel) else None
         except Exception:
             return None
+
+    def set_client(self, client: discord.Client) -> None:
+        """Attach a Discord client for channel lookups/cleanup."""
+        self.client = client
 
     def current_step(self) -> Optional[str]:
         """
@@ -138,7 +144,7 @@ class SurveyManager:
         self.surveys: Dict[str, SurveyFlow] = {}  # Use channel_id as key
         self.sessions: Dict[str, SurveyFlow] = {}  # Map session_id -> SurveyFlow
 
-    def create_survey(self, user_id: str, channel_id: str, steps: List[str], session_id: str) -> SurveyFlow:
+    def create_survey(self, user_id: str, channel_id: str, steps: List[str], session_id: str, client: Optional[discord.Client] = None) -> SurveyFlow:
         """Create and track a new survey instance.
 
         Args:
@@ -157,7 +163,7 @@ class SurveyManager:
             raise ValueError("Invalid survey parameters")
 
         try:
-            survey = SurveyFlow(channel_id, steps, user_id, session_id)
+            survey = SurveyFlow(channel_id, steps, user_id, session_id, client=client)
             self.surveys[str(channel_id)] = survey  # Use channel_id as key
             self.sessions[str(session_id)] = survey  # Index by session for O(1) lookup
             logger.info(f"Created new survey for channel {channel_id}") # Log survey creation
@@ -197,12 +203,17 @@ class SurveyManager:
             step_name: Survey step name
             value: Collected value
         """
+        survey = self.get_survey(channel_id)
+        if not survey:
+            logger.debug(f"record_step_result: no survey for channel {channel_id}; step={step_name}")
+            return
         try:
-            survey = self.get_survey(channel_id)
-            if survey is not None:
-                survey.add_result(step_name, value)
+            survey.add_result(step_name, value)
         except Exception as e:
-            logger.error(f"Failed to record result for channel {channel_id}, step {step_name}: {e}")
+            logger.error(
+                f"Failed to record result for channel {channel_id}, step {step_name}, value={value}: {e}",
+                exc_info=True,
+            )
 
     def remove_survey(self, channel_id: str) -> None:
         """Remove a survey for a channel.

@@ -128,7 +128,11 @@ async def finish_empty_survey(
         )
         return
     try:
-        minimal = survey_manager.create_survey(user_id, channel_id, [], session_id)
+        try:
+            minimal = survey_manager.create_survey(user_id, channel_id, [], session_id, client=bot)
+        except TypeError:
+            # Backward-compatible path for test stubs without client kwarg
+            minimal = survey_manager.create_survey(user_id, channel_id, [], session_id)
         # Second check_channel call to populate survey.todo_url before finishing
         payload = {
             "command": "check_channel",
@@ -230,7 +234,10 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
     logger.info(f"Starting new survey for user {user_id} in channel {channel_id} with steps: {final_steps}")
 
     # Create the survey object
-    survey = survey_manager.create_survey(user_id, channel_id, final_steps, session_id) # Create survey with all required IDs
+    try:
+        survey = survey_manager.create_survey(user_id, channel_id, final_steps, session_id, client=bot) # Create survey with client for cleanup
+    except TypeError:
+        survey = survey_manager.create_survey(user_id, channel_id, final_steps, session_id)
 
     # Ask the first step
     first_step = survey.current_step()
@@ -518,12 +525,10 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                 logger.error(f"Error continuing survey after step failure: {e2}")
 async def continue_survey(bot: commands.Bot, channel: discord.TextChannel, survey: SurveyFlow) -> None: # Added bot parameter, Type hint updated
     """Continues the survey to the next step or finishes it."""
-    logger.info(f"[{survey.session_id}] - Entering continue_survey. is_done(): {survey.is_done()}, Current index: {survey.current_index}, Total steps: {len(survey.steps)}") # Added log
-
-    # Fetch the latest survey state using channel_id
-    current_survey = survey_manager.get_survey(str(channel.id))
+    logger.info(f"[{survey.session_id}] - Entering continue_survey. is_done(): {survey.is_done()}, Current index: {survey.current_index}, Total steps: {len(survey.steps)}")
+    current_survey = survey if str(survey.channel_id) == str(channel.id) else survey_manager.get_survey(str(channel.id))
     if not current_survey:
-        logger.warning(f"[{survey.session_id}] - Survey not found in continue_survey for channel {channel.id}. Aborting.")
+        logger.warning(f"[{survey.session_id}] - Survey not found for channel {channel.id}. Aborting.")
         return
 
     if current_survey.is_done():
@@ -551,8 +556,8 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
     Sends the collected results in a 'complete' status webhook to n8n
     and cleans up the survey session.
     """
-    # Fetch the latest survey state using channel_id
-    current_survey = survey_manager.get_survey(str(channel.id))
+    # Prefer the provided object; fall back to manager
+    current_survey = survey if str(survey.channel_id) == str(channel.id) else survey_manager.get_survey(str(channel.id))
     if not current_survey or not current_survey.is_done():
         return
 

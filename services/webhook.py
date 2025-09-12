@@ -332,12 +332,13 @@ class WebhookService:
 
         # Check if this is part of a survey (by channel)
         survey = None
-        try:
-            channel_id = str(interaction.channel.id) if hasattr(interaction, 'channel') else None
-            if channel_id:
+        channel_id = None
+        if hasattr(interaction, "channel") and getattr(interaction.channel, "id", None):
+            channel_id = str(interaction.channel.id)
+            try:
                 survey = survey_manager.get_survey(channel_id)
-        except Exception:
-            survey = None
+            except Exception as e:
+                logger.error(f"survey lookup failed for channel {channel_id}: {e}")
 
         # Only use survey format if we're in an active survey AND the button is a workload button
         if survey and custom_id and custom_id.startswith('workload_button_'):
