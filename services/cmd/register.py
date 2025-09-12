@@ -9,7 +9,7 @@ _notio = NotionConnector()
 
 async def handle(payload: Dict[str, Any]) -> str:
     """Handle the ``!register`` prefix command."""
-    log = get_logger()
+    log = get_logger("register", payload)
     name = payload.get("result", {}).get("text", "").strip()
     user_id = payload.get("userId", "")
     channel_id = payload.get("channelId", "")
@@ -33,8 +33,9 @@ async def handle(payload: Dict[str, Any]) -> str:
             log.info("channel taken", extra={"discord_id": page.get("discord_id")})
             return "Канал вже зареєстрований на когось іншого."
         await _notio.update_team_directory_ids(page.get("id", ""), user_id, channel_id)
-        log.info("registered", extra={"page_id": page.get("id", "")})
-        return f"Канал успішно зареєстровано на {name}"
+        result_msg = f"Канал успішно зареєстровано на {name}"
+        log.info("done register", extra={"page_id": page.get("id", ""), "output": result_msg})
+        return result_msg
     except Exception:
-        log.exception("register failed")
+        log.exception("failed register")
         return "Спробуй трохи піздніше. Я тут пораюсь по хаті."

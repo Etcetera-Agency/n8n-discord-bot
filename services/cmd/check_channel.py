@@ -17,7 +17,7 @@ if not hasattr(Config, "DATABASE_URL"):
 
 async def handle(payload: Dict[str, Any], repo: Optional[SurveyStepsDB] = None) -> Dict[str, Any]:
     """Return pending survey steps for the channel or an error message."""
-    log = get_logger()
+    log = get_logger("check_channel", payload)
     try:
         db = repo
         if db is None:
@@ -31,10 +31,11 @@ async def handle(payload: Dict[str, Any], repo: Optional[SurveyStepsDB] = None) 
         )
         records = await db.fetch_week(payload["channelId"], start)
         steps = [r["step_name"] for r in records if not r["completed"]]
-        log.info("pending steps", extra={"steps": steps})
-        return {"output": True, "steps": list(dict.fromkeys(steps))}
+        result = {"output": True, "steps": list(dict.fromkeys(steps))}
+        log.info("done check_channel", extra={"steps": result["steps"]})
+        return result
     except Exception:
-        log.exception("check_channel failed")
+        log.exception("failed check_channel")
         return {
             "output": False,
             "message": "Спробуй трохи піздніше. Я тут пораюсь по хаті.",

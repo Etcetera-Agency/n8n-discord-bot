@@ -31,8 +31,10 @@ async def _mark_step(channel_id: str, step: str) -> None:
 async def handle(payload: Dict[str, Any]) -> str:
     """Record day-off dates for the current or next week."""
 
-    log = get_logger("day_off", payload)
-    log.info("start")
+    step = payload.get("command")
+    if step == "survey":
+        step = payload.get("result", {}).get("stepName")
+    log = get_logger(step, payload)
     try:
         value = (
             payload.get("result", {}).get("value")
@@ -40,16 +42,13 @@ async def handle(payload: Dict[str, Any]) -> str:
         )
         if isinstance(value, dict) and "values" in value:
             value = value.get("values")
-        step = payload.get("command")
-        if step == "survey":
-            step = payload.get("result", {}).get("stepName")
         if (
             value == "Nothing"
             or value == ["Nothing"]
             or not value
         ):
             await _mark_step(payload.get("channelId", ""), step)
-            log.info("done", extra={"output": "Записав! Вихідних не береш."})
+            log.info(f"done {step}", extra={"output": "Записав! Вихідних не береш."})
             return "Записав! Вихідних не береш."
         if isinstance(value, str):
             value = [value]
@@ -79,8 +78,8 @@ async def handle(payload: Dict[str, Any]) -> str:
                 f"Вихідні: {formatted} записані.\n"
                 "Не забудь попередити клієнтів.\n"
             )
-        log.info("done", extra={"output": result})
+        log.info(f"done {step}", extra={"output": result})
         return result
     except Exception:  # pragma: no cover - defensive
-        log.exception("failed")
+        log.exception(f"failed {step}")
         return "Спробуй трохи піздніше. Я тут пораюсь по хаті."

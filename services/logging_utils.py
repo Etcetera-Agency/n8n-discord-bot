@@ -47,15 +47,15 @@ def wrap_handler(step_name: str, func: Callable[[Dict[str, Any]], Awaitable[Any]
         }
         token = current_context.set(ctx)
         log = get_logger(step_name, payload)
-        log.info("start")
+        log.info(f"start {step_name}")
         log.debug("payload", extra={"payload": payload})
         try:
             result = await func(payload)
             log.debug("response ready", extra={"output": result})
-            log.info("done")
+            log.info(f"done {step_name}")
             return result
         except Exception:
-            log.exception("failed")
+            log.exception("failed %s", step_name)
             raise
         finally:
             current_context.reset(token)

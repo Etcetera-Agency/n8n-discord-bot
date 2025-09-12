@@ -17,7 +17,7 @@ ERROR_MESSAGE = "Спробуй трохи піздніше. Я тут пора�
 
 async def handle(payload: Dict[str, Any]) -> str:
     """Record weekly connects and update optional profile stats."""
-    log = get_logger()
+    log = get_logger("connects_thisweek", payload)
     try:
         connects = int(payload["result"]["connects"])
         log.debug("parsed connects", extra={"connects": connects})
@@ -52,10 +52,12 @@ async def handle(payload: Dict[str, Any]) -> str:
                 log.exception("update profile stats failed")
         await notion.close()
 
-        return (
+        result = (
             f"Записав! Upwork connects: залишилось {connects} на цьому тиждні."
         )
+        log.info("done connects_thisweek", extra={"output": result})
+        return result
     except Exception:
-        log.exception("connects_thisweek failed")
+        log.exception("failed connects_thisweek")
         return ERROR_MESSAGE
 

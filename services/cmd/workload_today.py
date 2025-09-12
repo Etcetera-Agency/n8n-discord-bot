@@ -58,7 +58,7 @@ ERROR_MSG = "Спробуй трохи піздніше. Я тут пораюс�
 async def handle(payload: Dict[str, Any]) -> str:
     """Handle the ``workload_today`` command."""
 
-    log = get_logger()
+    log = get_logger("workload_today", payload)
     try:
         result = payload.get("result", {})
         hours_raw = result.get("value", result.get("workload"))
@@ -101,12 +101,14 @@ async def handle(payload: Dict[str, Any]) -> str:
 
         day_acc = DAY_ACC[idx]
         day_gen = DAY_GEN[idx]
-        return (
+        result_msg = (
             "Записав! \n"
             f"Заплановане навантаження у {day_acc}: {hours} год. \n"
             f"В щоденнику з понеділка до {day_gen}: {fact} год.\n"
             f"Капасіті на цей тиждень: {capacity} год."
         )
+        log.info("done workload_today", extra={"output": result_msg})
+        return result_msg
     except (NotionError, KeyError, ValueError, TypeError, IndexError):
-        log.exception("workload_today failed")
+        log.exception("failed workload_today")
         return ERROR_MSG
