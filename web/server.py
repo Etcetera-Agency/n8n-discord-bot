@@ -7,9 +7,25 @@ class WebServer:
         """Initialize the web server."""
         self.bot = bot
 
+    @staticmethod
+    def _is_authorized(request: web.Request) -> bool:
+        """Validate request with X-Auth-Token header when WEB_AUTH_TOKEN is set.
+
+        If `Config.WEB_AUTH_TOKEN` is not set, authorization is not enforced.
+        """
+        token = Config.WEB_AUTH_TOKEN
+        if not token:
+            return True
+        provided = request.headers.get("X-Auth-Token")
+        return provided == token
+
     async def start_survey_http(self, request):
         """Handle HTTP requests to start surveys"""
         try:
+            # Minimal auth
+            if not self._is_authorized(request):
+                logger.warning("Unauthorized request to /start_survey")
+                return web.json_response({"error": "Unauthorized"}, status=401)
             logger.info("Received request to /start_survey")
 
             # Parse JSON payload
@@ -47,6 +63,9 @@ class WebServer:
 
     async def debug_log_handler(self, request):
         """Handle requests to view the debug log file."""
+        if not self._is_authorized(request):
+            logger.warning("Unauthorized request to /debug_log")
+            return web.Response(text="Unauthorized", status=401)
         log_file_path = "/app/logs/register_debug.log" # Updated path
         try:
             with open(log_file_path, "r") as f:

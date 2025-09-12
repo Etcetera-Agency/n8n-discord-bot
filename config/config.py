@@ -58,6 +58,8 @@ class Config:
     HOST: str = "0.0.0.0"
     SSL_CERT_PATH: Optional[str] = os.getenv("SSL_CERT_PATH")
     SSL_KEY_PATH: Optional[str] = os.getenv("SSL_KEY_PATH")
+    # Minimal web auth token (optional; if unset, allow all)
+    WEB_AUTH_TOKEN: Optional[str] = os.getenv("WEB_AUTH_TOKEN")
 
     @classmethod
     def validate(cls) -> None:

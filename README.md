@@ -369,6 +369,35 @@ Before starting the survey, the bot will:
 
 This allows for automated survey scheduling, such as weekly workload reports or periodic check-ins.
 
+#### Minimal Web Auth for Endpoints
+
+If the `WEB_AUTH_TOKEN` environment variable is set, the web server enforces a shared-secret header on protected routes:
+
+- Protected routes: `POST /start_survey`, `GET /debug_log`
+- Required header: `X-Auth-Token: <value-of-WEB_AUTH_TOKEN>`
+- If `WEB_AUTH_TOKEN` is unset, requests are allowed (development mode)
+
+Examples:
+
+```bash
+# Unauthorized (when WEB_AUTH_TOKEN is set)
+curl -i -H 'X-Auth-Token: wrong' http://localhost:3000/debug_log
+
+# Authorized
+curl -i -H 'X-Auth-Token: YOUR_SHARED_SECRET' http://localhost:3000/debug_log
+
+# Start survey via n8n or any HTTP client
+curl -i -X POST \
+  -H 'Content-Type: application/json' \
+  -H 'X-Auth-Token: YOUR_SHARED_SECRET' \
+  http://localhost:3000/start_survey \
+  -d '{"userId":"123","channelId":"456"}'
+```
+
+Notes:
+- `/debug_log` serves the file at `/app/logs/register_debug.log` if present; otherwise returns 404.
+- Auth behavior: 401 Unauthorized is returned on missing/mismatching header when `WEB_AUTH_TOKEN` is set.
+
 ### New Survey Implementation Details
 
 The bot now uses a more direct approach for handling surveys:
@@ -477,6 +506,10 @@ PORT=3000
 HOST=0.0.0.0
 SSL_CERT_PATH=/path/to/cert.pem
 SSL_KEY_PATH=/path/to/key.pem
+
+# Minimal web auth (optional). When set, protect /start_survey and /debug_log
+# Incoming requests must include header: X-Auth-Token: $WEB_AUTH_TOKEN
+WEB_AUTH_TOKEN=YOUR_SHARED_SECRET
 ```
 
 Configuration values such as Notion database IDs, calendar ID, and database host are defined in `config/constants.py`.

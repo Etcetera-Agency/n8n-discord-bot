@@ -8,7 +8,7 @@ Use this checklist to track progress. Each item links to a detailed task.
 - [x] 04 — Remove config/service coupling (refactoring_tasks/tasks_04.md)
 - [x] 05 — Fix survey continuation (refactoring_tasks/tasks_05.md)
 - [x] 06 — Deduplicate mention handling (refactoring_tasks/tasks_06.md)
-- [ ] 07 — Minimal web auth for endpoints (refactoring_tasks/tasks_07.md)
+- [x] 07 — Minimal web auth for endpoints (refactoring_tasks/tasks_07.md)
 - [ ] 08 — Enforce module boundaries (refactoring_tasks/tasks_08.md)
 - [ ] 09 — Introduce AppRouter (rename WebhookService) (refactoring_tasks/tasks_09.md)
 - [ ] 10 — Split slash commands into cogs (refactoring_tasks/tasks_10.md)
