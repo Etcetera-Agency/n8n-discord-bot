@@ -5,11 +5,6 @@ from config import logger, Strings
 from services.survey import survey_manager
 from . import router
 
-# Legacy no-op initializer retained for compatibility.
-# Continuation is handled inside Discord handlers using survey_manager.
-def initialize_survey_functions(*_args, **_kwargs):
-    logger.debug("initialize_survey_functions called (no-op); continuation handled in handlers")
-
 
 class WebhookError(Exception):
     """Exception raised for webhook-related errors."""

@@ -4,9 +4,7 @@ import discord
 from discord.ext import commands
 
 from config.config import Config
-from services.webhook import WebhookService, initialize_survey_functions
-from services.survey import survey_manager
-from discord_bot.commands.survey import ask_dynamic_step, finish_survey
+from services.webhook import WebhookService
 from discord_bot.commands.survey import handle_start_daily_survey as _start_daily_survey
 from discord_bot.commands.prefix import PrefixCommands
 from discord_bot.commands.slash import SlashCommands
@@ -100,12 +98,7 @@ async def on_ready():
     logger.info("Persistent views added.")
     # Note: Slash commands are synced separately, usually in on_ready or a setup cog
 
-    # Initialize survey functions in webhook service
-    logger.info("Initializing survey functions in webhook service...")
-    # Pass the bot instance to the survey functions when initializing
-    # No-op initializer kept for compatibility; no internal state passed
-    initialize_survey_functions()
-    logger.info("Survey functions initialized.")
+    # Survey continuation handled in Discord handlers; no initializer required
 
 @bot.event
 async def on_close():

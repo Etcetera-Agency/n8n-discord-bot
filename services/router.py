@@ -104,7 +104,7 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
         user_id = payload.get("userId", "")
         command = payload.get("command")
         # Treat survey as active if there's a channel-scoped survey state
-        channel_active = survey_manager.get_survey(channel) is not None
+        channel_active = survey_state is not None
         if command == "survey" or (channel_active and command not in HANDLERS):
             step = payload.get("result", {}).get("stepName")
             handler = HANDLERS.get(step)
@@ -124,7 +124,7 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
                 log.exception("handler error")
                 return finalize({"output": str(err), "survey": "cancel"})
 
-            survey = survey_manager.get_survey(payload.get("channelId"))
+            survey = survey_state
             flag = "cancel"
             next_step = None
             if survey:

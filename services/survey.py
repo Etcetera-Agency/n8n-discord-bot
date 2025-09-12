@@ -76,11 +76,10 @@ class SurveyFlow:
     def _get_channel(self) -> Optional[discord.TextChannel]:
         """Get the Discord channel if possible"""
         try:
-            # This method might not work reliably without the bot instance
-            # Consider passing the bot instance or fetching channel differently if needed
-            # For now, keep as is but be aware of potential limitations
-            client = discord.utils.get(discord.utils.get_all_channels(), id=int(self.channel_id))
-            return client if client and isinstance(client, discord.TextChannel) else None
+            # Try to use the global bot instance cache to get the channel
+            from bot import bot as _bot  # Local import to avoid circulars at import time
+            ch = _bot.get_channel(int(self.channel_id)) if _bot else None
+            return ch if isinstance(ch, discord.TextChannel) else None
         except Exception:
             return None
 
@@ -136,7 +135,8 @@ class SurveyManager:
     """
     def __init__(self):
         """Initialize the survey manager."""
-        self.surveys: Dict[str, SurveyFlow] = {} # Use channel_id as key
+        self.surveys: Dict[str, SurveyFlow] = {}  # Use channel_id as key
+        self.sessions: Dict[str, SurveyFlow] = {}  # Map session_id -> SurveyFlow
 
     def create_survey(self, user_id: str, channel_id: str, steps: List[str], session_id: str) -> SurveyFlow:
         """Create and track a new survey instance.
@@ -158,7 +158,8 @@ class SurveyManager:
 
         try:
             survey = SurveyFlow(channel_id, steps, user_id, session_id)
-            self.surveys[str(channel_id)] = survey # Use channel_id as key
+            self.surveys[str(channel_id)] = survey  # Use channel_id as key
+            self.sessions[str(session_id)] = survey  # Index by session for O(1) lookup
             logger.info(f"Created new survey for channel {channel_id}") # Log survey creation
             return survey
         except Exception as e:
@@ -182,12 +183,11 @@ class SurveyManager:
 
     def get_survey_by_session(self, session_id: str) -> Optional[SurveyFlow]:
         """Get survey by session ID."""
-        # This method is still needed for the timeout handler
-        for survey in self.surveys.values():
-            if survey.session_id == session_id:
-                return survey
-        logger.debug(f"No active survey for session {session_id}")
-        return None
+        # O(1) lookup using session index
+        survey = self.sessions.get(str(session_id))
+        if not survey:
+            logger.debug(f"No active survey for session {session_id}")
+        return survey
 
     def record_step_result(self, channel_id: str, step_name: str, value: Any) -> None:
         """Record a step result for a channel-scoped survey without advancing state.
@@ -216,9 +216,14 @@ class SurveyManager:
             if survey.active_view:
                 survey.active_view.stop()
             del self.surveys[key]
+            # Remove from session index as well
+            try:
+                self.sessions.pop(str(survey.session_id), None)
+            except Exception:
+                logger.warning(f"Failed to remove session index for channel {key}")
             logger.info(f"Removed survey for channel {key}") # Log survey removal
         else:
-            pass # Attempted to remove survey for channel {channel_id}, but none was found.
+            logger.warning(f"Attempted to remove survey for channel {key}, but none was found")
 
 
 # Global survey manager instance
