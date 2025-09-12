@@ -4,10 +4,9 @@ import datetime
 from discord import app_commands
 from discord.ext import commands
 from typing import List
-from config import MONTHS, ViewType, logger, Strings, constants
+from config import MONTHS, logger, Strings, constants
 from services import webhook_service
 from discord_bot.views.factory import create_view
-import asyncio
 
 class SlashCommands:
     """

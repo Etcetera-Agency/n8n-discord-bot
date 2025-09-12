@@ -1,10 +1,8 @@
 from typing import Optional, Union
 import discord
-from config import ViewType, logger, Strings
+from config import logger
 from .workload_slash import create_workload_view as create_workload_slash_view
 from .day_off_slash import create_day_off_view
-from .base import BaseView
-from .generic import GenericSelect
 
 def create_view(
     bot_instance,

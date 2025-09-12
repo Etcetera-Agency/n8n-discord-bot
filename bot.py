@@ -103,11 +103,8 @@ async def on_ready():
     # Initialize survey functions in webhook service
     logger.info("Initializing survey functions in webhook service...")
     # Pass the bot instance to the survey functions when initializing
-    initialize_survey_functions(
-        survey_manager.surveys,
-        lambda channel, survey: ask_dynamic_step(bot, channel, survey), # Bind bot to ask_dynamic_step
-        lambda channel, survey: finish_survey(bot, channel, survey) # Bind bot to finish_survey
-    )
+    # No-op initializer kept for compatibility; no internal state passed
+    initialize_survey_functions()
     logger.info("Survey functions initialized.")
 
 @bot.event

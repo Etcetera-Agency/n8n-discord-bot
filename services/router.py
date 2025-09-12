@@ -103,8 +103,9 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         user_id = payload.get("userId", "")
         command = payload.get("command")
-        active = any(s.user_id == user_id for s in survey_manager.surveys.values())
-        if command == "survey" or (active and command not in HANDLERS):
+        # Treat survey as active if there's a channel-scoped survey state
+        channel_active = survey_manager.get_survey(channel) is not None
+        if command == "survey" or (channel_active and command not in HANDLERS):
             step = payload.get("result", {}).get("stepName")
             handler = HANDLERS.get(step)
             if not handler:
@@ -127,7 +128,9 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
             flag = "cancel"
             next_step = None
             if survey:
-                survey.add_result(step, result.get("value"))
+                # Record result via SurveyManager without advancing state
+                survey_manager.record_step_result(payload.get("channelId"), step, result.get("value"))
+                # Do not advance here; views/handlers will advance after Discord-side UX completes
                 if survey.current_index + 1 < len(survey.steps):
                     flag = "continue"
                     next_step = survey.steps[survey.current_index + 1]

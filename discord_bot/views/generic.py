@@ -1,5 +1,5 @@
 import discord
-from typing import Optional, List
+from typing import List
 from .base import BaseView
 from services import webhook_service
 

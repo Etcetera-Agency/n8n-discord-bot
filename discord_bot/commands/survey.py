@@ -156,26 +156,22 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
     """
     logger.info(f"Starting daily survey for channel {channel_id} (user: {user_id})")
     # Check for existing survey first
-    existing_survey = survey_manager.get_survey(channel_id) # Get by channel_id
+    existing_survey = survey_manager.get_survey(channel_id)
     if existing_survey:
-        # If survey exists, check if it's in the same channel
-        if str(existing_survey.channel_id) == str(channel_id) and str(existing_survey.user_id) == str(user_id): # Also check user_id for session uniqueness
-            logger.info(f"Resuming existing survey for user {user_id} in channel {channel_id}")
-            step = existing_survey.current_step()
-            if existing_survey.active_view:
-                existing_survey.active_view.stop()
-            if step:
-                channel = await bot.fetch_channel(int(existing_survey.channel_id))
-                if channel:
-                    await ask_dynamic_step(bot, channel, existing_survey, step) # Pass bot instance
-                    return
-            else: # Survey exists but is somehow done? Clean up and proceed.
-                logger.warning(f"Existing survey found for channel {channel_id} but no current step. Removing and starting new.")
-                survey_manager.remove_survey(channel_id) # Remove by channel_id
-        else: # Corrected indentation and removed extra 'else'
-            # Survey exists but in a different channel - this shouldn't normally happen with button start
-            logger.warning(f"User {user_id} has existing survey in channel {existing_survey.channel_id}, but request is for {channel_id}. Ignoring old survey.")
-            # Let the flow continue to create a new survey for the *current* channel
+        logger.info(f"Resuming existing survey in channel {channel_id}")
+        step = existing_survey.current_step()
+        if existing_survey.active_view:
+            existing_survey.active_view.stop()
+        if step:
+            channel = await bot.fetch_channel(int(existing_survey.channel_id))
+            if channel:
+                await ask_dynamic_step(bot, channel, existing_survey, step)
+                return
+        else:
+            logger.warning(
+                f"Existing survey found for channel {channel_id} but no current step. Removing and starting new."
+            )
+            survey_manager.remove_survey(channel_id)
 
 
     # Check if channel is registered

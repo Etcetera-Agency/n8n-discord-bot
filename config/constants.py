@@ -1,8 +1,7 @@
 import discord # type: ignore
-import datetime
 import pytz
 from enum import Enum, auto
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 # Workload options
 WORKLOAD_OPTIONS = ["Нічого немає", "2", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50"]

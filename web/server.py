@@ -1,9 +1,6 @@
-import os
 import ssl
-import discord
 from aiohttp import web
 from config import Config, logger, Strings
-from services.webhook import WebhookService
 
 class WebServer:
     def __init__(self, bot):
