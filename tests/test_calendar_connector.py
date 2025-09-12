@@ -1,5 +1,4 @@
 import sys
-import json
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -48,7 +47,6 @@ def _stub_config(monkeypatch):
     config_pkg.Config = DummyConfig
     config_pkg.logger = logging.getLogger("test")
     config_pkg.Strings = object()
-    config_pkg.WebhookService = object()
 
     config_sub = types.ModuleType("config.config")
     config_sub.Config = DummyConfig

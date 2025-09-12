@@ -1,7 +1,6 @@
 from typing import Dict, List, Optional, Any
 import discord
 from config import logger
-import asyncio # Import asyncio for cleanup
 
 class SurveyFlow:
     """
@@ -173,11 +172,12 @@ class SurveyManager:
             channel_id: Discord channel ID to lookup
         """
         # Removed user_id parameter as survey is channel-bound
-        survey = self.surveys.get(str(channel_id))
+        key = str(channel_id)
+        survey = self.surveys.get(key)
         if survey:
-            logger.debug(f"Found survey for channel {channel_id}") # Log if survey is found
+            logger.debug(f"Found survey for channel {key}")
         else:
-            pass # No survey found for channel {channel_id}
+            logger.debug(f"No active survey for channel {key}")
         return survey
 
     def get_survey_by_session(self, session_id: str) -> Optional[SurveyFlow]:
@@ -186,8 +186,23 @@ class SurveyManager:
         for survey in self.surveys.values():
             if survey.session_id == session_id:
                 return survey
-        pass # No survey found for session ID {session_id}
+        logger.debug(f"No active survey for session {session_id}")
         return None
+
+    def record_step_result(self, channel_id: str, step_name: str, value: Any) -> None:
+        """Record a step result for a channel-scoped survey without advancing state.
+
+        Args:
+            channel_id: Discord channel ID
+            step_name: Survey step name
+            value: Collected value
+        """
+        try:
+            survey = self.get_survey(channel_id)
+            if survey is not None:
+                survey.add_result(step_name, value)
+        except Exception as e:
+            logger.error(f"Failed to record result for channel {channel_id}, step {step_name}: {e}")
 
     def remove_survey(self, channel_id: str) -> None:
         """Remove a survey for a channel.
@@ -195,12 +210,13 @@ class SurveyManager:
         Args:
             channel_id: The Discord channel ID
         """
-        survey = self.surveys.get(channel_id)
+        key = str(channel_id)
+        survey = self.surveys.get(key)
         if survey:
             if survey.active_view:
                 survey.active_view.stop()
-            del self.surveys[channel_id]
-            logger.info(f"Removed survey for channel {channel_id}") # Log survey removal
+            del self.surveys[key]
+            logger.info(f"Removed survey for channel {key}") # Log survey removal
         else:
             pass # Attempted to remove survey for channel {channel_id}, but none was found.
 
