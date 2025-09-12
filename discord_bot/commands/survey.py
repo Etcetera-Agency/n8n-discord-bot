@@ -71,6 +71,42 @@ async def handle_modal_error(interaction: discord.Interaction):
          logger.error(f"Failed to send error response in modal: {e_resp}")
 
 
+async def process_survey_flag(
+    channel: discord.TextChannel,
+    state: SurveyFlow,
+    flag: str | None,
+    continue_cb,
+    finish_cb,
+) -> None:
+    """Process survey flow control flag returned by n8n.
+
+    Args:
+        channel: Channel to operate in
+        state: Current SurveyFlow state
+        flag: Value from webhook (continue|end|cancel|None)
+        continue_cb: Awaitable callback(channel, state) to continue
+        finish_cb: Awaitable callback(channel, state) to finish
+    """
+    try:
+        if flag == "continue":
+            state.next_step()
+            if continue_cb:
+                await continue_cb(channel, state)
+        elif flag == "end":
+            state.next_step()
+            if finish_cb:
+                await finish_cb(channel, state)
+        elif flag == "cancel":
+            survey_manager.remove_survey(str(channel.id))
+        else:
+            # Default: continue
+            state.next_step()
+            if continue_cb:
+                await continue_cb(channel, state)
+    except Exception as e:
+        logger.error(f"Error processing survey flag '{flag}': {e}", exc_info=True)
+
+
 # ==================================
 # Survey Flow Logic
 # ==================================

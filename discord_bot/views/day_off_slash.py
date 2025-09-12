@@ -1,7 +1,7 @@
 import discord # type: ignore
 from typing import Optional
 import datetime
-from config import logger, constants
+from config import logger, constants, Strings
 
 class DayOffButton_slash(discord.ui.Button):
     def __init__(self, *, label: str, custom_id: str, cmd_or_step: str):
@@ -14,7 +14,6 @@ class DayOffButton_slash(discord.ui.Button):
         self.is_selected = False
         
     async def callback(self, interaction: discord.Interaction):
-        from config import Strings # Import Strings locally
         # First, acknowledge the interaction to prevent timeout
         logger.debug(f"[Channel {interaction.channel.id}] - Attempting to defer interaction response for DayOffButton_slash")
         if not interaction.response.is_done():
@@ -83,7 +82,6 @@ class ConfirmButton_slash(discord.ui.Button):
         )
         
     async def callback(self, interaction: discord.Interaction):
-        from config import Strings # Import Strings locally
         from services import webhook_service
         view = self.view
         if isinstance(view, DayOffView_slash):
@@ -181,7 +179,6 @@ class DeclineButton_slash(discord.ui.Button):
         )
         
     async def callback(self, interaction: discord.Interaction):
-        from config import Strings # Import Strings locally
         from services import webhook_service
         view = self.view
         if isinstance(view, DayOffView_slash):
@@ -306,7 +303,6 @@ class DayOffView_slash(discord.ui.View):
         if self.command_msg:
             try:
                 # Get first 13 characters of timeout message
-                from config import Strings
                 timeout_msg = Strings.TIMEOUT_MESSAGE[:13]
                 await self.command_msg.edit(
                     content=f"{self.command_msg.content}\n{timeout_msg}"

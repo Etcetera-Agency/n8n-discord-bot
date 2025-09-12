@@ -1,6 +1,6 @@
 import discord # type: ignore
 from typing import Optional
-from config import logger, constants # Added Strings, constants
+from config import logger, constants, Strings # Added Strings, constants
 from services import webhook_service, survey_manager
 
 class WorkloadView_survey(discord.ui.View):
@@ -64,7 +64,6 @@ class WorkloadButton_survey(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         logger.debug(f"WorkloadButton_survey.callback entered. Interaction ID: {interaction.id}, Custom ID: {self.custom_id}") # Change to DEBUG
         logger.debug(f"Button callback for step: {self.cmd_or_step}, interaction.response.is_done(): {interaction.response.is_done()}") # Keep debug for state
-        from config import Strings # Import Strings locally # Import Strings locally
 
         """Handle button press with complete validation"""
         # Log entry with full interaction details
@@ -208,29 +207,17 @@ class WorkloadButton_survey(discord.ui.Button):
                 logger.info(f"[Channel {view.session_id.split('_')[0]}] - Webhook sending result for survey step: success={success}, data={data}")
 
                 logger.debug(f"Webhook response for survey step: success={success}, data={data}") # Change to DEBUG
-                # Decide continuation based on n8n response flag
+                # Decide continuation based on n8n response flag via helper
+                from discord_bot.commands.survey import process_survey_flag, finish_survey as _finish
                 flag = (data or {}).get("survey")
                 try:
-                    if flag == "continue":
-                        logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Advancing and continuing survey")
-                        state.next_step()
-                        if self.continue_survey_func:
-                            await self.continue_survey_func(interaction.channel, state)
-                    elif flag == "end":
-                        logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Advancing and finishing survey")
-                        state.next_step()
-                        from discord_bot.commands.survey import finish_survey as _finish
-                        await _finish(interaction.client, interaction.channel, state)
-                    elif flag == "cancel":
-                        logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Cancelling survey as instructed by n8n")
-                        from services import survey_manager as _mgr
-                        _mgr.remove_survey(str(interaction.channel.id))
-                    else:
-                        # Backward compatibility: default to continue path
-                        logger.debug(f"[Channel {view.session_id.split('_')[0]}] - No flag provided, default continue")
-                        state.next_step()
-                        if self.continue_survey_func:
-                            await self.continue_survey_func(interaction.channel, state)
+                    await process_survey_flag(
+                        interaction.channel,
+                        state,
+                        flag,
+                        self.continue_survey_func,
+                        lambda ch, s: _finish(interaction.client, ch, s),
+                    )
                 except Exception as e:
                     logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error handling survey flow after webhook: {e}", exc_info=True)
 
@@ -248,8 +235,9 @@ class WorkloadButton_survey(discord.ui.Button):
                     return
 
                 # Update survey state
-                state.results[view.cmd_or_step] = value
-                logger.info(f"Updated survey results: {state.results}")
+                # Record result through manager to consolidate writes
+                survey_manager.record_step_result(interaction.channel.id, view.cmd_or_step, value)
+                logger.info(f"Updated survey results via manager for step {view.cmd_or_step}")
 
                 # Update command message with n8n output instead of deleting it
                 if view.command_msg:
@@ -347,14 +335,13 @@ def create_workload_view(bot_instance, cmd: str, user_id: str, timeout: Optional
         logger.error(f"[Channel {view.session_id.split('_')[0] if view and view.session_id else 'N/A'}] - Error instantiating WorkloadView_survey: {e}")
         raise # Re-raise the exception after logging
 
-    from config.constants import WORKLOAD_OPTIONS
-    logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Imported WORKLOAD_OPTIONS. WORKLOAD_OPTIONS: {WORKLOAD_OPTIONS}")
+    logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Accessing WORKLOAD_OPTIONS from constants")
     # Add workload option buttons
     try:
         # Only add buttons for workload-related commands
         logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Checking cmd: {cmd}") # Added log to check cmd value
         if cmd in ["workload_today", "workload_nextweek"]:
-            for hour in WORKLOAD_OPTIONS:
+            for hour in constants.WORKLOAD_OPTIONS:
                 custom_id = f"workload_button_{hour}_{cmd}_{user_id}"
                 button = WorkloadButton_survey(label=hour, custom_id=custom_id, cmd_or_step=cmd, continue_survey_func=view.continue_survey_func) # Create button
                 logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Adding button with label: {hour}, custom_id: {custom_id}")

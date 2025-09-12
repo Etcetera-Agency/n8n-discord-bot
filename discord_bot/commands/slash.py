@@ -4,7 +4,7 @@ import datetime
 from discord import app_commands
 from discord.ext import commands
 from typing import List
-from config import MONTHS, logger, Strings, constants
+from config import logger, Strings, constants
 from services import webhook_service
 from discord_bot.views.factory import create_view
 
@@ -183,7 +183,6 @@ class SlashCommands:
             end_day: int,
             end_month: str
         ):
-            from config import Strings # Import Strings locally
             """
             Set vacation dates.
             
@@ -301,7 +300,7 @@ class SlashCommands:
             current = current.lower()
             return [
                 app_commands.Choice(name=month, value=month)
-                for month in MONTHS
+                for month in constants.MONTHS
                 if current in month.lower()
             ][:25]  # Limit to 25 choices as per Discord limits
             
@@ -376,7 +375,7 @@ class SlashCommands:
                 interaction: discord.Interaction
                 connects: Number of connects
             """
-            from config import Strings # Import Strings locally
+            
             logger.info(f"[Channel {interaction.channel.id}] [DEBUG] Connects command from {interaction.user}: {connects}")
             
             # First, acknowledge the interaction to prevent timeout

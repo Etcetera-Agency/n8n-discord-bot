@@ -179,25 +179,17 @@ class ConnectsModal(discord.ui.Modal):
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
                 return # Exit if step webhook fails
 
-            # Continue/end/cancel based on n8n response
+            # Continue/end/cancel based on n8n response via helper
             try:
+                from discord_bot.commands.survey import process_survey_flag, finish_survey as _finish, continue_survey as _cont
                 flag = (response or {}).get("survey")
-                if flag == "continue":
-                    current_survey.next_step()
-                    from discord_bot.commands.survey import continue_survey as _cont
-                    await _cont(self.bot_instance, interaction.channel, current_survey)
-                elif flag == "end":
-                    current_survey.next_step()
-                    from discord_bot.commands.survey import finish_survey as _finish
-                    await _finish(self.bot_instance, interaction.channel, current_survey)
-                elif flag == "cancel":
-                    from services import survey_manager as _mgr
-                    _mgr.remove_survey(str(interaction.channel.id))
-                else:
-                    # Default behavior
-                    current_survey.next_step()
-                    from discord_bot.commands.survey import continue_survey as _cont
-                    await _cont(self.bot_instance, interaction.channel, current_survey)
+                await process_survey_flag(
+                    interaction.channel,
+                    current_survey,
+                    flag,
+                    lambda ch, s: _cont(self.bot_instance, ch, s),
+                    lambda ch, s: _finish(self.bot_instance, ch, s),
+                )
             except Exception:
                 logger.error("Error advancing/continuing survey: {e}")
                 await send_error_response(interaction, Strings.GENERAL_ERROR)

@@ -1,6 +1,6 @@
 import discord
 from typing import Optional
-from config import logger, constants
+from config import logger, constants, Strings
 from services import webhook_service
 
 class WorkloadView_slash(discord.ui.View):
@@ -14,7 +14,6 @@ class WorkloadView_slash(discord.ui.View):
         self.buttons_msg: Optional[discord.Message] = None  # Reference to the buttons message
         
     async def on_timeout(self):
-        from config import Strings  # Import locally to avoid circular imports
         channel_id = self.command_msg.channel.id if self.command_msg else "unknown"
         logger.warning(f"[Channel {channel_id}] WorkloadView_slash timed out for user {self.user_id}")
         
@@ -49,7 +48,6 @@ class WorkloadButton_slash(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         logger.debug(f"[Channel {interaction.channel.id}] WorkloadButton_slash.callback entered. Interaction ID: {interaction.id}, Custom ID: {self.custom_id}")
         logger.debug(f"[Channel {interaction.channel.id}] Button callback for step: {self.cmd_or_step}, interaction.response.is_done(): {interaction.response.is_done()}")
-        from config import Strings
 
         """Handle button press with complete validation"""
         logger.info(f"[Channel {interaction.channel.id}] WorkloadButton_slash callback started - interaction: {interaction.id}, user: {getattr(interaction, 'user', None)}, bot: {getattr(interaction.client, 'user', None)}")
@@ -214,18 +212,12 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
         logger.error(f"[{user_id}] - Error instantiating WorkloadView_slash for cmd {cmd}: {e}", exc_info=True)
         raise
 
-    logger.debug(f"[{user_id}] - Before importing WORKLOAD_OPTIONS for cmd: {cmd}")
-    try:
-        from config.constants import WORKLOAD_OPTIONS
-        logger.debug(f"[{user_id}] - After importing WORKLOAD_OPTIONS for cmd: {cmd}. WORKLOAD_OPTIONS: {WORKLOAD_OPTIONS}")
-    except Exception as e:
-        logger.error(f"[{user_id}] - Error importing WORKLOAD_OPTIONS for cmd {cmd}: {e}", exc_info=True)
-        raise
+    logger.debug(f"[{user_id}] - Before accessing WORKLOAD_OPTIONS for cmd: {cmd}")
 
     logger.debug(f"[{user_id}] - Before adding workload buttons for cmd: {cmd}")
     try:
         # Add all workload options as buttons, including "Нічого немає"
-        for hour in WORKLOAD_OPTIONS:
+        for hour in constants.WORKLOAD_OPTIONS:
             custom_id = f"workload_button_{hour}_{cmd}_{user_id}"
             button = WorkloadButton_slash(label=hour, custom_id=custom_id, cmd_or_step=cmd)
             logger.debug(f"[{user_id}] - Adding button with label: {hour}, custom_id: {custom_id} for cmd: {cmd}")
