@@ -1,10 +1,10 @@
-import logging
+from config import logger
 from typing import Optional, Dict, Any
 
 import discord
 from services import session_manager
 
-logger = logging.getLogger(__name__)
+ # Use application logger
 
 class BaseView(discord.ui.View):
     """

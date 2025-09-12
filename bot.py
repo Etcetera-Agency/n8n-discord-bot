@@ -14,8 +14,7 @@ from discord_bot.views.start_survey import StartSurveyView  # Import the new per
 ###############################################################################
 # Logging configuration
 ###############################################################################
-from config.logger import setup_logging
-logger = setup_logging()
+from config import logger
 
 ###############################################################################
 # Load environment variables handled in config/config.py

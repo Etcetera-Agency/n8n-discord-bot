@@ -1,5 +1,6 @@
 import asyncio
-from config import Config, logger
+import logging
+from config import Config, logger, setup_logging
 from web import create_and_start_server
 from discord_bot.client import create_bot
 
@@ -8,6 +9,8 @@ async def main():
     Main entry point for the application.
     Starts both the Discord bot and the web server.
     """
+    # Initialize logging once for the whole app
+    setup_logging(level=logging.DEBUG)
     # Validate configuration
     try:
         Config.validate()

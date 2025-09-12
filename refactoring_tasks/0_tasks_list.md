@@ -19,7 +19,7 @@ Use this checklist to track progress. Each item links to a detailed task.
 - [x] 15 — Timeout/cleanup centralization (refactoring_tasks/tasks_15.md)
 - [ ] 16 — Typed payload/response models (refactoring_tasks/tasks_16.md)
 - [x] 17 — Error taxonomy mapping (refactoring_tasks/tasks_17.md)
-- [ ] 18 — Logging consistency (refactoring_tasks/tasks_18.md)
+- [x] 18 — Logging consistency (refactoring_tasks/tasks_18.md)
 - [ ] 19 — Web server hardening (refactoring_tasks/tasks_19.md)
 - [ ] 20 — Rate limiting/retries (refactoring_tasks/tasks_20.md)
 - [ ] 21 — Remove legacy/unreachable branches (refactoring_tasks/tasks_21.md)
