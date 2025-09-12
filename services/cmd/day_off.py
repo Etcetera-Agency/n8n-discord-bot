@@ -38,10 +38,16 @@ async def handle(payload: Dict[str, Any]) -> str:
             payload.get("result", {}).get("value")
             or payload.get("result", {}).get("daysSelected")
         )
+        if isinstance(value, dict) and "values" in value:
+            value = value.get("values")
         step = payload.get("command")
         if step == "survey":
             step = payload.get("result", {}).get("stepName")
-        if value == "Nothing" or not value:
+        if (
+            value == "Nothing"
+            or value == ["Nothing"]
+            or not value
+        ):
             await _mark_step(payload.get("channelId", ""), step)
             log.info("done", extra={"output": "Записав! Вихідних нема"})
             return "Записав! Вихідних нема"
