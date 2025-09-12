@@ -101,7 +101,6 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
             if chan and len(chan) == 19:
                 return finalize({"output": "Канал вже зареєстрований на когось іншого."})
 
-        user_id = payload.get("userId", "")
         command = payload.get("command")
         # Treat survey as active if there's a channel-scoped survey state
         channel_active = survey_state is not None

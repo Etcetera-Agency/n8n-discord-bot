@@ -117,10 +117,9 @@ class WebhookService:
 
         user_id = None
         channel_id = None
-        author = None # Initialize author
+        author = None  # Initialize author
         channel_name = None
         timestamp = None
-        channel = None # Initialize channel variable
 
         # Determine if we're dealing with a Context or Interaction
         if isinstance(target, commands.Context):
@@ -129,27 +128,23 @@ class WebhookService:
             author = str(target.author)
             channel_name = target.channel.name if hasattr(target.channel, 'name') else None
             timestamp = int(target.message.created_at.timestamp()) if hasattr(target.message, 'created_at') else None
-            channel = target.channel
         elif isinstance(target, discord.Interaction):
             user_id = str(target.user.id)
             channel_id = str(target.channel.id)
             author = str(target.user)
             channel_name = target.channel.name if hasattr(target.channel, 'name') else None
             timestamp = int(target.created_at.timestamp()) if hasattr(target, 'created_at') else None
-            channel = target.channel
         elif isinstance(target, discord.message.Message):
             user_id = str(target.author.id)
             channel_id = str(target.channel.id)
             author = str(target.author)
             channel_name = target.channel.name if hasattr(target.channel, 'name') else None
             timestamp = int(target.created_at.timestamp()) if hasattr(target, 'created_at') else None
-            channel = target.channel
         elif isinstance(target, discord.TextChannel):
             # For TextChannel target, we might not have user/author/timestamp easily
             # Depending on use case, these might be passed as extra args or be None
             channel_id = str(target.id)
             channel_name = target.name if hasattr(target, 'name') else None
-            channel = target
             # user_id, author, timestamp would be None unless explicitly passed
 
         if not user_id and not isinstance(target, discord.TextChannel):

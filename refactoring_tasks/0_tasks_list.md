@@ -16,7 +16,7 @@ Use this checklist to track progress. Each item links to a detailed task.
 - [ ] 12 — Centralize strings/i18n (refactoring_tasks/tasks_12.md)
 - [ ] 13 — Single survey state source (refactoring_tasks/tasks_13.md)
 - [ ] 14 — Explicit survey models (refactoring_tasks/tasks_14.md)
-- [ ] 15 — Timeout/cleanup centralization (refactoring_tasks/tasks_15.md)
+- [x] 15 — Timeout/cleanup centralization (refactoring_tasks/tasks_15.md)
 - [ ] 16 — Typed payload/response models (refactoring_tasks/tasks_16.md)
 - [ ] 17 — Error taxonomy mapping (refactoring_tasks/tasks_17.md)
 - [ ] 18 — Logging consistency (refactoring_tasks/tasks_18.md)

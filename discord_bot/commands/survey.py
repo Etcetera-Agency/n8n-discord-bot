@@ -136,6 +136,12 @@ async def handle_survey_incomplete(bot: commands.Bot, session_id: str) -> None: 
     except Exception as e:
         logger.error(f"Failed to send timeout message to user {survey.user_id}: {e}")
 
+    # Cleanup UI/messages before removing the survey
+    try:
+        await survey.cleanup()
+    except Exception as e:
+        logger.warning(f"Cleanup failed during incomplete handling for session {session_id}: {e}")
+
     survey_manager.remove_survey(survey.channel_id) # Remove by channel_id
     logger.info(f"Survey for user {survey.session_id} (session {session_id}) timed out with incomplete steps: {incomplete}")
 
@@ -652,6 +658,12 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
 
     finally:
         # Clean up the survey session
-        if current_survey: # Ensure current_survey exists before trying to remove
-             survey_manager.remove_survey(current_survey.channel_id)
-             logger.info(f"[{current_survey.session_id}] - Survey session removed for channel {current_survey.channel_id}.")
+        if current_survey:  # Ensure current_survey exists before trying to remove
+            # Centralized cleanup to remove buttons/messages
+            try:
+                await current_survey.cleanup()
+            except Exception as e:
+                logger.warning(f"[{current_survey.session_id}] - Survey cleanup failed: {e}")
+
+            survey_manager.remove_survey(current_survey.channel_id)
+            logger.info(f"[{current_survey.session_id}] - Survey session removed for channel {current_survey.channel_id}.")

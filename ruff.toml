@@ -2,6 +2,7 @@ target-version = "py310"
 
 [lint]
 select = ["E", "F"]
+ignore = ["E501"]
 
 [lint.per-file-ignores]
 "tests/test_calendar_connector.py" = ["E402"]
