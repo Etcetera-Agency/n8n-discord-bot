@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Optional
+from pathlib import Path
 
 def setup_logging(level: int = logging.INFO, name: str = 'discord_bot') -> logging.Logger:
     """
@@ -34,7 +34,6 @@ logger = setup_logging(level=logging.DEBUG)
 
 # Add file handler
 # Ensure logs directory exists
-from pathlib import Path
 logs_dir = Path(__file__).parent.parent / 'logs'
 logs_dir.mkdir(exist_ok=True)
 

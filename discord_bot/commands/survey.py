@@ -1,9 +1,7 @@
-import asyncio
 import discord # type: ignore
 from discord.ext import commands # type: ignore # Import commands for bot type hinting
 import json # Added for Notion ToDo JSON parsing
-from typing import Optional, List, Any # Added Any
-from config import ViewType, logger, Strings, Config, constants # Added constants
+from config import logger, Strings, constants # Added constants
 from services import survey_manager, webhook_service
 from services.notion_todos import Notion_todos # Added for Notion ToDo fetching
 from services.survey import SurveyFlow # Added import
@@ -11,7 +9,6 @@ from services.survey import SurveyFlow # Added import
 from discord_bot.views.workload_survey import create_workload_view # Use survey-specific view
 # Removed: from bot import bot # Import the bot instance from the root bot.py
 from discord_bot.views.model_connects_survey import ConnectsModal # Import the moved modal
-from discord_bot.views.day_off_survey import create_day_off_view # Use survey-specific view
 
 # ==================================
 # Helper Functions
@@ -253,7 +250,8 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
         # Should not happen if final_steps is not empty, but handle defensively
         logger.error(f"Survey created for channel {channel_id} but no first step available. Steps: {final_steps}")
         channel = await bot.fetch_channel(int(channel_id))
-        if channel: await channel.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}: No steps found.")
+        if channel:
+            await channel.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}: No steps found.")
         survey_manager.remove_survey(channel_id) # Clean up by channel_id
 
 async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, survey: SurveyFlow, step_name: str) -> None: # Added bot parameter, Type hint updated
@@ -356,7 +354,7 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                     logger.error(f"Error deferring interaction for workload step {step_name}: {defer_error}", exc_info=True)
                     try:
                         await interaction.response.send_message(Strings.GENERAL_ERROR, ephemeral=False)
-                    except:
+                    except Exception:
                         pass
                     return
 

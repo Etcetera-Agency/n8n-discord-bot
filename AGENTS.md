@@ -7,10 +7,29 @@
 
 ## Build, Test, and Development Commands
 
+- Python: 3.10 (Docker uses `python:3.10-slim`). Local dev is pinned via `.python-version`.
 - Install: `pip install -r requirements.txt`
 - Run locally: `python main.py`
+- Lint: `ruff check` (auto-fix safe issues: `ruff check --fix`)
 - Tests: `pytest -q` (async tests use `pytest-asyncio`). Run a file: `pytest tests/test_router.py -q`.
 - Docker (optional): `docker build -t n8n-discord-bot .` then `docker run -p 3000:3000 --env-file .env n8n-discord-bot`.
+
+## Running Tests (Quick Start)
+
+- Use Python 3.10 venv:
+  - Create once: `python3.10 -m venv .venv && .venv/bin/pip install -r requirements.txt`
+  - Activate: `source .venv/bin/activate`
+- Lint first: `ruff check` (apply safe fixes: `ruff check --fix`)
+- Run all tests: `pytest -q`
+- Run a single file: `pytest tests/test_router.py -q`
+- If the venv points to the wrong Python, recreate it:
+  - `rm -rf .venv && python3.10 -m venv .venv && .venv/bin/pip install -r requirements.txt`
+- Docker alternative (no local Python needed):
+  - `docker run --rm -v "$PWD":/app -w /app python:3.10-slim bash -lc "pip install -r requirements.txt && pytest -q"`
+
+### Install Ruff (if not installed)
+- Via pip (inside venv): `pip install ruff`
+- Via Homebrew (macOS): `brew install ruff`
 
 ## Coding Style & Naming Conventions
 

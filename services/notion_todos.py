@@ -4,7 +4,7 @@ import os
 import re
 import json
 from dataclasses import dataclass, field
-from datetime import date, timedelta, datetime
+from datetime import timedelta, datetime
 from typing import List, Optional
 from notion_client import Client as NotionClient
 
@@ -53,7 +53,7 @@ class Notion_todos:
             start_date = start_dt.strftime('%Y-%m-%dT%H:%M:%S')
         try:
             # Run blocking Notion API call in a separate thread
-            page = await asyncio.to_thread(self.client.blocks.retrieve, self.block_id)
+            await asyncio.to_thread(self.client.blocks.retrieve, self.block_id)
         except Exception as e:
             logger.error(f"Failed to fetch Notion page: {e}")
             raise ConnectionError(f"Failed to fetch Notion page (ID: {self.block_id}) from URL {self.todo_url}. Error: {e}")

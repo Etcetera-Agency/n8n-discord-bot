@@ -21,7 +21,7 @@ class ConnectsModal(discord.ui.Modal):
     ):
         """Initializes the ConnectsModal with necessary dependencies."""
         try:
-            logger.info(f"Initializing ConnectsModal for channel {{survey.channel_id}} step {{step_name}}")
+            logger.info("Initializing ConnectsModal for channel {survey.channel_id} step {step_name}")
 
             # Verify required survey properties
             if not survey.user_id or not survey.channel_id:
@@ -53,8 +53,8 @@ class ConnectsModal(discord.ui.Modal):
             # Add input to modal
             self.add_item(self.connects_input)
 
-        except Exception as e:
-            logger.error(f"Error initializing ConnectsModal: {{e}}", exc_info=True)
+        except Exception:
+            logger.error("Error initializing ConnectsModal: {e}", exc_info=True)
             raise
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -68,39 +68,39 @@ class ConnectsModal(discord.ui.Modal):
                     await interaction.response.send_message(message, ephemeral=True)
                 else:
                     await interaction.followup.send(message, ephemeral=True)
-            except Exception as e:
-                logger.error(f"Failed to send error message: {{e}}")
+            except Exception:
+                logger.error("Failed to send error message: {e}")
 
         try:
             user_input = self.connects_input.value.strip()
 
             # Validate input is a number and in reasonable range
             if not user_input.isdigit():
-                logger.warning(f"Invalid connects input (non-digit): {{user_input}}")
+                logger.warning("Invalid connects input (non-digit): {user_input}")
                 await send_error_response(interaction, Strings.NUMBER_REQUIRED)
                 return
 
             connects = int(user_input)
             if connects < 0 or connects > 999:
-                logger.warning(f"Invalid connects range: {{connects}}")
-                await send_error_response(interaction, f"{{Strings.NUMBER_REQUIRED}}. Кількість коннектів має бути від 0 до 999")
+                logger.warning("Invalid connects range: {connects}")
+                await send_error_response(interaction, "{Strings.NUMBER_REQUIRED}. Кількість коннектів має бути від 0 до 999")
                 return
 
             # Retrieve the survey using channel_id
             current_survey = survey_manager.get_survey(str(interaction.channel.id))
             if not current_survey or current_survey.session_id != self.survey.session_id:
-                logger.warning(f"Survey not found or session mismatch for channel {{interaction.channel.id}} in ConnectsModal submit.")
+                logger.warning("Survey not found or session mismatch for channel {interaction.channel.id} in ConnectsModal submit.")
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
                 return
 
             # Verify user and channel
             if str(interaction.user.id) != str(current_survey.user_id):
-                logger.warning(f"Wrong user for connects modal: {{interaction.user.id}} vs {{current_survey.user_id}}")
+                logger.warning("Wrong user for connects modal: {interaction.user.id} vs {current_survey.user_id}")
                 await send_error_response(interaction, Strings.NOT_YOUR_SURVEY)
                 return
 
             if str(interaction.channel.id) != str(current_survey.channel_id):
-                logger.warning(f"Wrong channel for connects modal: {{interaction.channel.id}} vs {{current_survey.channel_id}}")
+                logger.warning("Wrong channel for connects modal: {interaction.channel.id} vs {current_survey.channel_id}")
                 await send_error_response(interaction, Strings.WRONG_CHANNEL)
                 return
 
@@ -110,23 +110,23 @@ class ConnectsModal(discord.ui.Modal):
                 # logger.debug("Deferred modal response")
 
 
-            logger.info(f"Storing connects result: {{connects}} for channel {{current_survey.channel_id}}")
+            logger.info("Storing connects result: {connects} for channel {current_survey.channel_id}")
             # Store the validated result
             try:
                 current_survey.add_result(self.step_name, str(connects))
                 # logger.debug(f"After add_result, survey.results: {{current_survey.results}}")
-            except Exception as e:
-                logger.error(f"Error storing connects result for channel {{current_survey.channel_id}}: {{e}}")
+            except Exception:
+                logger.error("Error storing connects result for channel {current_survey.channel_id}: {e}")
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
                 return
 
-            logger.info(f"Storing connects result: {{connects}} for channel {{current_survey.channel_id}}")
+            logger.info("Storing connects result: {connects} for channel {current_survey.channel_id}")
             # Store the validated result
             try:
                 current_survey.add_result(self.step_name, str(connects))
                 # logger.debug(f"After add_result, survey.results: {{current_survey.results}}")
-            except Exception as e:
-                logger.error(f"Error storing connects result for channel {{current_survey.channel_id}}: {{e}}")
+            except Exception:
+                logger.error("Error storing connects result for channel {current_survey.channel_id}: {e}")
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
                 return
 
@@ -136,29 +136,29 @@ class ConnectsModal(discord.ui.Modal):
                     "stepName": self.step_name,
                     "value": str(connects)
                 }
-                logger.info(f"Sending survey step webhook for step: {{self.step_name}} with value: {{connects}}")
+                logger.info("Sending survey step webhook for step: {self.step_name} with value: {connects}")
                 success, response = await self.webhook_service_instance.send_webhook( # Use passed instance
                     interaction, # Pass interaction directly
                     command="survey", # Use command="survey"
                     status="step", # Use status="step"
                     result=result_payload # Pass result_payload dictionary
                 )
-                logger.info(f"Step webhook response for channel {{current_survey.channel_id}}: success={{success}}, response={{response}}")
+                logger.info("Step webhook response for channel {current_survey.channel_id}: success={success}, response={response}")
                 # Show n8n output to user if present
                 # Update command message with n8n output instead of deleting it
                 if success and response and "output" in response:
                     if current_survey.current_message:
                         try:
-                            logger.debug(f"Attempting to remove processing reaction from command message {{current_survey.current_message.id}}")
+                            logger.debug("Attempting to remove processing reaction from command message {current_survey.current_message.id}")
                             await current_survey.current_message.remove_reaction("⏳", self.bot_instance.user) # Use passed instance
                             output_content = response.get("output", f"Дякую! Кількість коннектів {connects} записано.") # Default success message
-                            logger.debug(f"Attempting to edit command message {{current_survey.current_message.id}} with output: {{output_content}}")
+                            logger.debug("Attempting to edit command message {current_survey.current_message.id} with output: {output_content}")
                             await current_survey.current_message.edit(content=output_content, view=None, attachments=[]) # Update content and remove view/attachments
-                            logger.info(f"Updated command message {{current_survey.current_message.id}} with response")
-                        except Exception as edit_error:
-                            logger.error(f"Error editing command message {{getattr(current_survey.current_message, 'id', 'N/A')}}: {{edit_error}}", exc_info=True)
+                            logger.info("Updated command message {current_survey.current_message.id} with response")
+                        except Exception:
+                            logger.error("Error editing command message {getattr(current_survey.current_message, 'id', 'N/A')}: {edit_error}", exc_info=True)
                 elif not success:
-                    logger.error(f"Failed to send webhook for survey step: {{self.step_name}}")
+                    logger.error("Failed to send webhook for survey step: {self.step_name}")
                     if current_survey.current_message:
                         try:
                             await current_survey.current_message.remove_reaction("⏳", self.bot_instance.user) # Use passed instance
@@ -168,15 +168,15 @@ class ConnectsModal(discord.ui.Modal):
                             )
                             await current_survey.current_message.edit(content=error_msg)
                             await current_survey.current_message.add_reaction(Strings.ERROR)
-                        except Exception as edit_error:
-                            logger.error(f"Error editing command message on webhook failure {{getattr(current_survey.current_message, 'id', 'N/A')}}: {{edit_error}}", exc_info=True)
+                        except Exception:
+                            logger.error("Error editing command message on webhook failure {getattr(current_survey.current_message, 'id', 'N/A')}: {edit_error}", exc_info=True)
 
-            except Exception as e:
-                logger.error(f"Error sending step webhook or handling response: {{e}}", exc_info=True)
+            except Exception:
+                logger.error("Error sending step webhook or handling response: {e}", exc_info=True)
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
                 return # Exit if step webhook fails
 
-            logger.info(f"Advancing survey for channel {{current_survey.channel_id}}")
+            logger.info("Advancing survey for channel {current_survey.channel_id}")
             # Advance survey state
             try:
                 current_survey.next_step() # Advance the state
@@ -188,16 +188,16 @@ class ConnectsModal(discord.ui.Modal):
                 from discord_bot.commands.survey import continue_survey # Keep this import for now, will remove in next step
                 await continue_survey(self.bot_instance, interaction.channel, current_survey) # Call continue_survey after sending webhook, pass bot instance
 
-            except Exception as e:
-                logger.error(f"Error advancing survey: {{e}}")
+            except Exception:
+                logger.error("Error advancing survey: {e}")
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
 
-        except Exception as e:
-            logger.error(f"Unexpected error in connects modal submission: {{e}}", exc_info=True)
+        except Exception:
+            logger.error("Unexpected error in connects modal submission: {e}", exc_info=True)
             try:
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
                 # Clean up previous message even on error to prevent stuck buttons
                 # await cleanup_survey_message(interaction, self.survey) # Cleanup logic is now handled by updating the message
-            except Exception as cleanup_error:
-                logger.error(f"Error during error cleanup: {{cleanup_error}}")
-                logger.error(f"Error during error cleanup: {{cleanup_error}}")
+            except Exception:
+                logger.error("Error during error cleanup: {cleanup_error}")
+                logger.error("Error during error cleanup: {cleanup_error}")

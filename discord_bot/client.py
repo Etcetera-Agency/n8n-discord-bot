@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from config import Config, logger
+from config import logger
 from discord_bot.commands import PrefixCommands, SlashCommands, EventHandlers
 from services.webhook import WebhookService
 
@@ -21,10 +21,10 @@ def create_bot() -> commands.Bot:
     # Initialize webhook service (internal dispatcher; no HTTP init required)
     bot.webhook_service = WebhookService()
     
-    # Register commands and event handlers
-    prefix_commands = PrefixCommands(bot)
-    slash_commands = SlashCommands(bot)
-    event_handlers = EventHandlers(bot)
+    # Register commands and event handlers (side-effectful constructors)
+    _ = PrefixCommands(bot)
+    _ = SlashCommands(bot)
+    _ = EventHandlers(bot)
     
     logger.info("Bot client created and configured")
     return bot

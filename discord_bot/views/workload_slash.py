@@ -1,6 +1,6 @@
 import discord
 from typing import Optional
-from config import logger, Strings, constants
+from config import logger, constants
 from services import webhook_service
 
 class WorkloadView_slash(discord.ui.View):
@@ -33,7 +33,7 @@ class WorkloadView_slash(discord.ui.View):
         if self.buttons_msg:
             try:
                 await self.buttons_msg.delete()
-            except:
+            except Exception:
                 pass # Ignore if already deleted
         self.stop() # Stop the view since it timed out
 

@@ -1,0 +1,20 @@
+target-version = "py310"
+
+[lint]
+select = ["E", "F"]
+
+[lint.per-file-ignores]
+"tests/test_calendar_connector.py" = ["E402"]
+"tests/test_connects_thisweek.py" = ["E402"]
+"tests/test_day_off_e2e.py" = ["E402"]
+"tests/test_day_off_handler.py" = ["E402"]
+"tests/test_logging.py" = ["E402"]
+"tests/test_notion_connector.py" = ["E402"]
+"tests/test_router.py" = ["E402"]
+"tests/test_survey_e2e.py" = ["E402"]
+"tests/test_survey_steps_db.py" = ["E402"]
+"tests/test_unregister_handler.py" = ["E402"]
+"tests/test_vacation.py" = ["E402"]
+"tests/test_workload_nextweek.py" = ["E402"]
+"tests/test_workload_today.py" = ["E402"]
+"services/date_utils.py" = ["E402"]

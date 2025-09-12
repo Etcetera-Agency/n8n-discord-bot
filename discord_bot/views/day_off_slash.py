@@ -1,10 +1,7 @@
-import logging
-logger = logging.getLogger(__name__)
 import discord # type: ignore
-from typing import Optional, List
+from typing import Optional
 import datetime
-from config import ViewType, logger, constants, Strings
-import asyncio
+from config import logger, constants
 
 class DayOffButton_slash(discord.ui.Button):
     def __init__(self, *, label: str, custom_id: str, cmd_or_step: str):
@@ -321,7 +318,7 @@ class DayOffView_slash(discord.ui.View):
         if self.buttons_msg:
             try:
                 await self.buttons_msg.delete()
-            except:
+            except Exception:
                 pass # Ignore if already deleted
         self.stop() # Stop the view since it timed out
 

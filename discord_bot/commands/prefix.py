@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 from services import webhook_service
 from config import logger
-from typing import Optional # Import Optional
 
 class PrefixCommands:
     """
@@ -34,7 +33,6 @@ class PrefixCommands:
             return
 
         # Grant channel permissions before webhook call
-        permission_granted = False # Initialize as False
         try:
             logger.info("Attempting to set permissions...")
             # Set all permissions to True by default, then explicitly set excluded ones to False
@@ -68,7 +66,6 @@ class PrefixCommands:
             logger.info("Permissions set in overwrite object. Calling set_permissions...")
             await ctx.channel.set_permissions(ctx.author, overwrite=overwrite)
             logger.info(f"Successfully granted specific permissions to {ctx.author} in channel {ctx.channel.name}")
-            permission_granted = True
 
             # Make the channel private by denying read_messages for @everyone
             try:
@@ -131,13 +128,6 @@ class PrefixCommands:
                logger.warning(f"Webhook for register command failed for {ctx.author}. Success: {success}, Data: {data}")
                error_detail = f" (Error: {data})" if data else ""
                webhook_status_message = f"Registration attempt for '{text}' failed, {ctx.author.mention}.{error_detail}"
-
-            # Determine permission status message
-            permission_status_message = ""
-            if permission_granted:
-                permission_status_message = f" You have been granted access to this channel."
-            else:
-                permission_status_message = f" Failed to grant access to this channel (check bot permissions)."
 
             # Set final content to webhook status message
             final_content = webhook_status_message

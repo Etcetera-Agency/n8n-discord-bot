@@ -1,8 +1,10 @@
 import logging
-logger = logging.getLogger(__name__)
-import discord
 from typing import Optional, Dict, Any
+
+import discord
 from services import session_manager
+
+logger = logging.getLogger(__name__)
 
 class BaseView(discord.ui.View):
     """

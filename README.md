@@ -434,7 +434,7 @@ Keep in mind that Discord **has a 2000-character limit per message**. To ensure 
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.10+
 - **Discord bot token**: Obtain one by creating an app on the [Discord Developer Portal](https://discord.com/developers/applications)
 - **n8n instance** with a webhook node (Cloud or self-hosted)
 - **OpenAI API key** (or another AI service provider)

@@ -1,30 +1,17 @@
-import os
+import asyncio
+from typing import List
+
 import discord
 from discord.ext import commands
-from discord import app_commands
-import aiohttp
-import uuid
-import asyncio
-import logging
-from dotenv import load_dotenv
-from cachetools import TTLCache
-from typing import Optional, List, Dict, Any, Union, Callable, Tuple
-import ssl
-from aiohttp import web
-from config import Config
-from services.session import SessionManager
+
+from config.config import Config
 from services.webhook import WebhookService, initialize_survey_functions
-from services.survey import SurveyFlow, survey_manager # Import SurveyFlow and survey_manager
-from discord_bot.commands.survey import ask_dynamic_step, finish_survey # Import the functions
-from config import (
-    WORKLOAD_OPTIONS,
-    WEEKDAY_OPTIONS,
-    MONTHS,
-    ViewType,
-    logger,
-    WebhookService,
-    Strings # Added Strings
-)
+from services.survey import survey_manager
+from discord_bot.commands.survey import ask_dynamic_step, finish_survey
+from discord_bot.commands.prefix import PrefixCommands
+from discord_bot.commands.slash import SlashCommands
+from discord_bot.commands.events import EventHandlers  # Assuming EventHandlers setup is needed
+from discord_bot.views.start_survey import StartSurveyView  # Import the new persistent view
 
 ###############################################################################
 # Logging configuration
@@ -33,14 +20,8 @@ from config.logger import setup_logging
 logger = setup_logging()
 
 ###############################################################################
-# Load environment variables
-##############################################################################
-load_dotenv()
-
-from config.config import Config
-
-# Global HTTP session for aiohttp requests
-http_session = None
+# Load environment variables handled in config/config.py
+###############################################################################
 
 ###############################################################################
 # Global Constants
@@ -82,10 +63,6 @@ bot.webhook_service = WebhookService()
 # asyncio.create_task(bot.webhook_service.initialize()) # Revisit if needed
 
 # Import command handlers
-from discord_bot.commands.prefix import PrefixCommands
-from discord_bot.commands.slash import SlashCommands
-from discord_bot.commands.events import EventHandlers # Assuming EventHandlers setup is needed
-from discord_bot.views.start_survey import StartSurveyView # Import the new persistent view
 
 # Register commands and event handlers
 prefix_commands = PrefixCommands(bot)
@@ -123,9 +100,9 @@ async def survey_incomplete_timeout(user_id: str):
 
         survey_manager.remove_survey(user_id)
     except discord.NotFound:
-        logger.error(f"Channel {state.channel_id} not found")
+        logger.error(f"Channel {survey.channel_id} not found")
     except discord.Forbidden:
-        logger.error(f"Bot doesn't have access to channel {state.channel_id}")
+        logger.error(f"Bot doesn't have access to channel {survey.channel_id}")
     except Exception as e:
         logger.error(f"Error in survey_incomplete_timeout: {e}")
 
