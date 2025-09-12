@@ -7,7 +7,6 @@ from config.config import Config
 from services.webhook import WebhookService, initialize_survey_functions
 from services.survey import survey_manager
 from discord_bot.commands.survey import ask_dynamic_step, finish_survey
-from discord_bot.commands.survey import handle_survey_incomplete as _handle_survey_incomplete
 from discord_bot.commands.survey import handle_start_daily_survey as _start_daily_survey
 from discord_bot.commands.prefix import PrefixCommands
 from discord_bot.commands.slash import SlashCommands
@@ -81,12 +80,6 @@ logger.info("Bot instance created and handlers initialized in bot.py")
 # Survey Management
 ##############################################################################
 
-async def survey_incomplete_timeout(session_id: str):
-    """Delegate incomplete handling using session-scoped lookup."""
-    try:
-        await _handle_survey_incomplete(bot, session_id)
-    except Exception as e:
-        logger.error(f"Error in survey_incomplete_timeout: {e}")
 
 # Removed old ask_dynamic_step and finish_survey definitions here
 # They are now imported from discord_bot.commands.survey
