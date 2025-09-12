@@ -5,7 +5,7 @@ Use this checklist to track progress. Each item links to a detailed task.
 - [x] 01 — Remove stray/duplicate files (refactoring_tasks/tasks_01.md)
 - [x] 02 — Normalize naming (refactoring_tasks/tasks_02.md)
 - [x] 03 — Unify Entrypoint (refactoring_tasks/tasks_03.md)
-- [ ] 04 — Remove config/service coupling (refactoring_tasks/tasks_04.md)
+- [x] 04 — Remove config/service coupling (refactoring_tasks/tasks_04.md)
 - [ ] 05 — Fix survey continuation (refactoring_tasks/tasks_05.md)
 - [ ] 06 — Deduplicate mention handling (refactoring_tasks/tasks_06.md)
 - [ ] 07 — Minimal web auth for endpoints (refactoring_tasks/tasks_07.md)
@@ -26,5 +26,7 @@ Use this checklist to track progress. Each item links to a detailed task.
 - [ ] 22 — Document architecture boundaries (refactoring_tasks/tasks_22.md)
 
 Note for all tasks: When adding or updating tests, load payloads from `payload_examples.txt` and sample responses from `responses` instead of hardcoding.
+
+Process requirement: After completing each refactoring task, update any affected tests first, then run the test suite (`pytest -q`) to validate changes.
 
 Global behavior constraint: Do not change Discord behavior (messages, reactions, component IDs/layout, ephemeral/public status, and message edit/delete timing must remain identical).
