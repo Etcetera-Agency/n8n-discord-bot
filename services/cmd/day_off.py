@@ -49,8 +49,8 @@ async def handle(payload: Dict[str, Any]) -> str:
             or not value
         ):
             await _mark_step(payload.get("channelId", ""), step)
-            log.info("done", extra={"output": "Записав! Записав! Вихідних не береш."})
-            return "Записав! Записав! Вихідних не береш."
+            log.info("done", extra={"output": "Записав! Вихідних не береш."})
+            return "Записав! Вихідних не береш."
         if isinstance(value, str):
             value = [value]
         author = payload.get("author", "")

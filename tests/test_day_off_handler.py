@@ -119,7 +119,7 @@ async def test_no_dates(tmp_path, monkeypatch):
 
     assert not cal.calls
     assert steps.calls == [("123", "day_off_thisweek", True)]
-    assert out == "Записав! Записав! Вихідних не береш."
+    assert out == "Записав! Вихідних не береш."
 
 
 @pytest.mark.asyncio
@@ -146,7 +146,7 @@ async def test_list_with_nothing(tmp_path, monkeypatch):
 
     assert not cal.calls
     assert steps.calls == [("123", "day_off_thisweek", True)]
-    assert out == "Записав! Записав! Вихідних не береш."
+    assert out == "Записав! Вихідних не береш."
 
 
 @pytest.mark.asyncio
