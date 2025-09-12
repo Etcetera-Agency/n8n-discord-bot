@@ -7,3 +7,9 @@ update_survey 2.md
 test_webhook.txt
 
 .history
+
+# Python / venv / cache
+.venv/
+__pycache__/
+*.pyc
+logs/

@@ -7,7 +7,7 @@ from config.config import Config
 from services.webhook import WebhookService
 from discord_bot.commands.survey import handle_start_daily_survey as _start_daily_survey
 from discord_bot.commands.prefix import PrefixCommands
-from discord_bot.commands.slash import SlashCommands
+from discord_bot.commands.slash import setup_slash_cogs
 from discord_bot.commands.events import EventHandlers  # Assuming EventHandlers setup is needed
 from discord_bot.views.start_survey import StartSurveyView  # Import the new persistent view
 
@@ -59,7 +59,6 @@ bot.webhook_service = WebhookService()
 
 # Register commands and event handlers
 prefix_commands = PrefixCommands(bot)
-slash_commands = SlashCommands(bot)
 event_handlers = EventHandlers(bot)
 # event_handlers.setup() # Call setup if EventHandlers class requires it
 
@@ -92,6 +91,13 @@ async def on_ready():
     bot.add_view(StartSurveyView())
     logger.info("Persistent views added.")
     # Note: Slash commands are synced separately, usually in on_ready or a setup cog
+    # Load slash command cogs
+    try:
+        await setup_slash_cogs(bot)
+        await bot.tree.sync()
+        logger.info("Slash command cogs loaded and command tree synced.")
+    except Exception as e:
+        logger.error(f"Failed to load slash cogs: {e}")
 
     # Survey continuation handled in Discord handlers; no initializer required
 

@@ -11,7 +11,7 @@ Use this checklist to track progress. Each item links to a detailed task.
 - [x] 07 — Minimal web auth for endpoints (refactoring_tasks/tasks_07.md)
 - [ ] 08 — Enforce module boundaries (refactoring_tasks/tasks_08.md)
 - [ ] 09 — Introduce AppRouter (rename WebhookService) (refactoring_tasks/tasks_09.md)
-- [ ] 10 — Split slash commands into cogs (refactoring_tasks/tasks_10.md)
+- [x] 10 — Split slash commands into cogs (refactoring_tasks/tasks_10.md)
 - [ ] 11 — Views safety and minimal helpers (refactoring_tasks/tasks_11.md)
 - [ ] 12 — Centralize strings/i18n (refactoring_tasks/tasks_12.md)
 - [ ] 13 — Single survey state source (refactoring_tasks/tasks_13.md)
