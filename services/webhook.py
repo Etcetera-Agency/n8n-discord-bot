@@ -1,9 +1,7 @@
-import asyncio
 import discord
 from typing import Dict, Any, Tuple, Optional, Union
 from discord.ext import commands
 from config import logger, Strings
-from services.session import session_manager
 from services.survey import survey_manager
 from . import router
 

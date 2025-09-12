@@ -176,20 +176,27 @@ class ConnectsModal(discord.ui.Modal):
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
                 return # Exit if step webhook fails
 
-            logger.info("Advancing survey for channel {current_survey.channel_id}")
-            # Advance survey state
+            # Continue/end/cancel based on n8n response
             try:
-                current_survey.next_step() # Advance the state
-                # logger.debug(f"Survey results after connects: {{current_survey.results}}")
-                # logger.debug(f"Survey steps: {{getattr(current_survey, 'steps', None)}}")
-                # logger.debug(f"Survey current_step: {{current_survey.current_step() if hasattr(current_survey, 'current_step') else None}}")
-
-                # Call continue_survey unconditionally, it will handle is_done() check
-                from discord_bot.commands.survey import continue_survey # Keep this import for now, will remove in next step
-                await continue_survey(self.bot_instance, interaction.channel, current_survey) # Call continue_survey after sending webhook, pass bot instance
-
+                flag = (response or {}).get("survey")
+                if flag == "continue":
+                    current_survey.next_step()
+                    from discord_bot.commands.survey import continue_survey as _cont
+                    await _cont(self.bot_instance, interaction.channel, current_survey)
+                elif flag == "end":
+                    current_survey.next_step()
+                    from discord_bot.commands.survey import finish_survey as _finish
+                    await _finish(self.bot_instance, interaction.channel, current_survey)
+                elif flag == "cancel":
+                    from services import survey_manager as _mgr
+                    _mgr.remove_survey(str(interaction.channel.id))
+                else:
+                    # Default behavior
+                    current_survey.next_step()
+                    from discord_bot.commands.survey import continue_survey as _cont
+                    await _cont(self.bot_instance, interaction.channel, current_survey)
             except Exception:
-                logger.error("Error advancing survey: {e}")
+                logger.error("Error advancing/continuing survey: {e}")
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
 
         except Exception:

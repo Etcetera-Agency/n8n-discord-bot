@@ -1,9 +1,8 @@
 import discord # type: ignore
-from typing import Optional, List
+from typing import Optional
 import datetime
-from config import ViewType, logger, constants, Strings
-from services import survey_manager, webhook_service # Import webhook_service
-import asyncio
+from config import logger, constants
+from services import survey_manager # Import webhook_service
 
 class DayOffView_survey(discord.ui.View):
     def __init__(self, bot_instance, cmd_or_step: str, user_id: str, has_survey: bool = False, continue_survey_func=None, survey=None, session_id: Optional[str] = None):
@@ -218,19 +217,28 @@ class ConfirmButton_survey(discord.ui.Button):
                     logger.info(f"[Channel {channel_id}] - Webhook sending result for survey step: success={success}, data={data}")
 
                     logger.debug(f"Webhook response for survey step: success={success}, data={data}")
+                    flag = (data or {}).get("survey")
                     try:
-                        logger.debug(f"[Channel {channel_id}] - Calling state.next_step()")
-                        state.next_step()
-                    except Exception as e:
-                        logger.error(f"[Channel {channel_id}] - Error in state.next_step(): {e}", exc_info=True)
-                    try:
-                        logger.debug(f"[Channel {channel_id}] - Calling continue_survey_func for channel {getattr(interaction.channel, 'id', None)} and state {state}")
-                        if view.continue_survey_func:
-                            await view.continue_survey_func(interaction.channel, state)
+                        if flag == "continue":
+                            logger.debug(f"[Channel {channel_id}] - Advancing and continuing survey")
+                            state.next_step()
+                            if view.continue_survey_func:
+                                await view.continue_survey_func(interaction.channel, state)
+                        elif flag == "end":
+                            logger.debug(f"[Channel {channel_id}] - Advancing and finishing survey")
+                            state.next_step()
+                            from discord_bot.commands.survey import finish_survey as _finish
+                            await _finish(view.bot_instance, interaction.channel, state)
+                        elif flag == "cancel":
+                            logger.debug(f"[Channel {channel_id}] - Cancelling survey per n8n instruction")
+                            survey_manager.remove_survey(str(interaction.channel.id))
                         else:
-                            logger.warning(f"[Channel {channel_id}] - continue_survey_func is None, cannot call.")
+                            logger.debug(f"[Channel {channel_id}] - No flag; default continue path")
+                            state.next_step()
+                            if view.continue_survey_func:
+                                await view.continue_survey_func(interaction.channel, state)
                     except Exception as e:
-                        logger.error(f"[Channel {channel_id}] - Error in continue_survey_func: {e}", exc_info=True)
+                        logger.error(f"[Channel {channel_id}] - Error handling survey flow after webhook: {e}", exc_info=True)
 
                     if not success:
                         logger.error(f"Failed to send webhook for survey step: {view.cmd_or_step}")
@@ -386,8 +394,26 @@ class DeclineButton_survey(discord.ui.Button):
 
                     logger.debug(f"Webhook response for survey step: success={success}, data={data}")
                     try:
-                        logger.debug(f"[Channel {channel_id}] - Calling state.next_step()")
+                    flag = (data or {}).get("survey")
+                    logger.debug(f"Webhook response for decline step: success={success}, data={data}")
+                    if flag == "continue":
+                        logger.debug(f"[Channel {channel_id}] - Advancing and continuing survey (decline)")
                         state.next_step()
+                        if view.continue_survey_func:
+                            await view.continue_survey_func(interaction.channel, state)
+                    elif flag == "end":
+                        logger.debug(f"[Channel {channel_id}] - Advancing and finishing survey (decline)")
+                        state.next_step()
+                        from discord_bot.commands.survey import finish_survey as _finish
+                        await _finish(view.bot_instance, interaction.channel, state)
+                    elif flag == "cancel":
+                        logger.debug(f"[Channel {channel_id}] - Cancelling survey per n8n instruction (decline)")
+                        survey_manager.remove_survey(str(interaction.channel.id))
+                    else:
+                        logger.debug(f"[Channel {channel_id}] - No flag; default continue path (decline)")
+                        state.next_step()
+                        if view.continue_survey_func:
+                            await view.continue_survey_func(interaction.channel, state)
                     except Exception as e:
                         logger.error(f"[Channel {channel_id}] - Error in state.next_step(): {e}", exc_info=True)
                     try:

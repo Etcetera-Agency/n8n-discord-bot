@@ -1,5 +1,4 @@
 import asyncio
-from typing import List
 
 import discord
 from discord.ext import commands
@@ -8,6 +7,8 @@ from config.config import Config
 from services.webhook import WebhookService, initialize_survey_functions
 from services.survey import survey_manager
 from discord_bot.commands.survey import ask_dynamic_step, finish_survey
+from discord_bot.commands.survey import handle_survey_incomplete as _handle_survey_incomplete
+from discord_bot.commands.survey import handle_start_daily_survey as _start_daily_survey
 from discord_bot.commands.prefix import PrefixCommands
 from discord_bot.commands.slash import SlashCommands
 from discord_bot.commands.events import EventHandlers  # Assuming EventHandlers setup is needed
@@ -80,51 +81,12 @@ logger.info("Bot instance created and handlers initialized in bot.py")
 # Survey Management
 ##############################################################################
 
-async def survey_incomplete_timeout(user_id: str):
-    survey = survey_manager.get_survey(user_id)
-    if not survey:
-        return
+async def survey_incomplete_timeout(session_id: str):
+    """Delegate incomplete handling using session-scoped lookup."""
     try:
-        channel = await bot.fetch_channel(int(survey.channel_id))
-        if not channel:
-            logger.warning(f"Channel {survey.channel_id} not found for user {user_id}")
-            return
-
-        incomplete = survey.incomplete_steps()
-        await bot.webhook_service.send_webhook(
-            channel,
-            command="survey",
-            status="incomplete",
-            result={"incompleteSteps": incomplete}
-        )
-
-        survey_manager.remove_survey(user_id)
-    except discord.NotFound:
-        logger.error(f"Channel {survey.channel_id} not found")
-    except discord.Forbidden:
-        logger.error(f"Bot doesn't have access to channel {survey.channel_id}")
+        await _handle_survey_incomplete(bot, session_id)
     except Exception as e:
         logger.error(f"Error in survey_incomplete_timeout: {e}")
-
-async def handle_start_daily_survey(bot, user_id: str, channel_id: str, steps: List[str]):
-    try:
-        channel = await bot.fetch_channel(int(channel_id))
-        if not channel:
-            logger.warning(f"Channel {channel_id} not found for user {user_id}")
-            return
-
-        survey = survey_manager.create_survey(user_id, channel_id, steps)
-        step = survey.current_step()
-        if step:
-            await ask_dynamic_step(bot, channel, survey, step)
-        else:
-            await channel.send(f"<@{user_id}> -- Схоже всі данні вже занесені")
-    except discord.NotFound:
-        logger.error(f"Channel {channel_id} not found")
-    except discord.Forbidden:
-        logger.error(f"Bot doesn't have access to channel {channel_id}")
-    except Exception as e:
-        logger.error(f"Error in handle_start_daily_survey: {e}")
 
 # Removed old ask_dynamic_step and finish_survey definitions here
 # They are now imported from discord_bot.commands.survey
@@ -272,9 +234,9 @@ async def on_message(message: discord.Message):
             if len(parts) >= 4:
                 user_id = parts[1]
                 channel_id = parts[2]
-                steps = parts[3:]
-                # Pass the bot instance to handle_start_daily_survey
-                await handle_start_daily_survey(bot, channel_id, user_id, steps)
+                # Build a session id and delegate to canonical starter
+                session_id = f"{channel_id}_{user_id}"
+                await _start_daily_survey(bot, user_id, channel_id, session_id)
 
         # Any other general message handling that should happen for non-mention messages would go here.
         # Currently, no other general message handling is needed based on the original code structure.

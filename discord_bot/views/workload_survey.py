@@ -1,6 +1,6 @@
 import discord # type: ignore
 from typing import Optional
-from config import logger, Strings, constants # Added Strings, constants
+from config import logger, constants # Added Strings, constants
 from services import webhook_service, survey_manager
 
 class WorkloadView_survey(discord.ui.View):
@@ -114,7 +114,7 @@ class WorkloadButton_survey(discord.ui.Button):
         #     await interaction.response.defer(ephemeral=False)
         # logger.debug(f"[{view.user_id}] - Interaction response deferred")
 
-        logger.info(f"Processing workload selection for channel {{view.session_id.split('_')[0]}}")
+        logger.info("Processing workload selection for channel {view.session_id.split('_')[0]}")
 
         try: # New main try block
             # Ensure we have a valid view
@@ -208,19 +208,31 @@ class WorkloadButton_survey(discord.ui.Button):
                 logger.info(f"[Channel {view.session_id.split('_')[0]}] - Webhook sending result for survey step: success={success}, data={data}")
 
                 logger.debug(f"Webhook response for survey step: success={success}, data={data}") # Change to DEBUG
+                # Decide continuation based on n8n response flag
+                flag = (data or {}).get("survey")
                 try:
-                    logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Calling state.next_step()") # Change to DEBUG
-                    state.next_step()
-                except Exception as e:
-                    logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error in state.next_step(): {e}", exc_info=True)
-                try:
-                    logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Calling continue_survey_func for channel {getattr(interaction.channel, 'id', None)} and state {state}") # Change to DEBUG
-                    if self.continue_survey_func: # Check if continue_survey_func is not None
-                        await self.continue_survey_func(interaction.channel, state)
+                    if flag == "continue":
+                        logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Advancing and continuing survey")
+                        state.next_step()
+                        if self.continue_survey_func:
+                            await self.continue_survey_func(interaction.channel, state)
+                    elif flag == "end":
+                        logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Advancing and finishing survey")
+                        state.next_step()
+                        from discord_bot.commands.survey import finish_survey as _finish
+                        await _finish(interaction.client, interaction.channel, state)
+                    elif flag == "cancel":
+                        logger.debug(f"[Channel {view.session_id.split('_')[0]}] - Cancelling survey as instructed by n8n")
+                        from services import survey_manager as _mgr
+                        _mgr.remove_survey(str(interaction.channel.id))
                     else:
-                        logger.warning(f"[Channel {view.session_id.split('_')[0]}] - continue_survey_func is None, cannot call.")
+                        # Backward compatibility: default to continue path
+                        logger.debug(f"[Channel {view.session_id.split('_')[0]}] - No flag provided, default continue")
+                        state.next_step()
+                        if self.continue_survey_func:
+                            await self.continue_survey_func(interaction.channel, state)
                 except Exception as e:
-                    logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error in continue_survey_func: {e}", exc_info=True)
+                    logger.error(f"[Channel {view.session_id.split('_')[0]}] - Error handling survey flow after webhook: {e}", exc_info=True)
 
                 if not success:
                     logger.error(f"Failed to send webhook for survey step: {view.cmd_or_step}")
