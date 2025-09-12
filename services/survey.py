@@ -4,8 +4,12 @@ from config import logger
 
 class SurveyFlow:
     """
-    Holds a list of survey steps for dynamic surveys.
-    Manages the state of a survey in progress.
+    Holds a list of survey steps for dynamic surveys and manages
+    the state of a survey in progress.
+
+    The optional `client` is a Discord client/bot used only for
+    convenience lookups during cleanup (fetching the channel to
+    delete prior messages). It is not required for core state logic.
     """
     def __init__(self, channel_id: str, steps: List[str], user_id: str, session_id: str, client: Optional[discord.Client] = None):
         # Existing properties
@@ -152,6 +156,7 @@ class SurveyManager:
         channel_id: Discord channel ID
         steps: List of survey step names
         session_id: Combined channel.user ID from initial request
+        client: Optional Discord client for message cleanup utilities
 
         Returns:
             The created SurveyFlow instance

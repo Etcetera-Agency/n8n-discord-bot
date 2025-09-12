@@ -64,7 +64,7 @@ def test_start_survey_without_steps(monkeypatch):
     services_stub.__path__ = []
     created: dict = {}
 
-    def create_survey(u, c, s, sess):
+    def create_survey(u, c, s, sess, client=None):
         survey = types.SimpleNamespace(
             user_id=u,
             channel_id=c,
@@ -167,7 +167,7 @@ def test_start_survey_no_required_steps(monkeypatch):
     services_stub.__path__ = []
     created = {}
 
-    def create_survey(u, c, s, sess):
+    def create_survey(u, c, s, sess, client=None):
         survey = types.SimpleNamespace(
             user_id=u,
             channel_id=c,
