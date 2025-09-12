@@ -149,12 +149,7 @@ async def test_dispatch_survey_end(tmp_path, monkeypatch):
     result = await router.dispatch(payload)
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
-    lookup_data = load_notion_lookup()
-    assert result == {
-        "output": "done",
-        "survey": "end",
-        "url": lookup_data["results"][0]["to_do"],
-    }
+    assert result == {"output": "done"}
     assert survey_manager.get_survey("123") is not None
     survey_manager.remove_survey("123")
 
@@ -181,13 +176,9 @@ async def test_dispatch_day_off_results(tmp_path, monkeypatch):
     with open(log, "a") as f:
         f.write("Step: dispatch\n")
     result = await router.dispatch(payload)
-    lookup = load_notion_lookup()
-    assert result == {
-        "output": "done",
-        "survey": "end",
-        "url": lookup["results"][0]["to_do"],
-    }
+    assert result == {"output": "done"}
     survey = survey_manager.get_survey("123")
+    lookup = load_notion_lookup()
     assert survey.todo_url == lookup["results"][0]["to_do"]
     assert survey.results["day_off_nextweek"] == ["2025-09-16", "2025-09-21"]
     survey_manager.remove_survey("123")
@@ -223,7 +214,7 @@ async def test_dispatch_survey_continue(tmp_path, monkeypatch):
     result = await router.dispatch(payload)
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
-    assert result == {"output": "step1", "survey": "continue", "next_step": "step2"}
+    assert result == {"output": "step1"}
     assert survey_manager.get_survey("123") is not None
 
 

@@ -124,24 +124,13 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
                 log.exception("handler error")
                 return finalize({"output": str(err), "survey": "cancel"})
 
-            survey = survey_state
-            flag = "cancel"
-            next_step = None
-            if survey:
-                # Record result via SurveyManager without advancing state
-                survey_manager.record_step_result(payload.get("channelId"), step, result.get("value"))
-                # Do not advance here; views/handlers will advance after Discord-side UX completes
-                if survey.current_index + 1 < len(survey.steps):
-                    flag = "continue"
-                    next_step = survey.steps[survey.current_index + 1]
-                else:
-                    flag = "end"
-            response = {"output": output, "survey": flag}
-            if next_step:
-                response["next_step"] = next_step
-            if flag == "end" and todo_url:
-                response["url"] = todo_url
-            return finalize(response)
+            # Record result via SurveyManager without advancing state.
+            # Flow control (continue/end) is determined in Discord layer via survey_manager state.
+            if survey_state:
+                survey_manager.record_step_result(
+                    payload.get("channelId"), step, result.get("value")
+                )
+            return finalize({"output": output})
 
         if payload.get("type") == "mention":
             output = await HANDLERS["mention"](payload)

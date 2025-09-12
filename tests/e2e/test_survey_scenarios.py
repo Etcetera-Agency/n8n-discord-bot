@@ -214,9 +214,11 @@ async def test_survey_scenario(monkeypatch, scenario_path, setup_env):
             resp = await router.dispatch(payload)
             log.debug("dispatch response", extra={"response": resp})
             log.info("step done", extra={"step": step["stepName"]})
-            if resp.get("survey") == "continue":
-                router.survey_manager.get_survey("123").next_step()
-            elif resp.get("survey") == "end":
-                router.survey_manager.remove_survey("123")
+            # Advance survey and finish when done (router no longer returns survey flags)
+            current = router.survey_manager.get_survey("123")
+            if current:
+                current.next_step()
+                if current.is_done():
+                    router.survey_manager.remove_survey("123")
     finally:
         log.handlers.clear()

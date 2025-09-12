@@ -78,33 +78,23 @@ async def process_survey_flag(
     continue_cb,
     finish_cb,
 ) -> None:
-    """Process survey flow control flag returned by n8n.
+    """Advance and decide continuation/end by inspecting survey_manager state.
 
-    Args:
-        channel: Channel to operate in
-        state: Current SurveyFlow state
-        flag: Value from webhook (continue|end|cancel|None)
-        continue_cb: Awaitable callback(channel, state) to continue
-        finish_cb: Awaitable callback(channel, state) to finish
+    The `flag` value from router is ignored; we infer based on `state`.
     """
     try:
-        if flag == "continue":
-            state.next_step()
-            if continue_cb:
-                await continue_cb(channel, state)
-        elif flag == "end":
-            state.next_step()
+        # Advance after successful step handling
+        state.next_step()
+
+        # Finish if no more steps; otherwise continue
+        if state.is_done():
             if finish_cb:
                 await finish_cb(channel, state)
-        elif flag == "cancel":
-            survey_manager.remove_survey(str(channel.id))
         else:
-            # Default: continue
-            state.next_step()
             if continue_cb:
                 await continue_cb(channel, state)
     except Exception as e:
-        logger.error(f"Error processing survey flag '{flag}': {e}", exc_info=True)
+        logger.error(f"Error processing survey continuation/end: {e}", exc_info=True)
 
 
 # ==================================

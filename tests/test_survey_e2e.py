@@ -105,23 +105,22 @@ async def test_survey_monday_full(monkeypatch):
 
     p1 = make_payload("Survey Step Submission Payload (Workload)", "workload_today")
     r1 = await router.dispatch(p1)
-    assert r1 == {"output": "wt", "survey": "continue", "next_step": "workload_nextweek"}
+    assert r1 == {"output": "wt"}
     survey_manager.get_survey("123").next_step()
 
     p2 = make_payload("Survey Step Submission Payload (Workload)", "workload_nextweek")
     r2 = await router.dispatch(p2)
-    assert r2 == {"output": "wn", "survey": "continue", "next_step": "connects_thisweek"}
+    assert r2 == {"output": "wn"}
     survey_manager.get_survey("123").next_step()
 
     p3 = make_payload("Survey Step Submission Payload (Connects)", "connects_thisweek")
     r3 = await router.dispatch(p3)
-    assert r3 == {"output": "conn", "survey": "continue", "next_step": "day_off_nextweek"}
+    assert r3 == {"output": "conn"}
     survey_manager.get_survey("123").next_step()
 
     p4 = make_payload("Survey Step Submission Payload (Day Off)", "day_off_nextweek")
     r4 = await router.dispatch(p4)
-    lookup_data = load_notion_lookup()
-    assert r4 == {"output": "day", "survey": "end", "url": lookup_data["results"][0]["to_do"]}
+    assert r4 == {"output": "day"}
     survey_manager.remove_survey("123")
     assert survey_manager.get_survey("123") is None
 
@@ -163,7 +162,7 @@ async def test_survey_tuesday_missing_nextweek(monkeypatch):
     s.next_step()
     p4 = make_payload("Survey Step Submission Payload (Day Off)", "day_off_nextweek")
     r = await router.dispatch(p4)
-    assert r["survey"] == "end"
+    assert r == {"output": "day"}
     survey_manager.remove_survey("123")
 
 
@@ -205,6 +204,6 @@ async def test_survey_friday_full(monkeypatch):
     await router.dispatch(make_payload("Survey Step Submission Payload (Connects)", "connects_thisweek"))
     survey_manager.get_survey("123").next_step()
     r = await router.dispatch(make_payload("Survey Step Submission Payload (Day Off)", "day_off_nextweek"))
-    assert r["survey"] == "end"
+    assert r == {"output": "day"}
     survey_manager.remove_survey("123")
     assert survey_manager.get_survey("123") is None
