@@ -43,7 +43,7 @@ Implement `handle_day_off` to record days off for either the current or upcoming
 ### Output Variants
 - One date: `{ "output": "Вихідний: {DD MMMM YY} записано.\nНе забудь попередити клієнтів." }`
 - Many dates: `{ "output": "Вихідні: {DD MMMM YY}, {DD MMMM YY} записані.\nНе забудь попередити клієнтів." }`
-- No dates (`"Nothing"`): `{ "output": "Записав! Вихідних нема" }`
+- No dates (`"Nothing"`): `{ "output": "Записав! Записав! Вихідних не береш." }`
 - Error: `{ "output": "Спробуй трохи піздніше. Я тут пораюсь по хаті." }`
 
 ## Steps
