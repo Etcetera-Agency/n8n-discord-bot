@@ -123,6 +123,33 @@ async def test_no_dates(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_list_with_nothing(tmp_path, monkeypatch):
+    log = tmp_path / "list_nothing_log.txt"
+    log.write_text("Input: ['Nothing']\n")
+
+    cal = DummyCalendar()
+    steps = DummySteps()
+    monkeypatch.setattr(day_off, "calendar", cal)
+    monkeypatch.setattr(day_off, "_steps_db", steps)
+
+    payload = load_payload_example("Day Off Slash Command Payload (e.g., /day_off_nextweek)")
+    payload["command"] = "day_off_thisweek"
+    payload["result"]["value"] = ["Nothing"]
+    payload["author"] = load_author()
+    payload["channelId"] = "123"
+
+    with open(log, "a") as f:
+        f.write("Step: handle\n")
+    out = await day_off.handle(payload)
+    with open(log, "a") as f:
+        f.write(f"Output: {out}\n")
+
+    assert not cal.calls
+    assert steps.calls == [("123", "day_off_thisweek", True)]
+    assert out == "Записав! Вихідних нема"
+
+
+@pytest.mark.asyncio
 async def test_one_date(tmp_path, monkeypatch):
     log = tmp_path / "one_date_log.txt"
     log.write_text("Input: one date\n")
