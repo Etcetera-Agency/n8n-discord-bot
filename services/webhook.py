@@ -7,19 +7,10 @@ from services.session import session_manager
 from services.survey import survey_manager
 from . import router
 
-# Import survey-related globals and functions
-# These will be imported at runtime to avoid circular imports
-SURVEYS = None
-ask_dynamic_step = None
-finish_survey = None
-
-
-def initialize_survey_functions(surveys_dict, ask_step_func, finish_survey_func):
-    """Initialize survey-related globals and functions to avoid circular imports."""
-    global SURVEYS, ask_dynamic_step, finish_survey
-    SURVEYS = surveys_dict
-    ask_dynamic_step = ask_step_func
-    finish_survey = finish_survey_func
+# Legacy no-op initializer retained for compatibility.
+# Continuation is handled inside Discord handlers using survey_manager.
+def initialize_survey_functions(*_args, **_kwargs):
+    logger.debug("initialize_survey_functions called (no-op); continuation handled in handlers")
 
 
 class WebhookError(Exception):
@@ -193,43 +184,6 @@ class WebhookService:
         data = await router.dispatch(payload)
         success = data is not None
         logger.info(f"router.dispatch returned: {data}")
-
-        # Check if n8n wants to continue the survey
-        if success and data and "survey" in data and data["survey"] == "continue":
-            user_id = payload['userId'] # Get user_id from payload
-            logger.info(f"[SurveyContinuation] n8n requested survey continuation for user {user_id}")
-            try:
-                # Add a small delay to ensure the current interaction is complete
-                await asyncio.sleep(1)
-
-                if SURVEYS is None:
-                    logger.error(f"[SurveyContinuation] SURVEYS is None when trying to continue survey for user {user_id}. Initialization missing.") # Keep ERROR
-                elif user_id in SURVEYS:
-                    state = SURVEYS[user_id]
-
-                    state.next_step()
-                    next_step = state.current_step()
-
-                    if next_step:
-                        await ask_dynamic_step(channel, state, next_step)
-                    else:
-                        await finish_survey(channel, state)
-                else:
-                    logger.warning(f"[SurveyContinuation] Survey state not found for user {user_id} when trying to continue.")
-                    # Optionally inform the user
-                    # await channel.send(f"<@{user_id}> Не вдалося знайти ваше активне опитування для продовження.")
-
-            except Exception as e:
-                logger.error(f"[SurveyContinuation] Error handling survey continuation for user {user_id}: {e}", exc_info=True) # Added exc_info=True
-                # Only notify user if survey did not actually continue
-                if channel and hasattr(channel, 'send'):
-                    # Check if user_id is not in SURVEYS or state is missing
-                    if not SURVEYS or user_id not in SURVEYS:
-                        await channel.send(f"<@{user_id}> Помилка при продовженні опитування: код 500")
-                    else:
-                        pass # Survey state exists for user {user_id}, suppressing redundant error message.
-                else:
-                    logger.error(f"[SurveyContinuation] Invalid channel object for user {user_id}, cannot send error message.")
         logger.info(f"send_webhook returning: success={success}, data={data}") # Log at INFO level
         return success, data
 
@@ -344,38 +298,7 @@ class WebhookService:
         if data and "output" in data:
             await channel.send(data["output"])
 
-        # Handle survey control
-        if data and "survey" in data:
-            user_id = None
-            # Try to find the user_id from the channel's members
-            for member in channel.members:
-                if str(member.id) in session_manager.sessions:
-                    user_id = str(member.id)
-                    break
-
-            if user_id and user_id in SURVEYS:
-                if data["survey"] == "continue":
-                    # Continue to the next step in the survey
-                    state = SURVEYS[user_id]
-                    state.next_step()
-                    next_step = state.current_step()
-                    if next_step:
-                        await ask_dynamic_step(channel, state, next_step)
-                    else:
-                        await finish_survey(channel, state)
-                elif data["survey"] == "cancel":
-                    # Cancel the survey
-                    if user_id in SURVEYS:
-                        del SURVEYS[user_id]
-                    await channel.send(f"<@{user_id}> Survey has been canceled.")
-                elif data["survey"] == "end":
-                    # End the survey and send results
-                    state = SURVEYS[user_id]
-                    # Check if result contains stepName and value
-                    if "result" in data and isinstance(data["result"], dict):
-                        if "stepName" in data["result"] and "value" in data["result"]:
-                            state.add_result(data["result"]["stepName"], data["result"]["value"])
-                    await finish_survey(channel, state)
+        # Continuation/cancel/end are handled by Discord handlers via survey_manager
 
     async def send_n8n_reply_interaction(self, interaction: discord.Interaction, data: Dict[str, Any]) -> None:
         """
@@ -390,37 +313,7 @@ class WebhookService:
             else:
                 await interaction.response.send_message(data["output"], ephemeral=False)
 
-        # Handle survey control
-        if data and "survey" in data:
-            user_id = str(interaction.user.id)
-            channel = interaction.channel
-
-            if user_id and user_id in SURVEYS:
-                if data["survey"] == "continue":
-                    # Continue to the next step in the survey
-                    state = SURVEYS[user_id]
-                    state.next_step()
-                    next_step = state.current_step()
-                    if next_step:
-                        await ask_dynamic_step(channel, state, next_step)
-                    else:
-                        await finish_survey(channel, state)
-                elif data["survey"] == "cancel":
-                    # Cancel the survey
-                    if user_id in SURVEYS:
-                        del SURVEYS[user_id]
-                    if interaction.response.is_done():
-                        await interaction.followup.send(f"<@{user_id}> Survey has been canceled.", ephemeral=False)
-                    else:
-                        await interaction.response.send_message(f"<@{user_id}> Survey has been canceled.", ephemeral=False)
-                elif data["survey"] == "end":
-                    # End the survey and send results
-                    state = SURVEYS[user_id]
-                    # Check if result contains stepName and value
-                    if "result" in data and isinstance(data["result"], dict):
-                        if "stepName" in data["result"] and "value" in data["result"]:
-                            state.add_result(data["result"]["stepName"], data["result"]["value"])
-                    await finish_survey(channel, state)
+        # Continuation/cancel/end are handled by Discord handlers via survey_manager
 
     async def send_button_pressed_info(
         self,
@@ -444,10 +337,14 @@ class WebhookService:
             value = None
             custom_id = None
 
-        # Check if this is part of a survey
+        # Check if this is part of a survey (by channel)
         survey = None
-        if hasattr(interaction, 'user'):
-            survey = survey_manager.get_survey(str(interaction.user.id))
+        try:
+            channel_id = str(interaction.channel.id) if hasattr(interaction, 'channel') else None
+            if channel_id:
+                survey = survey_manager.get_survey(channel_id)
+        except Exception:
+            survey = None
 
         # Only use survey format if we're in an active survey AND the button is a workload button
         if survey and custom_id and custom_id.startswith('workload_button_'):
