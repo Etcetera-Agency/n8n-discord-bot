@@ -108,9 +108,9 @@ async def test_logging_success(tmp_path, monkeypatch, caplog):
         f.write(f"Output: {result}\n")
 
     assert result == {"output": "ok"}
-    assert any(r.message == "start" and r.step_name == "router.dispatch" for r in caplog.records)
-    assert any(r.message == "done" and r.step_name == "router.dispatch" for r in caplog.records)
-    assert any(r.message == "done" and r.step_name == "dummy" for r in caplog.records)
+    assert any(r.message == "start router.dispatch" for r in caplog.records)
+    assert any(r.message == "done router.dispatch" for r in caplog.records)
+    assert any(r.message == "done dummy" for r in caplog.records)
     assert any(r.session_id == "123_321" for r in caplog.records)
     assert any(r.user == "321" for r in caplog.records)
     assert any(r.channel == "123" for r in caplog.records)
@@ -143,7 +143,7 @@ async def test_logging_error(tmp_path, monkeypatch, caplog):
         f.write(f"Output: {result}\n")
 
     assert result == {"output": "Спробуй трохи піздніше. Я тут пораюсь по хаті."}
-    assert any(r.message == "failed" and r.step_name == "boom" for r in caplog.records)
+    assert any(r.message == "failed boom" for r in caplog.records)
     assert any(r.session_id == "123_321" for r in caplog.records)
     assert any(r.user == "321" for r in caplog.records)
     assert any(r.channel == "123" for r in caplog.records)

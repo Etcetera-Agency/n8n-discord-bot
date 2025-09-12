@@ -63,12 +63,12 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
     token = current_context.set(ctx)
     log = get_logger("router.dispatch", payload)
-    log.info("start")
+    log.info("start router.dispatch")
     log.debug("payload", extra={"payload": payload})
 
     def finalize(resp: Dict[str, Any]) -> Dict[str, Any]:
         log.debug("response ready", extra={"output": resp})
-        log.info("done")
+        log.info("done router.dispatch")
         current_context.reset(token)
         return resp
 
@@ -154,5 +154,5 @@ async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
             return finalize({"output": "Спробуй трохи піздніше. Я тут пораюсь по хаті."})
         return finalize({"output": output})
     except Exception:  # pragma: no cover - defensive
-        log.exception("failed")
+        log.exception("failed router.dispatch")
         return finalize({"output": "Спробуй трохи піздніше. Я тут пораюсь по хаті."})

@@ -7,7 +7,7 @@ _notio = NotionConnector()
 
 
 async def handle(payload: Dict[str, Any]) -> str:
-    log = get_logger()
+    log = get_logger("unregister", payload)
     channel_id = payload.get("channelId", "")
     try:
         log.debug("lookup channel", extra={"channel_id": channel_id})
@@ -20,8 +20,9 @@ async def handle(payload: Dict[str, Any]) -> str:
             )
         page_id = page[0]["id"]
         await _notio.clear_team_directory_ids(page_id)
-        log.info("unregistered", extra={"page_id": page_id})
-        return "Готово. Тепер цей канал не зареєстрований ні на кого."
+        result = "Готово. Тепер цей канал не зареєстрований ні на кого."
+        log.info("done unregister", extra={"page_id": page_id, "output": result})
+        return result
     except Exception:
-        log.exception("unregister failed")
+        log.exception("failed unregister")
         return "Спробуй трохи піздніше. Я тут пораюсь по хаті."

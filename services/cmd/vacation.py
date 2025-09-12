@@ -48,7 +48,7 @@ def _fmt(date_str: str) -> str:
 
 async def handle(payload: Dict[str, Any]) -> str:
     """Handle the vacation command."""
-    log = get_logger()
+    log = get_logger("vacation", payload)
     try:
         result = payload.get("result", {})
         start_raw = result["start_date"]
@@ -76,7 +76,9 @@ async def handle(payload: Dict[str, Any]) -> str:
         finally:
             await db.close()
 
-        return f"Записав! Відпустка: {_fmt(start_raw)}—{_fmt(end_raw)}."
+        result_msg = f"Записав! Відпустка: {_fmt(start_raw)}—{_fmt(end_raw)}."
+        log.info("done vacation", extra={"output": result_msg})
+        return result_msg
     except Exception:
-        log.exception("vacation failed")
+        log.exception("failed vacation")
         return "Спробуй трохи піздніше. Я тут пораюсь по хаті."

@@ -27,7 +27,7 @@ def template(hours: Union[int, float]) -> str:
 
 async def handle(payload: Dict[str, Any]) -> str:
     """Handle the `workload_nextweek` command."""
-    log = get_logger()
+    log = get_logger("workload_nextweek", payload)
     try:
         result = payload.get("result", {})
         hours_raw = result.get("value", result.get("workload"))
@@ -43,7 +43,9 @@ async def handle(payload: Dict[str, Any]) -> str:
         db = _ensure_db()
         await db.upsert_step(payload["channelId"], "workload_nextweek", True)
         log.info("step recorded")
-        return template(hours)
+        result_msg = template(hours)
+        log.info("done workload_nextweek", extra={"output": result_msg})
+        return result_msg
     except Exception:
-        log.exception("workload_nextweek failed")
+        log.exception("failed workload_nextweek")
         return ERROR_MSG
