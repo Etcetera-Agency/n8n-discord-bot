@@ -7,11 +7,12 @@ from typing import Any, Dict
 import aiohttp
 
 from config import Config, Strings
-from services.notion_connector import NotionConnector
+from services.notion_connector import NotionConnector, NotionError
 from services.logging_utils import get_logger
 from services.survey_steps_db import SurveyStepsDB
 from services.survey_models import SurveyEvent
 from typing import Union
+from services.error_utils import handle_exception
 
 
 ERROR_MESSAGE = Strings.TRY_AGAIN_LATER
@@ -64,6 +65,7 @@ async def handle(event: Union[SurveyEvent, Dict[str, Any]]) -> str:
         return (
             f"Записав! Upwork connects: залишилось {connects} на цьому тиждні."
         )
-    except Exception:
-        log.exception("connects_thisweek failed")
-        return ERROR_MESSAGE
+    except NotionError as ne:
+        return handle_exception(ne)
+    except Exception as e:
+        return handle_exception(e)

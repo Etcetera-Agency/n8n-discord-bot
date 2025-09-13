@@ -18,6 +18,7 @@ from services.logging_utils import get_logger
 from services.survey_steps_db import SurveyStepsDB
 from services.survey_models import SurveyEvent
 from typing import Union
+from services.error_utils import handle_exception
 
 
 _notio = NotionConnector()
@@ -117,6 +118,7 @@ async def handle(event: Union[SurveyEvent, Dict[str, Any]]) -> str:
             f"В щоденнику з понеділка до {day_gen}: {fact} год.\n"
             f"Капасіті на цей тиждень: {capacity} год."
         )
-    except (NotionError, KeyError, ValueError, TypeError, IndexError):
-        log.exception("workload_today failed")
-        return ERROR_MSG
+    except NotionError as ne:
+        return handle_exception(ne)
+    except (KeyError, ValueError, TypeError, IndexError) as e:
+        return handle_exception(e)

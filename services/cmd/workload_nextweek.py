@@ -1,10 +1,10 @@
 from typing import Any, Dict, Optional, Union
-from services.notion_connector import NotionConnector
+from services.notion_connector import NotionConnector, NotionError
 from config import Config, Strings
 from services.logging_utils import get_logger
 from services.survey_steps_db import SurveyStepsDB
 from services.survey_models import SurveyEvent
-from typing import Union
+from services.error_utils import handle_exception
 
 ERROR_MSG = Strings.TRY_AGAIN_LATER
 
@@ -53,6 +53,7 @@ async def handle(event: Union[SurveyEvent, Dict[str, Any]]) -> str:
         await db.upsert_step(channel_id, "workload_nextweek", True)
         log.info("step recorded")
         return template(hours)
-    except Exception:
-        log.exception("workload_nextweek failed")
-        return ERROR_MSG
+    except NotionError as ne:
+        return handle_exception(ne)
+    except Exception as e:
+        return handle_exception(e)

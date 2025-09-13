@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Optional
+from services.payload_models import BotRequestPayload
 from datetime import datetime, timezone
 
 
@@ -33,6 +34,4 @@ class SurveyEvent:
 
     step: SurveyStep
     result: SurveyResult
-    # Deferred import type to avoid a hard dependency loop
-    payload: "services.payload_models.BotRequestPayload"  # type: ignore[name-defined]
-
+    payload: BotRequestPayload

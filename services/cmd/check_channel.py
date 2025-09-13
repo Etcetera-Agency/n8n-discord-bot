@@ -4,9 +4,10 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from typing import Any, Dict, Optional
 
-from config import Config, Strings
+from config import Config
 from services.survey_steps_db import SurveyStepsDB
 from services.logging_utils import get_logger
+from services.error_utils import handle_exception
 
 # Some test environments stub Config without a DATABASE_URL; ensure the
 # attribute exists so handler setup doesn't raise AttributeError before we can
@@ -33,12 +34,9 @@ async def handle(payload: Dict[str, Any], repo: Optional[SurveyStepsDB] = None) 
         steps = [r["step_name"] for r in records if not r["completed"]]
         log.info("pending steps", extra={"steps": steps})
         return {"output": True, "steps": list(dict.fromkeys(steps))}
-    except Exception:
-        log.exception("check_channel failed")
-        return {
-            "output": False,
-            "message": Strings.TRY_AGAIN_LATER,
-        }
+    except Exception as e:
+        msg = handle_exception(e)
+        return {"output": False, "message": msg}
     finally:
         if repo is None and db:
             try:

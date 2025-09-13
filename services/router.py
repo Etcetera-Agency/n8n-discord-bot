@@ -16,6 +16,7 @@ from services.cmd import (
     check_channel,
 )
 from services.logging_utils import get_logger, wrap_handler, wrap_survey_handler, current_context
+from services.error_utils import handle_exception
 
 
 async def handle_mention(payload: Dict[str, Any]) -> str:
@@ -78,10 +79,10 @@ async def dispatch(payload: Union[Dict[str, Any], BotRequestPayload]) -> RouterR
     try:
         model = payload if isinstance(payload, BotRequestPayload) else BotRequestPayload.from_dict(payload)
         payload_dict: Dict[str, Any] = payload.to_dict() if isinstance(payload, BotRequestPayload) else dict(payload)
-    except Exception:
+    except Exception as e:
         log = get_logger("router.dispatch")
         log.exception("failed to validate payload")
-        return RouterResponse(output=Strings.TRY_AGAIN_LATER)
+        return RouterResponse(output=handle_exception(e))
 
     ctx = {
         "session_id": model.sessionId,
@@ -168,8 +169,7 @@ async def dispatch(payload: Union[Dict[str, Any], BotRequestPayload]) -> RouterR
             try:
                 output = await handler(event)
             except Exception as err:  # pragma: no cover - handler failure
-                log.exception("handler error")
-                return finalize(RouterResponse(output=str(err), survey="cancel"))
+                return finalize(RouterResponse(output=handle_exception(err), survey="cancel"))
 
             # Record result via SurveyManager without advancing state.
             # Flow control (continue/end) is determined in Discord layer via survey_manager state.
@@ -192,10 +192,8 @@ async def dispatch(payload: Union[Dict[str, Any], BotRequestPayload]) -> RouterR
                 output = await handler(event)
             else:
                 output = await handler(payload_dict)
-        except Exception:  # pragma: no cover - handler failure
-            log.exception("handler error")
-            return finalize(RouterResponse(output=Strings.TRY_AGAIN_LATER))
+        except Exception as err:  # pragma: no cover - handler failure
+            return finalize(RouterResponse(output=handle_exception(err)))
         return finalize(RouterResponse(output=output))
-    except Exception:  # pragma: no cover - defensive
-        log.exception("failed")
-        return finalize(RouterResponse(output=Strings.TRY_AGAIN_LATER))
+    except Exception as err:  # pragma: no cover - defensive
+        return finalize(RouterResponse(output=handle_exception(err)))

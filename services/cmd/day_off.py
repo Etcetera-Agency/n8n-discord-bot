@@ -3,12 +3,13 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from config import Config, Strings
-from services.calendar_connector import CalendarConnector
+from services.calendar_connector import CalendarConnector, CalendarError
 from services.logging_utils import get_logger
 from services.survey_steps_db import SurveyStepsDB
 from services.date_utils import format_date_ua, is_valid_iso_date
 from services.survey_models import SurveyEvent
 from typing import Union
+from services.error_utils import handle_exception
 
 calendar = CalendarConnector()
 _steps_db: SurveyStepsDB | None = None
@@ -68,9 +69,10 @@ async def handle(event: Union[SurveyEvent, Dict[str, Any]]) -> str:
                 return f"Некоректна дата: {day}"
             try:
                 resp = await calendar.create_day_off_event(author, day)
-            except Exception:  # pragma: no cover - defensive
-                log.exception("create_day_off_event failed", extra={"day": day})
-                return Strings.TRY_AGAIN_LATER
+            except CalendarError as ce:
+                return handle_exception(ce, day=day, author=author)
+            except Exception as e:  # pragma: no cover - defensive
+                return handle_exception(e, day=day, author=author)
             if resp.get("status") != "ok":
                 msg = resp.get("message", "")
                 log.error("Calendar error", extra={"day": day, "error": msg})
@@ -89,6 +91,7 @@ async def handle(event: Union[SurveyEvent, Dict[str, Any]]) -> str:
             )
         log.info("done", extra={"output": result})
         return result
-    except Exception:  # pragma: no cover - defensive
-        log.exception("failed")
-        return Strings.TRY_AGAIN_LATER
+    except CalendarError as ce:  # pragma: no cover - defensive
+        return handle_exception(ce)
+    except Exception as e:  # pragma: no cover - defensive
+        return handle_exception(e)

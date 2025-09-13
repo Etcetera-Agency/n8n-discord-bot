@@ -7,8 +7,8 @@ from datetime import datetime
 
 from config import Config
 from services.calendar_connector import CalendarConnector
-from config import Strings
 from services.logging_utils import get_logger
+from services.error_utils import handle_exception
 from services.survey_steps_db import SurveyStepsDB
 from services.survey_models import SurveyEvent
 from typing import Union
@@ -89,6 +89,5 @@ async def handle(event: Union[SurveyEvent, Dict[str, Any]]) -> str:
             await db.close()
 
         return f"Записав! Відпустка: {_fmt(start_raw)}—{_fmt(end_raw)}."
-    except Exception:
-        log.exception("vacation failed")
-        return Strings.TRY_AGAIN_LATER
+    except Exception as e:
+        return handle_exception(e)

@@ -1,8 +1,8 @@
 from typing import Any, Dict
 
-from services.notion_connector import NotionConnector
-from config import Strings
+from services.notion_connector import NotionConnector, NotionError
 from services.logging_utils import get_logger
+from services.error_utils import handle_exception
 
 _notio = NotionConnector()
 
@@ -23,6 +23,7 @@ async def handle(payload: Dict[str, Any]) -> str:
         await _notio.clear_team_directory_ids(page_id)
         log.info("unregistered", extra={"page_id": page_id})
         return "Готово. Тепер цей канал не зареєстрований ні на кого."
-    except Exception:
-        log.exception("unregister failed")
-        return Strings.TRY_AGAIN_LATER
+    except NotionError as ne:
+        return handle_exception(ne, channel_id=channel_id)
+    except Exception as e:
+        return handle_exception(e, channel_id=channel_id)
