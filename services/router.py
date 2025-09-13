@@ -1,8 +1,9 @@
-from typing import Any, Callable, Awaitable, Dict, Optional
+from typing import Any, Callable, Awaitable, Dict, Optional, Union
 
 from services.notion_connector import NotionConnector
 from config import Strings
 from services.survey import survey_manager
+from services.payload_models import BotRequestPayload, RouterResponse
 from services.cmd import (
     register,
     unregister,
@@ -54,97 +55,111 @@ def parse_prefix(message: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-async def dispatch(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Route payloads to internal handlers with contextual logging."""
+async def dispatch(payload: Union[Dict[str, Any], BotRequestPayload]) -> Dict[str, Any]:
+    """Route payloads to internal handlers with contextual logging.
+
+    Accepts either a raw dict or a validated BotRequestPayload model
+    and returns a plain dict shaped by RouterResponse for compatibility.
+    """
+    # Normalize incoming payload to a model and a working dict copy
+    try:
+        model = payload if isinstance(payload, BotRequestPayload) else BotRequestPayload.from_dict(payload)
+        payload_dict: Dict[str, Any] = payload.to_dict() if isinstance(payload, BotRequestPayload) else dict(payload)
+    except Exception:
+        log = get_logger("router.dispatch")
+        log.exception("failed to validate payload")
+        return RouterResponse(output=Strings.TRY_AGAIN_LATER).to_dict()
+
     ctx = {
-        "session_id": payload.get("sessionId"),
-        "user": payload.get("userId"),
-        "channel": payload.get("channelId"),
+        "session_id": model.sessionId,
+        "user": model.userId,
+        "channel": model.channelId,
         "step_name": "router.dispatch",
     }
     token = current_context.set(ctx)
-    log = get_logger("router.dispatch", payload)
+    log = get_logger("router.dispatch", payload_dict)
     log.info("start")
-    log.debug("payload", extra={"payload": payload})
+    log.debug("payload", extra={"payload": payload_dict})
 
-    def finalize(resp: Dict[str, Any]) -> Dict[str, Any]:
-        log.debug("response ready", extra={"output": resp})
+    def finalize(resp: Union[Dict[str, Any], RouterResponse]) -> Dict[str, Any]:
+        out = resp.to_dict() if isinstance(resp, RouterResponse) else resp
+        log.debug("response ready", extra={"output": out})
         log.info("done")
         current_context.reset(token)
-        return resp
+        return out
 
     try:
-        prefix = parse_prefix(payload.get("message", ""))
+        prefix = parse_prefix(payload_dict.get("message", ""))
         if prefix:
-            payload.update(prefix)
+            payload_dict.update(prefix)
 
         todo_url = None
-        channel = payload.get("channelId")
+        channel = model.channelId
         log.debug(f"query team directory for channel {channel}", extra={"channel": channel})
-        result = await _notio.find_team_directory_by_channel(payload["channelId"])
+        result = await _notio.find_team_directory_by_channel(model.channelId)
         user = result.get("results", [{}])[0] if result.get("results") else {}
         log.debug("notion response", extra={"user": user})
         if not user:
-            return finalize({"output": "Користувач не знайдений"})
+            return finalize(RouterResponse(output="Користувач не знайдений"))
 
-        payload["userId"] = user.get("discord_id", payload.get("userId"))
-        payload["author"] = user.get("name", payload.get("author"))
+        payload_dict["userId"] = user.get("discord_id", payload_dict.get("userId"))
+        payload_dict["author"] = user.get("name", payload_dict.get("author"))
         todo_url = user.get("to_do")
 
         survey_state = survey_manager.get_survey(channel)
         if survey_state and todo_url:
             survey_state.todo_url = todo_url
 
-        if payload.get("command") == "register":
+        if payload_dict.get("command") == "register":
             if user.get("is_public"):
-                return finalize({"output": "Публічні канали не можна реєструвати."})
+                return finalize(RouterResponse(output="Публічні канали не можна реєструвати."))
             chan = str(user.get("channel_id", ""))
             if chan and len(chan) == 19:
-                return finalize({"output": "Канал вже зареєстрований на когось іншого."})
+                return finalize(RouterResponse(output="Канал вже зареєстрований на когось іншого."))
 
-        command = payload.get("command")
+        command = payload_dict.get("command")
         # Treat survey as active if there's a channel-scoped survey state
         channel_active = survey_state is not None
         if command == "survey" or (channel_active and command not in HANDLERS):
-            step = payload.get("result", {}).get("stepName")
+            step = payload_dict.get("result", {}).get("stepName")
             handler = HANDLERS.get(step)
             if not handler:
-                return finalize({"output": f"No handler for step {step}", "survey": "cancel"})
+                return finalize(RouterResponse(output=f"No handler for step {step}", survey="cancel"))
 
             # Normalize survey payloads for handlers
-            result = payload.setdefault("result", {})
+            result = payload_dict.setdefault("result", {})
             if step == "connects_thisweek" and "connects" not in result:
                 result["connects"] = result.get("value")
             if step in ("day_off_thisweek", "day_off_nextweek") and "value" not in result:
                 result["value"] = result.get("daysSelected")
 
             try:
-                output = await handler(payload)
+                output = await handler(payload_dict)
             except Exception as err:  # pragma: no cover - handler failure
                 log.exception("handler error")
-                return finalize({"output": str(err), "survey": "cancel"})
+                return finalize(RouterResponse(output=str(err), survey="cancel"))
 
             # Record result via SurveyManager without advancing state.
             # Flow control (continue/end) is determined in Discord layer via survey_manager state.
             if survey_state:
                 survey_manager.record_step_result(
-                    payload.get("channelId"), step, result.get("value")
+                    payload_dict.get("channelId"), step, result.get("value")
                 )
-            return finalize({"output": output})
+            return finalize(RouterResponse(output=output))
 
-        if payload.get("type") == "mention":
-            output = await HANDLERS["mention"](payload)
-            return finalize({"output": output})
+        if payload_dict.get("type") == "mention":
+            output = await HANDLERS["mention"](payload_dict)
+            return finalize(RouterResponse(output=output))
 
         handler = HANDLERS.get(command)
         if not handler:
-            return finalize({"output": Strings.TRY_AGAIN_LATER})
+            return finalize(RouterResponse(output=Strings.TRY_AGAIN_LATER))
         try:
-            output = await handler(payload)
+            output = await handler(payload_dict)
         except Exception:  # pragma: no cover - handler failure
             log.exception("handler error")
-            return finalize({"output": Strings.TRY_AGAIN_LATER})
-        return finalize({"output": output})
+            return finalize(RouterResponse(output=Strings.TRY_AGAIN_LATER))
+        return finalize(RouterResponse(output=output))
     except Exception:  # pragma: no cover - defensive
         log.exception("failed")
-        return finalize({"output": Strings.TRY_AGAIN_LATER})
+        return finalize(RouterResponse(output=Strings.TRY_AGAIN_LATER))

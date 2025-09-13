@@ -17,7 +17,7 @@ Use this checklist to track progress. Each item links to a detailed task.
 - [ ] 13 — Single survey state source (refactoring_tasks/tasks_13.md)
 - [x] 14 — Explicit survey models (refactoring_tasks/tasks_14.md)
 - [x] 15 — Timeout/cleanup centralization (refactoring_tasks/tasks_15.md)
-- [ ] 16 — Typed payload/response models (refactoring_tasks/tasks_16.md)
+- [x] 16 — Typed payload/response models (refactoring_tasks/tasks_16.md)
 - [x] 17 — Error taxonomy mapping (refactoring_tasks/tasks_17.md)
 - [x] 18 — Logging consistency (refactoring_tasks/tasks_18.md)
 - [ ] 19 — Web server hardening (refactoring_tasks/tasks_19.md)
