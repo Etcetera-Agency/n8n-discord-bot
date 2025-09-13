@@ -195,7 +195,7 @@ async def test_survey_scenario(monkeypatch, scenario_path, setup_env):
         check["sessionId"] = "123_321"
         log.info("step start", extra={"step": "check_channel"})
         log.debug("dispatch payload", extra={"payload": check})
-        start_resp = await router.dispatch(check)
+        start_resp = (await router.dispatch(check)).to_dict()
         log.debug("dispatch response", extra={"response": start_resp})
         log.info("step done", extra={"step": "check_channel"})
         from services.survey_models import SurveyStep
@@ -214,7 +214,7 @@ async def test_survey_scenario(monkeypatch, scenario_path, setup_env):
                 payload.update(step["payloadOverride"])
             log.info("step start", extra={"step": step["stepName"]})
             log.debug("dispatch payload", extra={"payload": payload})
-            resp = await router.dispatch(payload)
+            resp = (await router.dispatch(payload)).to_dict()
             log.debug("dispatch response", extra={"response": resp})
             log.info("step done", extra={"step": step["stepName"]})
             # Advance survey and finish when done (router no longer returns survey flags)

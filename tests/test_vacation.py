@@ -192,7 +192,7 @@ async def test_vacation_e2e(tmp_path, monkeypatch):
 
     with open(log, "a") as f:
         f.write("Step: router.dispatch\n")
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
 

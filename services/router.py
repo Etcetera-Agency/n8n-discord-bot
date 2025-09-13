@@ -68,11 +68,11 @@ def parse_prefix(message: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-async def dispatch(payload: Union[Dict[str, Any], BotRequestPayload]) -> Dict[str, Any]:
+async def dispatch(payload: Union[Dict[str, Any], BotRequestPayload]) -> RouterResponse:
     """Route payloads to internal handlers with contextual logging.
 
     Accepts either a raw dict or a validated BotRequestPayload model
-    and returns a plain dict shaped by RouterResponse for compatibility.
+    and returns a typed RouterResponse.
     """
     # Normalize incoming payload to a model and a working dict copy
     try:
@@ -81,7 +81,7 @@ async def dispatch(payload: Union[Dict[str, Any], BotRequestPayload]) -> Dict[st
     except Exception:
         log = get_logger("router.dispatch")
         log.exception("failed to validate payload")
-        return RouterResponse(output=Strings.TRY_AGAIN_LATER).to_dict()
+        return RouterResponse(output=Strings.TRY_AGAIN_LATER)
 
     ctx = {
         "session_id": model.sessionId,
@@ -94,12 +94,12 @@ async def dispatch(payload: Union[Dict[str, Any], BotRequestPayload]) -> Dict[st
     log.info("start")
     log.debug("payload", extra={"payload": payload_dict})
 
-    def finalize(resp: Union[Dict[str, Any], RouterResponse]) -> Dict[str, Any]:
-        out = resp.to_dict() if isinstance(resp, RouterResponse) else resp
+    def finalize(resp: RouterResponse) -> RouterResponse:
+        out = resp.to_dict()
         log.debug("response ready", extra={"output": out})
         log.info("done")
         current_context.reset(token)
-        return out
+        return resp
 
     try:
         prefix = parse_prefix(payload_dict.get("message", ""))

@@ -4,6 +4,7 @@ from discord.ext import commands
 from config import logger, Strings
 from services.survey import survey_manager
 from . import router
+from services.payload_models import BotRequestPayload
 
 
 class WebhookError(Exception):
@@ -169,7 +170,10 @@ class WebhookService:
         )
 
         logger.info(f"Dispatching payload via router for command: {command}")
-        data = await router.dispatch(payload)
+        # Enforce payload validation at entry point
+        model = BotRequestPayload.from_dict(payload)
+        resp = await router.dispatch(model)
+        data = resp.to_dict() if resp else None
         success = data is not None
         logger.info(f"router.dispatch returned: {data}")
         logger.info(f"send_webhook returning: success={success}, data={data}") # Log at INFO level
@@ -257,7 +261,9 @@ class WebhookService:
         headers: Dict[str, str],
     ) -> Tuple[bool, Optional[Dict[str, Any]]]:
         """Compat shim that forwards payloads to the internal router."""
-        data = await router.dispatch(payload)
+        model = BotRequestPayload.from_dict(payload)
+        resp = await router.dispatch(model)
+        data = resp.to_dict() if resp else None
         return data is not None, data
 
     async def send_error_message(self, target: Any, message: str) -> None:

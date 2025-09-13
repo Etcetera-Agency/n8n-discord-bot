@@ -126,7 +126,7 @@ async def test_day_off_thisweek_e2e(tmp_path, monkeypatch):
 
     with open(log, "a") as f:
         f.write("Step: dispatch\n")
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
 
@@ -155,7 +155,7 @@ async def test_day_off_nextweek_e2e(tmp_path, monkeypatch):
 
     with open(log, "a") as f:
         f.write("Step: dispatch\n")
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
 

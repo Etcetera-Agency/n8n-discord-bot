@@ -94,7 +94,7 @@ async def test_dispatch_mention(tmp_path, monkeypatch):
     payload["sessionId"] = "123_321"
     with open(log, "a") as f:
         f.write("Step: dispatch\n")
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
     assert result == {
@@ -122,7 +122,7 @@ async def test_dispatch_command(tmp_path, monkeypatch):
     payload["sessionId"] = "123_321"
     with open(log, "a") as f:
         f.write("Step: dispatch\n")
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
     assert result == {"output": "ok"}
@@ -151,7 +151,7 @@ async def test_dispatch_survey_end(tmp_path, monkeypatch):
     payload["sessionId"] = "123_321"
     with open(log, "a") as f:
         f.write("Step: dispatch\n")
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
     assert result == {"output": "done"}
@@ -180,7 +180,7 @@ async def test_dispatch_day_off_results(tmp_path, monkeypatch):
     payload["result"]["daysSelected"] = ["2025-09-16", "2025-09-21"]
     with open(log, "a") as f:
         f.write("Step: dispatch\n")
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
     assert result == {"output": "done"}
     survey = survey_manager.get_survey("123")
     lookup = load_notion_lookup()
@@ -216,7 +216,7 @@ async def test_dispatch_survey_continue(tmp_path, monkeypatch):
     payload["sessionId"] = "123_321"
     with open(log, "a") as f:
         f.write("Step: dispatch\n")
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
     assert result == {"output": "step1"}
@@ -239,7 +239,7 @@ async def test_dispatch_user_not_found(tmp_path, monkeypatch):
     payload["channelId"] = "123"
     payload["userId"] = "321"
     payload["sessionId"] = "123_321"
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
     assert result == {"output": "Користувач не знайдений"}
@@ -299,7 +299,7 @@ async def test_dispatch_unregister(tmp_path, monkeypatch):
 
     with open(log, "a") as f:
         f.write("Step: dispatch\n")
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
     assert result == {"output": "Готово. Тепер цей канал не зареєстрований ні на кого."}
@@ -354,7 +354,7 @@ async def test_dispatch_connects(tmp_path, monkeypatch):
 
     with open(log, "a") as f:
         f.write("Step: dispatch\n")
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
     assert result == {"output": "ok"}

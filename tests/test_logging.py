@@ -105,7 +105,7 @@ async def test_logging_success(tmp_path, monkeypatch, caplog):
 
     with open(log_file, "a") as f:
         f.write("Step: dispatch\n")
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
     with open(log_file, "a") as f:
         f.write(f"Output: {result}\n")
 
@@ -140,7 +140,7 @@ async def test_logging_error(tmp_path, monkeypatch, caplog):
 
     with open(log_file, "a") as f:
         f.write("Step: dispatch\n")
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
     with open(log_file, "a") as f:
         f.write(f"Output: {result}\n")
 

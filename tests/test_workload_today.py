@@ -248,7 +248,7 @@ async def test_workload_today_e2e(tmp_path, monkeypatch, hours_key):
         types.SimpleNamespace(upsert_step=fake_upsert),
     )
 
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
 
     with open(log, "a") as f:
         f.write("Step: dispatch\n")
@@ -288,4 +288,3 @@ async def test_workload_today_e2e(tmp_path, monkeypatch, hours_key):
         f"Капасіті на цей тиждень: {capacity} год."
     )
     assert result == {"output": expected}
-

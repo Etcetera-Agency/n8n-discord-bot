@@ -187,6 +187,6 @@ async def test_dispatch_check_channel(tmp_path, monkeypatch):
     monkeypatch.setattr(router._notio, "find_team_directory_by_channel", fake_lookup)
 
     log_step(log, "Dispatch")
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
     log_step(log, f"Output: {result}")
     assert result == {"output": {"output": True, "steps": [SURVEY_FLOW[0]]}}

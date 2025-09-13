@@ -210,7 +210,7 @@ async def test_workload_nextweek_e2e(monkeypatch, tmp_path, hours_key):
         types.SimpleNamespace(upsert_step=AsyncMock()),
     )
 
-    result = await router.dispatch(payload)
+    result = (await router.dispatch(payload)).to_dict()
     with open(log_file, "a") as f:
         f.write("Step: dispatch\n")
         f.write(f"Output: {result}\n")
