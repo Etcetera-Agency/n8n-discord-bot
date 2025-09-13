@@ -10,22 +10,31 @@ from config import Config, Strings
 from services.notion_connector import NotionConnector
 from services.logging_utils import get_logger
 from services.survey_steps_db import SurveyStepsDB
+from services.survey_models import SurveyEvent
+from typing import Union
 
 
 ERROR_MESSAGE = Strings.TRY_AGAIN_LATER
 
 
-async def handle(payload: Dict[str, Any]) -> str:
+async def handle(event: Union[SurveyEvent, Dict[str, Any]]) -> str:
     """Record weekly connects and update optional profile stats."""
     log = get_logger()
     try:
-        connects = int(payload["result"]["connects"])
+        if isinstance(event, dict):
+            connects = int(event.get("result", {}).get("connects") or event.get("result", {}).get("value"))
+            author = event.get("author")
+            channel_id = event.get("channelId")
+        else:
+            connects = int(event.result.value)
+            author = event.payload.author
+            channel_id = event.payload.channelId
         log.debug("parsed connects", extra={"connects": connects})
 
         # mark survey step as completed using channel id as session id
         db = SurveyStepsDB(Config.DATABASE_URL)
         try:
-            await db.upsert_step(payload["channelId"], "connects_thisweek", True)
+            await db.upsert_step(channel_id, "connects_thisweek", True)
             log.info("step recorded")
         finally:
             await db.close()
@@ -35,13 +44,13 @@ async def handle(payload: Dict[str, Any]) -> str:
 
         async with aiohttp.ClientSession() as session:
             await session.post(
-                url, json={"name": payload["author"], "connects": connects}
+                url, json={"name": author, "connects": connects}
             )
         log.info("connects posted", extra={"url": url})
 
         # update profile stats in notion if page exists
         notion = NotionConnector()
-        stats = await notion.get_profile_stats_by_name(payload["author"])
+        stats = await notion.get_profile_stats_by_name(author)
         results = stats.get("results", []) if isinstance(stats, dict) else []
         if results:
             page_id = results[0].get("id")

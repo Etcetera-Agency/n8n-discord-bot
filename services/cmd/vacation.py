@@ -10,6 +10,8 @@ from services.calendar_connector import CalendarConnector
 from config import Strings
 from services.logging_utils import get_logger
 from services.survey_steps_db import SurveyStepsDB
+from services.survey_models import SurveyEvent
+from typing import Union
 
 # Reusable calendar connector instance
 calendar = CalendarConnector()
@@ -47,13 +49,22 @@ def _fmt(date_str: str) -> str:
     return f"{weekday} {dt.day:02d} {month} {dt.year}"
 
 
-async def handle(payload: Dict[str, Any]) -> str:
+async def handle(event: Union[SurveyEvent, Dict[str, Any]]) -> str:
     """Handle the vacation command."""
     log = get_logger()
     try:
-        result = payload.get("result", {})
-        start_raw = result["start_date"]
-        end_raw = result["end_date"]
+        if isinstance(event, dict):
+            result = event.get("result", {})
+            start_raw = result["start_date"]
+            end_raw = result["end_date"]
+            author = event.get("author", "")
+            channel_id = str(event.get("channelId"))
+        else:
+            result = event.result.value or {}
+            start_raw = result["start_date"]
+            end_raw = result["end_date"]
+            author = event.payload.author or ""
+            channel_id = str(event.payload.channelId)
         log.debug("dates parsed", extra={"start": start_raw, "end": end_raw})
 
         # Payload dates may include a time component, but the calendar
@@ -62,7 +73,7 @@ async def handle(payload: Dict[str, Any]) -> str:
         end = end_raw.split("T")[0]
 
         resp = await calendar.create_vacation_event(
-            payload.get("author", ""), start, end, "Europe/Kyiv"
+            author, start, end, "Europe/Kyiv"
         )
         if resp.get("status") != "ok":
             raise Exception("calendar error")
@@ -71,7 +82,7 @@ async def handle(payload: Dict[str, Any]) -> str:
         db = SurveyStepsDB(getattr(Config, "DATABASE_URL", ""))
         try:
             await db.upsert_step(
-                str(payload.get("channelId")), "vacation", True
+                channel_id, "vacation", True
             )
             log.info("step recorded")
         finally:

@@ -62,3 +62,36 @@ def wrap_handler(step_name: str, func: Callable[[Dict[str, Any]], Awaitable[Any]
             current_context.reset(token)
 
     return wrapper
+
+
+def wrap_survey_handler(step_name: str, func: Callable[[Any], Awaitable[Any]]):
+    """Wrap an async survey handler that receives a typed SurveyEvent.
+
+    The wrapper extracts context from ``event.payload`` for consistent logging.
+    """
+
+    async def wrapper(event: Any):  # SurveyEvent at runtime
+        payload = getattr(event, "payload", None)
+        ctx = {
+            "session_id": getattr(payload, "sessionId", None) if payload else None,
+            "user": getattr(payload, "userId", None) if payload else None,
+            "channel": getattr(payload, "channelId", None) if payload else None,
+            "step_name": step_name,
+        }
+        token = current_context.set(ctx)
+        log = get_logger(step_name, payload.to_dict() if payload else None)
+        log.info("start")
+        if payload:
+            log.debug("payload", extra={"payload": payload.to_dict()})
+        try:
+            result = await func(event)
+            log.debug("response ready", extra={"output": result})
+            log.info("done")
+            return result
+        except Exception:
+            log.exception("failed")
+            raise
+        finally:
+            current_context.reset(token)
+
+    return wrapper

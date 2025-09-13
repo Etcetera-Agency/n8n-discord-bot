@@ -16,6 +16,8 @@ from config import Config, Strings
 from services.notion_connector import NotionConnector, NotionError
 from services.logging_utils import get_logger
 from services.survey_steps_db import SurveyStepsDB
+from services.survey_models import SurveyEvent
+from typing import Union
 
 
 _notio = NotionConnector()
@@ -55,16 +57,24 @@ DAY_GEN = [
 ERROR_MSG = Strings.TRY_AGAIN_LATER
 
 
-async def handle(payload: Dict[str, Any]) -> str:
+async def handle(event: Union[SurveyEvent, Dict[str, Any]]) -> str:
     """Handle the ``workload_today`` command."""
 
     log = get_logger()
     try:
-        result = payload.get("result", {})
-        hours_raw = result.get("value", result.get("workload"))
+        if isinstance(event, dict):
+            result = event.get("result", {})
+            hours_raw = result.get("value", result.get("workload"))
+            ts = event.get("timestamp")
+            author = event.get("author")
+            channel_id = str(event.get("channelId"))
+        else:
+            hours_raw = event.result.value
+            ts = event.payload.timestamp
+            author = event.payload.author
+            channel_id = str(event.payload.channelId)
         hours = int(hours_raw)  # 0 is valid
         log.debug("parsed hours", extra={"hours": hours})
-        ts = payload.get("timestamp")
         now = (
             datetime.fromtimestamp(ts, timezone.utc)
             if ts is not None
@@ -73,7 +83,7 @@ async def handle(payload: Dict[str, Any]) -> str:
         idx = now.weekday()
         plan_field = f"{DAY_SHORT[idx]} Plan"
 
-        filter = {"property": "Name", "title": {"equals": payload["author"]}}
+        filter = {"property": "Name", "title": {"equals": author}}
         mapping: Dict[str, str] = {"capacity": "Capacity"}
         for i in range(idx + 1):
             mapping[f"fact_{i}"] = f"{DAY_SHORT[i]} Fact"
@@ -95,7 +105,7 @@ async def handle(payload: Dict[str, Any]) -> str:
 
         db = _ensure_db()
         await db.upsert_step(
-            str(payload.get("channelId")), "workload_today", True
+            channel_id, "workload_today", True
         )
         log.info("step recorded")
 

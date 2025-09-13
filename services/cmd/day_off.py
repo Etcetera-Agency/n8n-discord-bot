@@ -7,6 +7,8 @@ from services.calendar_connector import CalendarConnector
 from services.logging_utils import get_logger
 from services.survey_steps_db import SurveyStepsDB
 from services.date_utils import format_date_ua, is_valid_iso_date
+from services.survey_models import SurveyEvent
+from typing import Union
 
 calendar = CalendarConnector()
 _steps_db: SurveyStepsDB | None = None
@@ -28,27 +30,33 @@ async def _mark_step(channel_id: str, step: str) -> None:
     await db.upsert_step(channel_id, step, True)
 
 
-async def handle(payload: Dict[str, Any]) -> str:
+async def handle(event: Union[SurveyEvent, Dict[str, Any]]) -> str:
     """Record day-off dates for the current or next week."""
 
-    log = get_logger("day_off", payload)
-    log.info("start")
-    try:
+    if isinstance(event, dict):
+        payload = event
         value = (
             payload.get("result", {}).get("value")
             or payload.get("result", {}).get("daysSelected")
         )
-        if isinstance(value, dict) and "values" in value:
-            value = value.get("values")
         step = payload.get("command")
         if step == "survey":
             step = payload.get("result", {}).get("stepName")
+    else:
+        payload = event.payload.to_dict()
+        value = event.result.value
+        step = event.step.name
+    log = get_logger("day_off", payload)
+    log.info("start")
+    try:
+        if isinstance(value, dict) and "values" in value:
+            value = value.get("values")
         if (
             value == "Nothing"
             or value == ["Nothing"]
             or not value
         ):
-            await _mark_step(payload.get("channelId", ""), step)
+            await _mark_step(str(payload.get("channelId", "")), step)
             log.info("done", extra={"output": "Записав! Вихідних не береш."})
             return "Записав! Вихідних не береш."
         if isinstance(value, str):
@@ -67,7 +75,7 @@ async def handle(payload: Dict[str, Any]) -> str:
                 msg = resp.get("message", "")
                 log.error("Calendar error", extra={"day": day, "error": msg})
                 return msg or Strings.TRY_AGAIN_LATER
-        await _mark_step(payload.get("channelId", ""), step)
+        await _mark_step(str(payload.get("channelId", "")), step)
         if len(value) == 1:
             result = (
                 f"Вихідний: {format_date_ua(value[0])} записано.\n"

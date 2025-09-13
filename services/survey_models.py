@@ -21,3 +21,18 @@ class SurveyResult:
     value: Any
     recorded_at: datetime = datetime.now(timezone.utc)
 
+
+@dataclass(frozen=True)
+class SurveyEvent:
+    """Typed container passed to survey step handlers.
+
+    Includes the current step, its parsed result, and the original
+    normalized bot request payload for auxiliary fields like author,
+    channelId, timestamp, etc.
+    """
+
+    step: SurveyStep
+    result: SurveyResult
+    # Deferred import type to avoid a hard dependency loop
+    payload: "services.payload_models.BotRequestPayload"  # type: ignore[name-defined]
+

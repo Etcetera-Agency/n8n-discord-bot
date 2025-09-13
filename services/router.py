@@ -3,6 +3,7 @@ from typing import Any, Callable, Awaitable, Dict, Optional, Union
 from services.notion_connector import NotionConnector
 from config import Strings
 from services.survey import survey_manager
+from services.survey_models import SurveyStep, SurveyResult, SurveyEvent
 from services.payload_models import BotRequestPayload, RouterResponse
 from services.cmd import (
     register,
@@ -14,7 +15,7 @@ from services.cmd import (
     vacation,
     check_channel,
 )
-from services.logging_utils import get_logger, wrap_handler, current_context
+from services.logging_utils import get_logger, wrap_handler, wrap_survey_handler, current_context
 
 
 async def handle_mention(payload: Dict[str, Any]) -> str:
@@ -26,17 +27,29 @@ async def handle_mention(payload: Dict[str, Any]) -> str:
     )
 
 
-HANDLERS: Dict[str, Callable[[Dict[str, Any]], Awaitable[str]]] = {
+SURVEY_STEP_NAMES = {
+    "workload_today",
+    "workload_nextweek",
+    "connects_thisweek",
+    "day_off",
+    "day_off_thisweek",
+    "day_off_nextweek",
+    "vacation",
+}
+
+HANDLERS: Dict[str, Callable[[Any], Awaitable[str]]] = {
     "mention": wrap_handler("mention", handle_mention),
     "register": wrap_handler("register", register.handle),
     "unregister": wrap_handler("unregister", unregister.handle),
-    "workload_today": wrap_handler("workload_today", workload_today.handle),
-    "workload_nextweek": wrap_handler("workload_nextweek", workload_nextweek.handle),
-    "connects_thisweek": wrap_handler("connects_thisweek", connects_thisweek.handle),
-    "day_off": wrap_handler("day_off", day_off.handle),
-    "day_off_thisweek": wrap_handler("day_off_thisweek", day_off.handle),
-    "day_off_nextweek": wrap_handler("day_off_nextweek", day_off.handle),
-    "vacation": wrap_handler("vacation", vacation.handle),
+    # Survey-related handlers receive typed SurveyEvent
+    "workload_today": wrap_survey_handler("workload_today", workload_today.handle),
+    "workload_nextweek": wrap_survey_handler("workload_nextweek", workload_nextweek.handle),
+    "connects_thisweek": wrap_survey_handler("connects_thisweek", connects_thisweek.handle),
+    "day_off": wrap_survey_handler("day_off", day_off.handle),
+    "day_off_thisweek": wrap_survey_handler("day_off_thisweek", day_off.handle),
+    "day_off_nextweek": wrap_survey_handler("day_off_nextweek", day_off.handle),
+    "vacation": wrap_survey_handler("vacation", vacation.handle),
+    # Non-survey
     "check_channel": wrap_handler("check_channel", check_channel.handle),
 }
 
@@ -104,6 +117,12 @@ async def dispatch(payload: Union[Dict[str, Any], BotRequestPayload]) -> Dict[st
 
         payload_dict["userId"] = user.get("discord_id", payload_dict.get("userId"))
         payload_dict["author"] = user.get("name", payload_dict.get("author"))
+        # keep model in sync with enriched fields
+        try:
+            model.userId = payload_dict["userId"]
+            model.author = payload_dict["author"]
+        except Exception:
+            pass
         todo_url = user.get("to_do")
 
         survey_state = survey_manager.get_survey(channel)
@@ -118,6 +137,25 @@ async def dispatch(payload: Union[Dict[str, Any], BotRequestPayload]) -> Dict[st
                 return finalize(RouterResponse(output="Канал вже зареєстрований на когось іншого."))
 
         command = payload_dict.get("command")
+
+        def build_survey_event(step_name: str) -> SurveyEvent:
+            # Extract and normalize value according to step
+            res = dict(payload_dict.get("result") or {})
+            value: Any
+            if step_name == "connects_thisweek":
+                value = res.get("connects", res.get("value"))
+            elif step_name in ("day_off_thisweek", "day_off_nextweek", "day_off"):
+                value = res.get("value", res.get("daysSelected"))
+            elif step_name == "vacation":
+                # pass through the entire result dict with start/end keys
+                value = res
+            else:
+                value = res.get("value") if "value" in res else res.get("workload")
+
+            step_obj = SurveyStep(name=step_name)
+            result_obj = SurveyResult(step_name=step_name, value=value)
+            return SurveyEvent(step=step_obj, result=result_obj, payload=model)
+
         # Treat survey as active if there's a channel-scoped survey state
         channel_active = survey_state is not None
         if command == "survey" or (channel_active and command not in HANDLERS):
@@ -126,15 +164,9 @@ async def dispatch(payload: Union[Dict[str, Any], BotRequestPayload]) -> Dict[st
             if not handler:
                 return finalize(RouterResponse(output=f"No handler for step {step}", survey="cancel"))
 
-            # Normalize survey payloads for handlers
-            result = payload_dict.setdefault("result", {})
-            if step == "connects_thisweek" and "connects" not in result:
-                result["connects"] = result.get("value")
-            if step in ("day_off_thisweek", "day_off_nextweek") and "value" not in result:
-                result["value"] = result.get("daysSelected")
-
+            event = build_survey_event(step)
             try:
-                output = await handler(payload_dict)
+                output = await handler(event)
             except Exception as err:  # pragma: no cover - handler failure
                 log.exception("handler error")
                 return finalize(RouterResponse(output=str(err), survey="cancel"))
@@ -143,7 +175,7 @@ async def dispatch(payload: Union[Dict[str, Any], BotRequestPayload]) -> Dict[st
             # Flow control (continue/end) is determined in Discord layer via survey_manager state.
             if survey_state:
                 survey_manager.record_step_result(
-                    payload_dict.get("channelId"), step, result.get("value")
+                    payload_dict.get("channelId"), step, event.result.value
                 )
             return finalize(RouterResponse(output=output))
 
@@ -155,7 +187,11 @@ async def dispatch(payload: Union[Dict[str, Any], BotRequestPayload]) -> Dict[st
         if not handler:
             return finalize(RouterResponse(output=Strings.TRY_AGAIN_LATER))
         try:
-            output = await handler(payload_dict)
+            if command in SURVEY_STEP_NAMES:
+                event = build_survey_event(command)
+                output = await handler(event)
+            else:
+                output = await handler(payload_dict)
         except Exception:  # pragma: no cover - handler failure
             log.exception("handler error")
             return finalize(RouterResponse(output=Strings.TRY_AGAIN_LATER))
