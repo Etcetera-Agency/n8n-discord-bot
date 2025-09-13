@@ -44,7 +44,7 @@ class StartSurveyView(discord.ui.View):
             # Inform the user that a survey is already active
             try:
                 await interaction.followup.send(Strings.SURVEY_ALREADY_IN_PROGRESS, ephemeral=True)
-            except Exception as e:
+            except Exception:
                 log.exception("failed to send in-progress notice")
         else:
             log.info("starting new survey")
@@ -58,13 +58,13 @@ class StartSurveyView(discord.ui.View):
                 get_logger("view.start_survey", {"userId": user_id, "channelId": channel_id, "sessionId": session_id}).info(
                     "start handler invoked"
                 )
-            except Exception as e:
+            except Exception:
                 get_logger("view.start_survey", {"userId": user_id, "channelId": channel_id, "sessionId": session_id}).exception(
                     "failed to start survey"
                 )
                 try:
                     await interaction.followup.send(Strings.SURVEY_START_ERROR, ephemeral=False)
-                except Exception as send_error:
+                except Exception:
                     get_logger("view.start_survey", {"userId": user_id, "channelId": channel_id, "sessionId": session_id}).exception(
                         "failed to send error message"
                     )

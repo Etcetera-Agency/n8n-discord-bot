@@ -59,33 +59,32 @@ class DayOffView_survey(discord.ui.View):
         return target_date
 
     async def on_timeout(self):
-        _log("view.day_off_survey", session_id=self.session_id, user_id=self.user_id).warning(f"DayOffView_survey timed out for session {self.session_id}")
-        # Clean up view first
-        if self.buttons_msg:
-            try:
-                await self.buttons_msg.delete()
-                _log("view.day_off_survey", session_id=self.session_id, user_id=self.user_id).info(f"[Channel {self.session_id.split('_')[0]}] - Deleted buttons message {self.buttons_msg.id} on timeout.")
-            except discord.NotFound:
-                _log("view.day_off_survey", session_id=self.session_id, user_id=self.user_id).warning(f"[Channel {self.session_id.split('_')[0]}] - Buttons message {self.buttons_msg.id} already deleted on timeout.")
-            except Exception as e:
-                _log("view.day_off_survey", session_id=self.session_id, user_id=self.user_id).error(f"[Channel {self.session_id.split('_')[0]}] - Error deleting buttons message on timeout: {e}")
-            finally:
-                self.buttons_msg = None
-                self.stop()
-
-        # Skip survey timeout handling if survey was already removed
-        # This prevents duplicate cleanup and timeout messages
-        if not survey_manager.get_survey_by_session(self.session_id):
-            _log("view.day_off_survey", session_id=self.session_id, user_id=self.user_id).info(f"[Channel {self.session_id.split('_')[0]}] - Survey already removed, skipping timeout handling")
+        log = _log("view.day_off_survey", session_id=self.session_id, user_id=self.user_id)
+        log.warning(f"timeout for session {self.session_id}")
+        # Centralized cleanup via survey_manager (runs SurveyFlow.cleanup())
+        if not (self.has_survey and self.bot_instance and self.session_id):
+            log.warning("timeout without survey context", extra={"has_survey": self.has_survey, "has_bot": bool(self.bot_instance)})
+            self.stop()
             return
+        try:
+            channel_part = self.session_id.split('_')[0] if self.session_id else None
+            if channel_part:
+                await survey_manager.end_survey(str(channel_part))
+                log.info("ended survey after timeout", extra={"channelId": channel_part})
+            else:
+                log.warning("missing channel id in session")
+        except Exception:
+            log.exception("failed to end survey on timeout")
 
-        # Handle survey timeout
-        if self.has_survey and self.bot_instance and self.session_id:
-            _log("view.day_off_survey", session_id=self.session_id, user_id=self.user_id).info(f"[Channel {self.session_id.split('_')[0]}] - Calling handle_survey_incomplete on timeout for session {self.session_id}")
-            from discord_bot.commands.survey import handle_survey_incomplete # Import locally to avoid circular dependency
-            await handle_survey_incomplete(self.bot_instance, self.session_id)
-        else:
-            _log("view.day_off_survey", session_id=self.session_id, user_id=self.user_id).warning(f"[Channel {self.session_id.split('_')[0] if self.session_id else 'N/A'}] - Cannot call handle_survey_incomplete on timeout. has_survey: {self.has_survey}, bot_instance: {bool(self.bot_instance)}, session_id: {self.session_id}")
+        # Notify the user after cleanup
+        try:
+            channel_id = int(self.session_id.split('_')[0])
+            channel = await self.bot_instance.fetch_channel(channel_id)
+            await channel.send(f"<@{self.user_id}> {Strings.TIMEOUT_MESSAGE}")
+        except Exception:
+            log.exception("failed to send timeout notification")
+
+        self.stop()
 
 
 class DayOffButton_survey(discord.ui.Button):
@@ -246,7 +245,7 @@ class ConfirmButton_survey(discord.ui.Button):
                         log.exception(f"[Channel {channel_id}] - Error handling survey flow after webhook: {e}")
 
                     if not success:
-                    log.error(f"Failed to send webhook for survey step: {view.cmd_or_step}")
+                        log.error(f"Failed to send webhook for survey step: {view.cmd_or_step}")
                         if view.command_msg:
                             await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                             error_msg = Strings.DAYOFF_ERROR.format(
@@ -259,7 +258,7 @@ class ConfirmButton_survey(discord.ui.Button):
 
                     # Record result through manager to consolidate writes
                     survey_manager.record_step_result(interaction.channel.id, view.cmd_or_step, formatted_dates)
-                log.info(f"Updated survey results via manager for step {view.cmd_or_step}")
+                    log.info(f"Updated survey results via manager for step {view.cmd_or_step}")
 
                     if view.command_msg:
                         try:
@@ -268,53 +267,53 @@ class ConfirmButton_survey(discord.ui.Button):
                             if formatted_dates and Strings.MENTION_MESSAGE not in output_content:
                                 output_content += Strings.MENTION_MESSAGE
                             await view.command_msg.edit(content=output_content, view=None, attachments=[])
-                            logger.info(f"[Channel {channel_id}] - Updated command message {view.command_msg.id} with response for user {user_id}")
+                            log.info(f"[Channel {channel_id}] - Updated command message {view.command_msg.id} with response for user {user_id}")
                         except Exception as edit_error:
-                            logger.error(f"[Channel {channel_id}] - Error editing command message {getattr(view.command_msg, 'id', 'N/A')}: {edit_error}", exc_info=True)
+                            log.exception(f"[Channel {channel_id}] - Error editing command message {getattr(view.command_msg, 'id', 'N/A')}: {edit_error}")
 
-                    logger.info(f"Survey state before continuation - current step: {state.current_step()}, results: {state.results}")
+                    log.info(f"Survey state before continuation - current step: {state.current_step()}, results: {state.results}")
 
                     if not state or not state.user_id:
-                        logger.error("Invalid survey state for continuation")
+                        log.error("Invalid survey state for continuation")
                         return
 
                 else:
-                    logger.warning(f"[Channel {channel_id}] - No active survey state found for user in confirm button callback. Treating as non-survey command or expired survey.")
+                    log.warning(f"[Channel {channel_id}] - No active survey state found for user in confirm button callback. Treating as non-survey command or expired survey.")
 
                     if view.has_survey:
-                        logger.error(f"[Channel {channel_id}] - Survey initiated but state not found in callback for step {view.cmd_or_step}.")
+                        log.error(f"[Channel {channel_id}] - Survey initiated but state not found in callback for step {view.cmd_or_step}.")
                         try:
                             if interaction.response.is_done():
-                                logger.debug(f"[Channel {channel_id}] - interaction.response.is_done()=True, using followup.send for expired survey")
+                                log.debug(f"[Channel {channel_id}] - interaction.response.is_done()=True, using followup.send for expired survey")
                                 await interaction.followup.send(Strings.SURVEY_EXPIRED_OR_NOT_FOUND, ephemeral=True)
                             else:
-                                logger.debug(f"[Channel {channel_id}] - interaction.response.is_done()=False, using response.send_message for expired survey")
+                                log.debug(f"[Channel {channel_id}] - interaction.response.is_done()=False, using response.send_message for expired survey")
                                 await interaction.response.send_message(Strings.SURVEY_EXPIRED_OR_NOT_FOUND, ephemeral=True)
                         except Exception as e:
-                            logger.error(f"[Channel {channel_id}] - Failed to send survey expired message: {e}")
+                            log.error(f"[Channel {channel_id}] - Failed to send survey expired message: {e}")
 
                         if view.buttons_msg:
                             try:
                                 await view.buttons_msg.delete()
                             except Exception as e:
-                                logger.warning(f"[Channel {channel_id}] - Failed to delete buttons message after expired survey message: {e}")
+                                log.warning(f"[Channel {channel_id}] - Failed to delete buttons message after expired survey message: {e}")
 
                     else:
-                        logger.error(f"[Channel {channel_id}] - Confirm button clicked in non-survey context (has_survey=False) for command: {view.cmd_or_step}. No active survey state found.")
+                        log.error(f"[Channel {channel_id}] - Confirm button clicked in non-survey context (has_survey=False) for command: {view.cmd_or_step}. No active survey state found.")
                         if view.command_msg:
                             try:
                                 await view.command_msg.edit(content=Strings.GENERAL_ERROR, view=None)
                             except Exception as e:
-                                logger.error(f"[Channel {channel_id}] - Error editing command message with general error: {e}")
+                                log.error(f"[Channel {channel_id}] - Error editing command message with general error: {e}")
                         if view.buttons_msg:
                             try:
                                 await view.buttons_msg.delete()
                             except Exception as e:
-                                logger.error(f"[Channel {channel_id}] - Error deleting buttons message: {e}")
+                                log.error(f"[Channel {channel_id}] - Error deleting buttons message: {e}")
                         view.stop()
             except Exception as e:
                 session_id_for_log = view.session_id.split('_')[0] if view and view.session_id else 'N/A'
-                logger.error(f"[Channel {session_id_for_log}] - Error in confirm button callback: {e}", exc_info=True)
+                log.exception(f"[Channel {session_id_for_log}] - Error in confirm button callback: {e}")
                 if view and view.command_msg:
                     await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                     error_msg = Strings.DAYOFF_ERROR.format(
@@ -323,20 +322,20 @@ class ConfirmButton_survey(discord.ui.Button):
                     )
                     await view.command_msg.edit(content=error_msg)
                     await view.command_msg.add_reaction(Strings.ERROR)
-                logger.error(f"[Channel {session_id_for_log}] - Failed to send error response in confirm callback: {e}")
+                log.error(f"[Channel {session_id_for_log}] - Failed to send error response in confirm callback: {e}")
             finally:
                 if view and view.buttons_msg:
                     try:
                         await view.buttons_msg.delete()
                         session_id_for_log = view.session_id.split('_')[0] if view and view.session_id else 'N/A'
-                        logger.info(f"[Channel {session_id_for_log}] - Successfully deleted buttons message in finally block.")
+                        log.info(f"[Channel {session_id_for_log}] - Successfully deleted buttons message in finally block.")
                         view.stop()
                     except discord.NotFound:
                         session_id_for_log = view.session_id.split('_')[0] if view and view.session_id else 'N/A'
-                        logger.warning(f"[Channel {session_id_for_log}] - Buttons message already deleted or not found in finally block.")
+                        log.warning(f"[Channel {session_id_for_log}] - Buttons message already deleted or not found in finally block.")
                     except Exception as e:
                         session_id_for_log = view.session_id.split('_')[0] if view and view.session_id else 'N/A'
-                        logger.error(f"[Channel {session_id_for_log}] - Error deleting buttons message in finally block: {e}", exc_info=True)
+                        log.exception(f"[Channel {session_id_for_log}] - Error deleting buttons message in finally block: {e}")
 
 class DeclineButton_survey(discord.ui.Button):
     def __init__(self):

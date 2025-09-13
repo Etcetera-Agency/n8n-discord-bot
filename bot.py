@@ -1,9 +1,5 @@
-import asyncio
-
 import discord
 from discord.ext import commands
-
-from config.config import Config
 from services.webhook import WebhookService
 from discord_bot.commands.survey import handle_start_daily_survey as _start_daily_survey
 from discord_bot.commands.prefix import PrefixCommands
@@ -15,6 +11,7 @@ from discord_bot.views.start_survey import StartSurveyView  # Import the new per
 # Logging configuration
 ###############################################################################
 from services.logging_utils import get_logger
+logger = get_logger("bot")
 
 ###############################################################################
 # Load environment variables handled in config/config.py
@@ -229,17 +226,5 @@ async def on_message(message: discord.Message):
 
 
 ###############################################################################
-# Main function to run both the HTTP/HTTPS server and the Discord Bot
-#############################################################################
-async def main():
-    # Start HTTP server
-    from web import server
-    server_task = asyncio.create_task(server.run_server(bot))
-
-    # Start Discord bot
-    await bot.start(Config.DISCORD_TOKEN)
-
-    # Wait for both tasks
-    await server_task
-if __name__ == "__main__":
-    asyncio.run(main())
+# Note: Startup is centralized in main.py. bot.py now only defines the bot.
+###############################################################################

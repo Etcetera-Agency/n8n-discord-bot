@@ -3,7 +3,8 @@ from discord import AllowedMentions
 from discord import app_commands
 from discord.ext import commands
 
-from config import logger, Strings
+from config import Strings
+from services.logging_utils import get_logger
 from discord_bot.views.factory import create_view
 
 
@@ -17,9 +18,11 @@ class DayOffCog(commands.Cog):
 
         @day_off_group.command(name="thisweek", description=Strings.DAY_OFF_THISWEEK)
         async def day_off_thisweek(interaction: discord.Interaction):
-            logger.info(
-                f"[Channel {interaction.channel.id}] Day off thisweek command from {interaction.user}"
+            log = get_logger(
+                "cmd.day_off.thisweek",
+                {"userId": str(interaction.user.id), "channelId": str(interaction.channel.id)},
             )
+            log.info("received")
 
             if not interaction.response.is_done():
                 await interaction.response.send_message(
@@ -37,9 +40,11 @@ class DayOffCog(commands.Cog):
 
         @day_off_group.command(name="nextweek", description=Strings.DAY_OFF_NEXTWEEK)
         async def day_off_nextweek(interaction: discord.Interaction):
-            logger.debug(
-                f"[Channel {interaction.channel.id}] Day off nextweek command received from {interaction.user}"
+            log = get_logger(
+                "cmd.day_off.nextweek",
+                {"userId": str(interaction.user.id), "channelId": str(interaction.channel.id)},
             )
+            log.debug("received")
             try:
                 if not interaction.response.is_done():
                     await interaction.response.send_message(
@@ -50,22 +55,20 @@ class DayOffCog(commands.Cog):
                     )
                 command_msg = await interaction.original_response()
 
-                logger.debug(
-                    f"[Channel {interaction.channel.id}] Creating day off view for command: day_off_nextweek"
-                )
+                log.debug("creating view")
                 view = create_view(
                     self.bot, "day_off", "day_off_nextweek", str(interaction.user.id)
                 )
                 view.command_msg = command_msg
 
-                logger.debug("Sending buttons message")
+                log.debug("sending buttons")
                 buttons_msg = await interaction.channel.send(
                     Strings.CONFIRM_BUTTON, view=view
                 )
                 view.buttons_msg = buttons_msg
-                logger.debug("Day off nextweek command completed successfully")
-            except Exception as e:  # pragma: no cover - defensive
-                logger.error(f"Error in day_off_nextweek: {e}")
+                log.debug("completed")
+            except Exception:  # pragma: no cover - defensive
+                log.exception("error")
                 raise
 
         # Register group
@@ -74,4 +77,3 @@ class DayOffCog(commands.Cog):
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(DayOffCog(bot))
-

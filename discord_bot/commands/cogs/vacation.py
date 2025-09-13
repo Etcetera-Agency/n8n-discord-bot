@@ -5,7 +5,8 @@ from discord import AllowedMentions
 from discord import app_commands
 from discord.ext import commands
 
-from config import logger, Strings, constants
+from config import Strings, constants
+from services.logging_utils import get_logger
 from services import webhook_service
 
 
@@ -27,8 +28,12 @@ class VacationCog(commands.Cog):
             end_day: int,
             end_month: str,
         ):
-            logger.info(
-                f"[Channel {interaction.channel.id}] Vacation command from {interaction.user}: {start_day}/{start_month} - {end_day}/{end_month}"
+            log = get_logger(
+                "cmd.vacation",
+                {"userId": str(interaction.user.id), "channelId": str(interaction.channel.id)},
+            )
+            log.info(
+                f"request: {start_day}/{start_month} - {end_day}/{end_month}"
             )
 
             if not (1 <= start_day <= 31) or not (1 <= end_day <= 31):
@@ -87,7 +92,7 @@ class VacationCog(commands.Cog):
 
                 if success and data and "output" in data:
                     output_content = data["output"]
-                    logger.debug(
+                    log.debug(
                         f"Output content before mention check: '{output_content}', Mention message: '{Strings.MENTION_MESSAGE}'"
                     )
                     if (
@@ -131,8 +136,8 @@ class VacationCog(commands.Cog):
                                 roles=True, users=True, everyone=False
                             ),
                         )
-            except Exception as e:  # pragma: no cover - defensive
-                logger.error(f"Error in vacation command: {e}")
+            except Exception:  # pragma: no cover - defensive
+                log.exception("error")
                 if message:
                     try:
                         await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
@@ -171,4 +176,3 @@ class VacationCog(commands.Cog):
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(VacationCog(bot))
-

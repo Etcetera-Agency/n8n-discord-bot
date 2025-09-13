@@ -139,7 +139,7 @@ class ConfirmButton_slash(discord.ui.Button):
                     for day in sorted(view.selected_days, key=lambda x: view.weekday_map[x])
                     if (date := view.get_date_for_day(day)) is not None
                 ]
-                logger.debug(f"[Channel {interaction.channel.id}] - Formatted dates for webhook: {formatted_dates}")
+                log.debug(f"[Channel {interaction.channel.id}] - Formatted dates for webhook: {formatted_dates}")
 
                 log.debug(f"[Channel {interaction.channel.id}] - Attempting to send webhook for regular command (ConfirmButton_slash): {view.cmd_or_step}")
                 success, data = await webhook_service.send_webhook(

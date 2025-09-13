@@ -39,23 +39,21 @@ class BaseView(discord.ui.View):
         for item in self.children:
             item.disabled = True
     async def on_timeout(self) -> None:
-        """Handle view timeout using session-scoped survey lookup."""
-        get_logger(
+        """Handle view timeout using centralized survey cleanup when applicable."""
+        log = get_logger(
             "view.base.timeout",
             {"userId": self.user_id, "sessionId": self.session_id},
-        ).debug("timeout", extra={"cmd_or_step": self.cmd_or_step, "has_survey": self.has_survey})
+        )
+        log.debug("timeout", extra={"cmd_or_step": self.cmd_or_step, "has_survey": self.has_survey})
         if self.has_survey and self.session_id:
             try:
-                # Only proceed if survey still exists for this session
                 from services import survey_manager as _mgr
+                # Only proceed if survey still exists for this session
                 if _mgr.get_survey_by_session(self.session_id):
-                    from bot import bot as _bot
-                    from discord_bot.commands.survey import handle_survey_incomplete as _incomplete
-                    await _incomplete(_bot, self.session_id)
+                    channel_part = self.session_id.split("_")[0]
+                    await _mgr.end_survey(str(channel_part))
+                    log.info("ended survey on timeout", extra={"channelId": channel_part})
             except Exception:
-                get_logger(
-                    "view.base.timeout",
-                    {"userId": self.user_id, "sessionId": self.session_id},
-                ).exception("failed to handle timeout")
+                log.exception("failed to end survey on timeout")
         self.disable_all_items()
         self.stop()

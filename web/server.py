@@ -55,11 +55,11 @@ class WebServer:
                 await channel.send(f"<@{user_id}> {Strings.SURVEY_GREETING}", view=StartSurveyView())
                 log.info("greeting sent")
                 return web.json_response({"status": "Greeting message sent"})
-            except Exception as e:
+            except Exception:
                 log.exception("failed to send greeting")
                 return web.json_response({"error": "Failed to initialize survey"}, status=500)
 
-        except Exception as e:
+        except Exception:
             get_logger("web.start_survey").exception("server error")
             return web.json_response({"error": "Internal server error"}, status=500)
 

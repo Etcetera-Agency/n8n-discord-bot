@@ -2,7 +2,8 @@ import discord
 from discord import AllowedMentions
 from discord.ext import commands
 
-from config import logger, Strings
+from config import Strings
+from services.logging_utils import get_logger
 from discord_bot.views.factory import create_view
 
 
@@ -12,10 +13,12 @@ class WorkloadCog(commands.Cog):
 
         @self.bot.tree.command(name="workload_today", description=Strings.WORKLOAD_TODAY)
         async def slash_workload_today(interaction: discord.Interaction):
-            logger.info(
-                f"[Channel {interaction.channel.id}] Workload today command from {interaction.user}"
+            log = get_logger(
+                "cmd.workload.today",
+                {"userId": str(interaction.user.id), "channelId": str(interaction.channel.id)},
             )
-            logger.debug(f"[{interaction.user}] - slash_workload_today called")
+            log.info("received")
+            log.debug("handler called")
 
             if not interaction.response.is_done():
                 await interaction.response.send_message(
@@ -24,9 +27,7 @@ class WorkloadCog(commands.Cog):
                 )
             command_msg = await interaction.original_response()
 
-            logger.debug(
-                f"[Channel {interaction.channel.id}] [{interaction.user}] - Calling create_view for workload_today"
-            )
+            log.debug("creating view")
             view = create_view(
                 self.bot, "workload", "workload_today", str(interaction.user.id)
             )
@@ -38,10 +39,12 @@ class WorkloadCog(commands.Cog):
             name="workload_nextweek", description=Strings.WORKLOAD_NEXTWEEK
         )
         async def slash_workload_nextweek(interaction: discord.Interaction):
-            logger.info(
-                f"[Channel {interaction.channel.id}] Workload nextweek command from {interaction.user}"
+            log = get_logger(
+                "cmd.workload.nextweek",
+                {"userId": str(interaction.user.id), "channelId": str(interaction.channel.id)},
             )
-            logger.debug(f"[{interaction.user}] - slash_workload_nextweek called")
+            log.info("received")
+            log.debug("handler called")
 
             if not interaction.response.is_done():
                 await interaction.response.send_message(
@@ -50,9 +53,7 @@ class WorkloadCog(commands.Cog):
                 )
             command_msg = await interaction.original_response()
 
-            logger.debug(
-                f"[Channel {interaction.channel.id}] [{interaction.user}] - Calling create_view for workload_nextweek"
-            )
+            log.debug("creating view")
             view = create_view(
                 self.bot, "workload", "workload_nextweek", str(interaction.user.id)
             )
@@ -63,4 +64,3 @@ class WorkloadCog(commands.Cog):
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(WorkloadCog(bot))
-

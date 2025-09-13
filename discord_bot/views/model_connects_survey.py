@@ -1,6 +1,7 @@
 import discord
 from typing import TYPE_CHECKING
-from config import logger, Strings
+from config import Strings
+from services.logging_utils import get_logger
 from services import survey_manager
 from services.survey import SurveyFlow
 from discord.ext import commands  # Import commands for bot type hint
@@ -24,7 +25,11 @@ class ConnectsModal(discord.ui.Modal):
     ):
         """Initializes the ConnectsModal with necessary dependencies."""
         try:
-            logger.info("Initializing ConnectsModal for channel {survey.channel_id} step {step_name}")
+            self.log = get_logger(
+                "view.connects_modal",
+                {"userId": str(survey.user_id), "channelId": str(survey.channel_id), "sessionId": str(getattr(survey, 'session_id', ''))},
+            )
+            self.log.info("init")
 
             # Verify required survey properties
             if not survey.user_id or not survey.channel_id:
@@ -57,12 +62,12 @@ class ConnectsModal(discord.ui.Modal):
             self.add_item(self.connects_input)
 
         except Exception:
-            logger.error("Error initializing ConnectsModal: {e}", exc_info=True)
+            get_logger("view.connects_modal").exception("init failed")
             raise
 
     async def on_submit(self, interaction: discord.Interaction):
         """Handles the modal submission for the connects step."""
-        logger.info("Starting ConnectsModal submission handling")
+        self.log.info("submit start")
 
         async def send_error_response(interaction: discord.Interaction, message: str):
             """Helper to send error response"""
@@ -72,38 +77,38 @@ class ConnectsModal(discord.ui.Modal):
                 else:
                     await interaction.followup.send(message, ephemeral=True)
             except Exception:
-                logger.error("Failed to send error message: {e}")
+                self.log.exception("failed to send error message")
 
         try:
             user_input = self.connects_input.value.strip()
 
             # Validate input is a number and in reasonable range
             if not user_input.isdigit():
-                logger.warning("Invalid connects input (non-digit): {user_input}")
+                self.log.warning("invalid input: non-digit")
                 await send_error_response(interaction, Strings.NUMBER_REQUIRED)
                 return
 
             connects = int(user_input)
             if connects < 0 or connects > 999:
-                logger.warning("Invalid connects range: {connects}")
+                self.log.warning("invalid range")
                 await send_error_response(interaction, "{Strings.NUMBER_REQUIRED}. Кількість коннектів має бути від 0 до 999")
                 return
 
             # Retrieve the survey using channel_id
             current_survey = survey_manager.get_survey(str(interaction.channel.id))
             if not current_survey or current_survey.session_id != self.survey.session_id:
-                logger.warning("Survey not found or session mismatch for channel {interaction.channel.id} in ConnectsModal submit.")
+                self.log.warning("survey not found or session mismatch")
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
                 return
 
             # Verify user and channel
             if str(interaction.user.id) != str(current_survey.user_id):
-                logger.warning("Wrong user for connects modal: {interaction.user.id} vs {current_survey.user_id}")
+                self.log.warning("wrong user")
                 await send_error_response(interaction, Strings.NOT_YOUR_SURVEY)
                 return
 
             if str(interaction.channel.id) != str(current_survey.channel_id):
-                logger.warning("Wrong channel for connects modal: {interaction.channel.id} vs {current_survey.channel_id}")
+                self.log.warning("wrong channel")
                 await send_error_response(interaction, Strings.WRONG_CHANNEL)
                 return
 
@@ -113,23 +118,23 @@ class ConnectsModal(discord.ui.Modal):
                 # logger.debug("Deferred modal response")
 
 
-            logger.info("Storing connects result: {connects} for channel {current_survey.channel_id}")
+            self.log.info("store result")
             # Store the validated result
             try:
                 current_survey.add_result(self.step_name, str(connects))
                 # logger.debug(f"After add_result, survey.results: {{current_survey.results}}")
             except Exception:
-                logger.error("Error storing connects result for channel {current_survey.channel_id}: {e}")
+                self.log.exception("store result failed")
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
                 return
 
-            logger.info("Storing connects result: {connects} for channel {current_survey.channel_id}")
+            self.log.info("store result duplicate")
             # Store the validated result
             try:
                 current_survey.add_result(self.step_name, str(connects))
                 # logger.debug(f"After add_result, survey.results: {{current_survey.results}}")
             except Exception:
-                logger.error("Error storing connects result for channel {current_survey.channel_id}: {e}")
+                self.log.exception("store result duplicate failed")
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
                 return
 
@@ -139,29 +144,29 @@ class ConnectsModal(discord.ui.Modal):
                     "stepName": self.step_name,
                     "value": str(connects)
                 }
-                logger.info("Sending survey step webhook for step: {self.step_name} with value: {connects}")
+                self.log.info("send step webhook")
                 success, response = await self.webhook_service_instance.send_webhook( # Use passed instance
                     interaction, # Pass interaction directly
                     command="survey", # Use command="survey"
                     status="step", # Use status="step"
                     result=result_payload # Pass result_payload dictionary
                 )
-                logger.info("Step webhook response for channel {current_survey.channel_id}: success={success}, response={response}")
+                self.log.info("step webhook done", extra={"success": success})
                 # Show n8n output to user if present
                 # Update command message with n8n output instead of deleting it
                 if success and response and "output" in response:
                     if current_survey.current_message:
                         try:
-                            logger.debug("Attempting to remove processing reaction from command message {current_survey.current_message.id}")
+                            self.log.debug("remove processing reaction")
                             await current_survey.current_message.remove_reaction("⏳", self.bot_instance.user) # Use passed instance
                             output_content = response.get("output", f"Дякую! Кількість коннектів {connects} записано.") # Default success message
-                            logger.debug("Attempting to edit command message {current_survey.current_message.id} with output: {output_content}")
+                            self.log.debug("edit command message")
                             await current_survey.current_message.edit(content=output_content, view=None, attachments=[]) # Update content and remove view/attachments
-                            logger.info("Updated command message {current_survey.current_message.id} with response")
+                            self.log.info("updated command message")
                         except Exception:
-                            logger.error("Error editing command message {getattr(current_survey.current_message, 'id', 'N/A')}: {edit_error}", exc_info=True)
+                            self.log.exception("edit command message failed")
                 elif not success:
-                    logger.error("Failed to send webhook for survey step: {self.step_name}")
+                    self.log.error("step webhook failed")
                     if current_survey.current_message:
                         try:
                             await current_survey.current_message.remove_reaction("⏳", self.bot_instance.user) # Use passed instance
@@ -172,10 +177,10 @@ class ConnectsModal(discord.ui.Modal):
                             await current_survey.current_message.edit(content=error_msg)
                             await current_survey.current_message.add_reaction(Strings.ERROR)
                         except Exception:
-                            logger.error("Error editing command message on webhook failure {getattr(current_survey.current_message, 'id', 'N/A')}: {edit_error}", exc_info=True)
+                            self.log.exception("edit after webhook failure")
 
             except Exception:
-                logger.error("Error sending step webhook or handling response: {e}", exc_info=True)
+                self.log.exception("send step webhook failed")
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
                 return # Exit if step webhook fails
 
@@ -191,15 +196,14 @@ class ConnectsModal(discord.ui.Modal):
                     lambda ch, s: _finish(self.bot_instance, ch, s),
                 )
             except Exception:
-                logger.error("Error advancing/continuing survey: {e}")
+                self.log.exception("advance/continue failed")
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
 
         except Exception:
-            logger.error("Unexpected error in connects modal submission: {e}", exc_info=True)
+            self.log.exception("unexpected error on submit")
             try:
                 await send_error_response(interaction, Strings.GENERAL_ERROR)
                 # Clean up previous message even on error to prevent stuck buttons
                 # await cleanup_survey_message(interaction, self.survey) # Cleanup logic is now handled by updating the message
             except Exception:
-                logger.error("Error during error cleanup: {cleanup_error}")
-                logger.error("Error during error cleanup: {cleanup_error}")
+                self.log.exception("error during error cleanup")

@@ -37,7 +37,7 @@ class WorkloadView_slash(discord.ui.View):
                 await self.command_msg.edit(
                     content=f"{self.command_msg.content}\n{timeout_msg}"
                 )
-            except Exception as e:
+            except Exception:
                 _log("view.workload_slash", user_id=self.user_id, channel_id=channel_id).exception("failed to update message on timeout")
         
         # Clean up buttons message
@@ -97,7 +97,7 @@ class WorkloadButton_slash(discord.ui.Button):
                     log.error("invalid view: missing user_id")
                     return
 
-        except Exception as e:
+        except Exception:
             log.exception("validation error in callback")
             return
 
@@ -116,27 +116,27 @@ class WorkloadButton_slash(discord.ui.Button):
                     try:
                         log.debug("add processing reaction", extra={"command_msg_id": getattr(view.command_msg, 'id', None)})
                         await view.command_msg.add_reaction(Strings.PROCESSING)
-                        logger.debug(f"[Channel {getattr(interaction.channel, 'id', 'N/A')}] - Added processing reaction to command message {view.command_msg.id}")
-                    except Exception as e:
-                        logger.error(f"[Channel {getattr(interaction.channel, 'id', 'N/A')}] - Error adding processing reaction to command message {getattr(view.command_msg, 'id', 'N/A')}: {e}", exc_info=True)
+                        log.debug(f"[Channel {getattr(interaction.channel, 'id', 'N/A')}] - Added processing reaction to command message {view.command_msg.id}")
+                    except Exception:
+                        log.exception(f"error adding processing reaction to command message {getattr(view.command_msg, 'id', 'N/A')}")
 
             try:
                 if self.label == "Нічого немає":
                     if not interaction or not interaction.channel:
-                        logger.error("Missing interaction data for Нічого немає button")
+                        log.error("missing interaction data for 'Нічого немає'")
                         return
                     value = 0
-                    logger.debug(f"[Channel {interaction.channel.id}] Нічого немає selected")
+                    log.debug(f"[Channel {interaction.channel.id}] Нічого немає selected")
                 else:
                     value = int(self.label)
-                logger.debug(f"Parsed value: {value} from label: {self.label}")
+                log.debug(f"Parsed value: {value} from label: {self.label}")
             except ValueError:
-                logger.error(f"[Channel {getattr(interaction.channel, 'id', 'N/A')}] - Could not convert button label to integer: {self.label}", exc_info=True)
+                log.exception(f"Could not convert button label to integer: {self.label}")
                 if not interaction.response.is_done():
                      await interaction.followup.send("Invalid button value.", ephemeral=True)
                 return
-            except Exception as e:
-                logger.error(f"[Channel {getattr(interaction.channel, 'id', 'N/A')}] - Unexpected error parsing button value: {e}", exc_info=True)
+            except Exception:
+                log.exception("Unexpected error parsing button value")
                 if not interaction.response.is_done():
                      await interaction.followup.send("An unexpected error occurred.", ephemeral=True)
                 return
@@ -144,32 +144,32 @@ class WorkloadButton_slash(discord.ui.Button):
             if view.buttons_msg:
                 try:
                     await view.buttons_msg.delete()
-                    logger.info(f"[Channel {getattr(interaction.channel, 'id', 'N/A')}] - Successfully deleted buttons message ID: {view.buttons_msg.id}")
+                    log.info(f"Deleted buttons message {view.buttons_msg.id}")
                     view.buttons_msg = None
                     view.stop()
                 except discord.NotFound:
-                    logger.warning(f"[Channel {getattr(interaction.channel, 'id', 'N/A')}] - Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found.")
+                    log.warning(f"Buttons message {getattr(view.buttons_msg, 'id', 'N/A')} already deleted or not found")
                     view.buttons_msg = None
-                except Exception as delete_error:
-                    logger.error(f"[Channel {getattr(interaction.channel, 'id', 'N/A')}] - Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')}: {delete_error}", exc_info=True)
+                except Exception:
+                    log.exception(f"Error deleting buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
             else:
-                logger.warning(f"[Channel {getattr(interaction.channel, 'id', 'N/A')}] - view.buttons_msg is None or False, cannot delete.")
+                log.warning("view.buttons_msg missing; cannot delete")
 
-            logger.info(f"[Channel {interaction.channel.id}] [{view.user_id}] - Processing as regular command: {view.cmd_or_step}")
+            log.info(f"Processing as regular command: {view.cmd_or_step}")
             webhook_payload = {
                 "command": view.cmd_or_step,
                 "status": "ok",
                 "result": {"workload": value}
             }
-            logger.debug(f"[Channel {interaction.channel.id}] [{view.user_id}] - Preparing to send webhook for regular command. Payload: {webhook_payload}")
-            logger.debug(f"[Channel {interaction.channel.id}] [{view.user_id}] - Attempting to send webhook for command: {view.cmd_or_step}")
+            log.debug("Preparing webhook", extra={"payload": webhook_payload})
+            log.debug(f"Sending webhook: {view.cmd_or_step}")
             success, data = await webhook_service.send_webhook(
                 interaction,
                 command=webhook_payload["command"],
                 status=webhook_payload["status"],
                 result=webhook_payload["result"]
             )
-            logger.info(f"[Channel {interaction.channel.id}] [{view.user_id}] - Webhook response for command: success={success}, data={data}")
+            log.info("Webhook response", extra={"success": success})
 
             if success and data and "output" in data:
                 if view.command_msg:
@@ -178,7 +178,7 @@ class WorkloadButton_slash(discord.ui.Button):
                         output_content = data.get("output", f"Дякую! Робоче навантаження {value} годин записано.") if data else f"Дякую! Робоче навантаження {value} годин записано."
                         await view.command_msg.edit(content=output_content, view=None, attachments=[])
                         log.info("updated command message (success)")
-                    except Exception as edit_error:
+                    except Exception:
                         log.exception("error editing command message (success)")
             else:
                 log.error("failed to send webhook", extra={"cmd": view.cmd_or_step})
@@ -190,7 +190,7 @@ class WorkloadButton_slash(discord.ui.Button):
                     )
                     await view.command_msg.edit(content=error_msg)
                     await view.command_msg.add_reaction(Strings.ERROR)
-        except Exception as e:
+        except Exception:
             session_id_for_log = getattr(view, 'session_id', 'N/A').split('_')[0] if view and hasattr(view, 'session_id') else 'N/A'
             _log("view.workload_slash", user_id=getattr(view, 'user_id', None), channel_id=ch_id, session_id=session_id_for_log).exception("error in workload button callback")
             if view and view.command_msg:
@@ -213,7 +213,7 @@ class WorkloadButton_slash(discord.ui.Button):
                 except discord.NotFound:
                     session_id_for_log = getattr(view, 'session_id', 'N/A').split('_')[0] if view and hasattr(view, 'session_id') else 'N/A'
                     _log("view.workload_slash", user_id=getattr(view, 'user_id', None), channel_id=ch_id, session_id=session_id_for_log).warning("buttons already deleted or not found")
-                except Exception as e:
+                except Exception:
                     session_id_for_log = getattr(view, 'session_id', 'N/A').split('_')[0] if view and hasattr(view, 'session_id') else 'N/A'
                     _log("view.workload_slash", user_id=getattr(view, 'user_id', None), channel_id=ch_id, session_id=session_id_for_log).exception("error deleting buttons (finally)")
 
@@ -223,7 +223,7 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
     try:
         view = WorkloadView_slash(cmd, user_id)
         _log("view.workload_slash", user_id=user_id).debug("WorkloadView_slash instantiated", extra={"cmd": cmd})
-    except Exception as e:
+    except Exception:
         _log("view.workload_slash", user_id=user_id).exception("error instantiating view", extra={"cmd": cmd})
         raise
 
@@ -238,7 +238,7 @@ def create_workload_view(cmd: str, user_id: str, timeout: Optional[float] = None
             _log("view.workload_slash", user_id=user_id).debug("add button", extra={"label": hour, "custom_id": custom_id, "cmd": cmd})
             view.add_item(button)
         _log("view.workload_slash", user_id=user_id).debug("finished adding buttons", extra={"cmd": cmd, "total": len(view.children)})
-    except Exception as e:
+    except Exception:
         _log("view.workload_slash", user_id=user_id).exception("error adding buttons", extra={"cmd": cmd})
         raise
 

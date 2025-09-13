@@ -34,7 +34,7 @@ def create_view(
         try:
             view = create_workload_slash_view(cmd_or_step, user_id, timeout=timeout)
             return view
-        except Exception as e:
+        except Exception:
             get_logger("view.factory", {"userId": user_id}).exception(
                 "error creating workload view", extra={"cmd": cmd_or_step}
             )
@@ -48,7 +48,7 @@ def create_view(
         try:
             view = create_day_off_view(cmd_or_step, user_id, timeout=timeout)
             return view
-        except Exception as e:
+        except Exception:
             get_logger("view.factory", {"userId": user_id}).exception("error creating day_off view")
             raise
     

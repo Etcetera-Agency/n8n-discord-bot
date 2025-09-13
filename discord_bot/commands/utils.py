@@ -2,7 +2,8 @@
 import discord
 from discord.ext import commands
 
-from config import logger, Strings
+from config import Strings
+from services.logging_utils import get_logger
 from services import webhook_service
 from discord_bot.views.factory import create_view
 
@@ -16,8 +17,15 @@ async def handle_webhook_command(
     Adds a processing reaction, sends the webhook, handles success/error,
     and returns the output string to display to the user.
     """
-    logger.info(f"⚡ WEBHOOK COMMAND START: {command} from {interaction.user}")
-    logger.debug(f"Command payload: {result}")
+    log = get_logger(
+        "cmd.utils.handle_webhook_command",
+        {
+            "userId": str(getattr(interaction.user, "id", None)) if interaction else None,
+            "channelId": str(getattr(getattr(interaction, "channel", None), "id", None)) if interaction else None,
+        },
+    )
+    log.info(f"start: {command}")
+    log.debug("payload", extra={"result": result})
 
     message = await interaction.original_response() if interaction.response.is_done() else None
 
@@ -38,8 +46,8 @@ async def handle_webhook_command(
             if message:
                 await message.add_reaction(Strings.ERROR)
             return Strings.GENERAL_ERROR
-    except Exception as e:  # pragma: no cover - defensive
-        logger.error(f"⛔ Error in {command} command: {str(e)}", exc_info=True)
+    except Exception:  # pragma: no cover - defensive
+        log.exception(f"error in command: {command}")
         if message:
             try:
                 await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
@@ -69,4 +77,3 @@ async def create_interactive_command(
 
     buttons_msg = await interaction.channel.send(Strings.SELECT_OPTION, view=view)
     view.buttons_msg = buttons_msg
-

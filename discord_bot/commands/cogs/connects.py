@@ -2,7 +2,8 @@ import discord
 from discord import AllowedMentions
 from discord.ext import commands
 
-from config import logger, Strings
+from config import Strings
+from services.logging_utils import get_logger
 from services import webhook_service
 
 
@@ -15,9 +16,11 @@ class ConnectsCog(commands.Cog):
             """
             Set Upwork connects for this week.
             """
-            logger.info(
-                f"[Channel {interaction.channel.id}] [DEBUG] Connects command from {interaction.user}: {connects}"
+            log = get_logger(
+                "cmd.connects.thisweek",
+                {"userId": str(interaction.user.id), "channelId": str(interaction.channel.id)},
             )
+            log.info(f"received: {connects}")
 
             if not interaction.response.is_done():
                 await interaction.response.defer(ephemeral=False)
@@ -27,7 +30,7 @@ class ConnectsCog(commands.Cog):
                 await message.add_reaction(Strings.PROCESSING)
 
             try:
-                logger.debug(
+                log.debug(
                     f"[Channel {interaction.channel.id}] [{interaction.user}] - Attempting to send webhook for connects command"
                 )
                 success, data = await webhook_service.send_webhook(
@@ -36,7 +39,7 @@ class ConnectsCog(commands.Cog):
                     status="ok",
                     result={"connects": connects},
                 )
-                logger.debug(
+                log.debug(
                     f"[{interaction.user}] - Webhook response for connects: success={success}, data={data}"
                 )
 
@@ -67,11 +70,8 @@ class ConnectsCog(commands.Cog):
                                 roles=True, users=True, everyone=False
                             ),
                         )
-            except Exception as e:  # pragma: no cover - defensive
-                logger.error(
-                    f"[{interaction.user}] - ⛔ Error in connects command: {e}",
-                    exc_info=True,
-                )
+            except Exception:  # pragma: no cover - defensive
+                log.exception("error")
                 if message:
                     try:
                         await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
@@ -110,4 +110,3 @@ class ConnectsCog(commands.Cog):
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(ConnectsCog(bot))
-

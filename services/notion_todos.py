@@ -93,7 +93,7 @@ class Notion_todos:
                     # Recursively call the async version
                     todos.extend(await self._extract_todos(child['id'], only_unchecked=only_unchecked, start_date=start_date, end_date=end_date))
             except Exception as block_process_e: # Catch exceptions during block processing
-                get_logger("notion.todos", {"userId": user_id if 'user_id' in locals() else None}).warning(
+                get_logger("notion.todos", {"userId": None}).warning(
                     f"[{block_id}] - Failed to process block {child.get('id', 'N/A')}: {block_process_e}",
                     extra={"block_id": child.get('id', 'N/A'), "root_block": block_id},
                 )

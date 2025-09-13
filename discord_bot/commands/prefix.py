@@ -76,16 +76,16 @@ class PrefixCommands:
                 log.info("made channel private")
             except discord.Forbidden:
                 log.error("no permission to set @everyone perms")
-            except discord.HTTPException as e:
+            except discord.HTTPException:
                 log.exception("http error setting @everyone perms")
 
         except discord.Forbidden:
             log.error("no permission to set perms for author")
             # permission_granted remains False
-        except discord.HTTPException as e:
+        except discord.HTTPException:
             log.exception("http error setting perms for author")
             # permission_granted remains False
-        except Exception as e:
+        except Exception:
             log.exception("unexpected error setting perms for author")
             # permission_granted remains False
 
@@ -135,7 +135,7 @@ class PrefixCommands:
             final_content = webhook_status_message
             await placeholder_message.edit(content=final_content)
 
-        except Exception as e:
+        except Exception:
             log.exception("error sending webhook")
             # Edit placeholder with error message if possible
             if placeholder_message:
@@ -143,7 +143,9 @@ class PrefixCommands:
             else: # Fallback if placeholder wasn't sent (shouldn't happen in this flow)
                  await ctx.send(f"An error occurred during registration for '{text}', {ctx.author.mention}.")
     async def unregister_cmd(self, ctx: commands.Context, full_command_text: str):
-        logger.info(f"Attempting to execute unregister_cmd for message: {ctx.message.content}, full_command_text: '{full_command_text}'")
+        payload = {"userId": str(ctx.author.id), "channelId": str(ctx.channel.id), "sessionId": f"{ctx.channel.id}_{ctx.author.id}"}
+        log = get_logger("cmd.prefix.unregister", payload)
+        log.info("entered", extra={"full_text": full_command_text})
         # Send placeholder message before webhook call
         placeholder_message = await ctx.send(f"Processing unregistration for {ctx.author.mention}...")
         """
@@ -152,7 +154,7 @@ class PrefixCommands:
         Args:
             ctx: Command context
         """
-        logger.info(f"Unregister command from {ctx.author}. Attempting to send webhook...")
+        log.info("sending webhook", extra={"author": str(ctx.author)})
         try:
             success, data = await webhook_service.send_webhook(
                 ctx, # Pass context for user/channel info extraction
@@ -160,7 +162,7 @@ class PrefixCommands:
                 message=full_command_text,
                 result={}
             )
-            logger.info(f"Webhook send_webhook returned success: {success}, data: {data} for unregister command")
+            log.info("webhook returned", extra={"success": success})
             
             # Check if data is a dictionary and contains 'output'
             # Check if data is a dictionary with 'output' or a list containing one
@@ -168,28 +170,28 @@ class PrefixCommands:
             if success and data:
                 if isinstance(data, dict) and "output" in data:
                     output_message = str(data["output"])
-                    logger.info(f"Webhook for unregister command succeeded for {ctx.author} with dictionary response.")
+                    log.info("webhook success: dict response")
                 elif isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
                     output_message = str(data[0]["output"])
-                    logger.info(f"Webhook for unregister command succeeded for {ctx.author} with list response.")
+                    log.info("webhook success: list response")
 
             # Determine final content based on webhook result
             final_content = None
             if output_message:
-               final_content = output_message
+                final_content = output_message
             elif success:
-               logger.info(f"Webhook succeeded but no valid output found in response from {ctx.author}")
-               final_content = f"Unregistration attempt processed, {ctx.author.mention}."
+                log.info("webhook success but no output")
+                final_content = f"Unregistration attempt processed, {ctx.author.mention}."
             else:
-               logger.warning(f"Webhook for unregister command failed for {ctx.author}. Success: {success}, Data: {data}")
-               error_detail = f" (Error: {data})" if data else ""
-               final_content = f"Unregistration attempt failed, {ctx.author.mention}.{error_detail}"
+                log.warning("webhook failed", extra={"success": success})
+                error_detail = f" (Error: {data})" if data else ""
+                final_content = f"Unregistration attempt failed, {ctx.author.mention}.{error_detail}"
 
             # Edit the placeholder message with the final content
             await placeholder_message.edit(content=final_content)
 
-        except Exception as e:
-            logger.error(f"Error sending webhook for unregister command for {ctx.author}: {e}", exc_info=True)
+        except Exception:
+            log.exception("error sending webhook")
             # Edit placeholder with error message if possible
             if placeholder_message:
                  await placeholder_message.edit(content=f"An error occurred during unregistration, {ctx.author.mention}.")

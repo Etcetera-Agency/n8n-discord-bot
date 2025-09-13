@@ -1,7 +1,8 @@
 import discord # type: ignore
 from discord.ext import commands # type: ignore # Import commands for bot type hinting
 import json # Added for Notion ToDo JSON parsing
-from config import logger, Strings, constants # Added constants
+from config import Strings, constants # Added constants
+from services.logging_utils import get_logger
 from services.survey_models import SurveyStep
 from services import survey_manager, webhook_service
 from services.notion_todos import Notion_todos # Added for Notion ToDo fetching
@@ -22,6 +23,14 @@ async def cleanup_survey_message(interaction: discord.Interaction, survey: Surve
     Attempts to disable the button on the original message and then delete it.
     Handles potential errors like message not found or missing permissions gracefully.
     """
+    log = get_logger(
+        "cmd.survey.cleanup_message",
+        {
+            "userId": getattr(survey, "user_id", None),
+            "channelId": str(getattr(getattr(interaction, "channel", None), "id", "")) if interaction else None,
+            "sessionId": getattr(survey, "session_id", None),
+        },
+    )
     if not survey.current_question_message_id:
         # logger.debug(f"[{survey.user_id if survey else 'N/A'}] - cleanup_survey_message: No message ID to clean up.")
         return # Added missing return
@@ -41,19 +50,19 @@ async def cleanup_survey_message(interaction: discord.Interaction, survey: Surve
                 if changed:
                     await original_msg.edit(view=view)
         except Exception as e_edit:
-            logger.warning(f"Could not disable button on message {survey.current_question_message_id}: {e_edit}")
+            log.warning(f"could not disable button: {e_edit}")
         # Delete the message
         await original_msg.delete()
         survey.current_question_message_id = None # Clear ID after deletion
     except discord.NotFound:
-        logger.warning(f"Original survey question message {survey.current_question_message_id} not found for deletion.")
+        log.warning("original message not found for deletion")
         survey.current_question_message_id = None # Clear ID if not found
     except discord.Forbidden:
-         logger.error(f"Bot lacks permissions to edit/delete message {survey.current_question_message_id} in channel {interaction.channel.id}")
+         log.error("missing permissions to edit/delete message")
          # Cannot delete, but clear the ID so we don't try again
          survey.current_question_message_id = None
-    except Exception as e_cleanup:
-        logger.error(f"Error during survey message cleanup: {e_cleanup}")
+    except Exception:
+        log.exception("error during cleanup")
         # Clear ID even on other errors to prevent retries
         survey.current_question_message_id = None
 
@@ -62,14 +71,21 @@ async def handle_modal_error(interaction: discord.Interaction):
     """Standard error handler for modal on_submit exceptions.
     Attempts to send an ephemeral error message to the user.
     """
+    log = get_logger(
+        "cmd.survey.modal_error",
+        {
+            "userId": str(getattr(getattr(interaction, "user", None), "id", "")) if interaction else None,
+            "channelId": str(getattr(getattr(interaction, "channel", None), "id", "")) if interaction else None,
+        },
+    )
     try:
         if interaction.response.is_done():
             await interaction.followup.send(Strings.MODAL_SUBMIT_ERROR, ephemeral=True)
         else:
             # If defer() failed or wasn't called, try initial response
             await interaction.response.send_message(Strings.MODAL_SUBMIT_ERROR, ephemeral=True)
-    except Exception as e_resp:
-         logger.error(f"Failed to send error response in modal: {e_resp}")
+    except Exception:
+         log.exception("failed to send error response in modal")
 
 
 async def process_survey_flag(
@@ -83,6 +99,14 @@ async def process_survey_flag(
 
     The `flag` value from router is ignored; we infer based on `state`.
     """
+    log = get_logger(
+        "cmd.survey.process_flag",
+        {
+            "userId": getattr(state, "user_id", None),
+            "channelId": str(getattr(channel, "id", "")) if channel else None,
+            "sessionId": getattr(state, "session_id", None),
+        },
+    )
     try:
         # Advance after successful step handling
         state.next_step()
@@ -94,8 +118,8 @@ async def process_survey_flag(
         else:
             if continue_cb:
                 await continue_cb(channel, state)
-    except Exception as e:
-        logger.error(f"Error processing survey continuation/end: {e}", exc_info=True)
+    except Exception:
+        log.exception("error processing continuation/end")
 
 
 # ==================================
@@ -116,30 +140,30 @@ async def handle_survey_incomplete(bot: commands.Bot, session_id: str) -> None: 
     try:
         channel = await bot.fetch_channel(int(survey.channel_id))
     except (discord.NotFound, discord.Forbidden):
-         logger.warning(f"Could not fetch channel {survey.channel_id} via bot instance.")
-    except Exception as e:
-         logger.error(f"Error fetching channel {survey.channel_id} via bot instance: {e}")
+         get_logger("cmd.survey.incomplete", {"sessionId": session_id, "channelId": survey.channel_id, "userId": survey.user_id}).warning("could not fetch channel")
+    except Exception:
+         get_logger("cmd.survey.incomplete", {"sessionId": session_id, "channelId": survey.channel_id, "userId": survey.user_id}).exception("error fetching channel")
     if not channel:
-        logger.warning(f"Channel {survey.channel_id} could not be found for incomplete survey session {session_id}")
+        get_logger("cmd.survey.incomplete", {"sessionId": session_id, "channelId": survey.channel_id, "userId": survey.user_id}).warning("channel not found for incomplete survey")
         return
 
     incomplete = survey.incomplete_steps()
     # Validate IDs before webhook call
     if not survey.user_id or not survey.channel_id or not survey.session_id:
-        logger.error(f"Missing required IDs for incomplete survey - user: {survey.session_id}, channel: {survey.channel_id}")
+        get_logger("cmd.survey.incomplete", {"sessionId": session_id}).error("missing required IDs for incomplete survey")
         return
 
     # Notify user about timeout
     try:
-        logger.info(f"Sending timeout message to user {survey.user_id} in channel {survey.channel_id}")
+        get_logger("cmd.survey.incomplete", {"sessionId": session_id, "userId": survey.user_id, "channelId": survey.channel_id}).info("sending timeout message")
         await channel.send(f"<@{survey.user_id}> {Strings.TIMEOUT_MESSAGE}")
-        logger.info(f"Successfully sent timeout message to user {survey.user_id}")
-    except Exception as e:
-        logger.error(f"Failed to send timeout message to user {survey.user_id}: {e}")
+        get_logger("cmd.survey.incomplete", {"sessionId": session_id, "userId": survey.user_id, "channelId": survey.channel_id}).info("timeout message sent")
+    except Exception:
+        get_logger("cmd.survey.incomplete", {"sessionId": session_id, "userId": survey.user_id, "channelId": survey.channel_id}).exception("failed to send timeout message")
 
     # End survey with cleanup + removal
     await survey_manager.end_survey(survey.channel_id)
-    logger.info(f"Survey for user {survey.session_id} (session {session_id}) timed out with incomplete steps: {incomplete}")
+    get_logger("cmd.survey.incomplete", {"sessionId": session_id, "userId": survey.user_id, "channelId": survey.channel_id}).info("survey timed out", extra={"incomplete": incomplete})
 
 
 async def finish_empty_survey(
@@ -150,10 +174,12 @@ async def finish_empty_survey(
     session_id: str,
 ) -> None:
     """Create and immediately finish a survey with no steps."""
+    log = get_logger(
+        "cmd.survey.finish_empty",
+        {"userId": user_id, "channelId": channel_id, "sessionId": session_id},
+    )
     if not channel:
-        logger.warning(
-            f"Channel {channel_id} not found while finishing empty survey session {session_id}"
-        )
+        log.warning("channel not found while finishing empty survey")
         return
     try:
         try:
@@ -170,13 +196,11 @@ async def finish_empty_survey(
         try:
             await webhook_service.send_webhook_with_retry(None, payload, {})
         except Exception as e:
-            logger.warning(
-                f"check_channel failed to refresh todo_url for channel {channel_id}: {e}"
-            )
+            log.warning("check_channel failed to refresh todo_url", extra={"error": str(e)})
         minimal.current_index = len(minimal.steps)
         await finish_survey(bot, channel, minimal)
-    except ValueError as e:
-        logger.error(f"Failed to create minimal survey for channel {channel_id}: {e}")
+    except ValueError:
+        log.exception("failed to create minimal survey")
         await channel.send(
             f"<@{user_id}> {Strings.SURVEY_START_ERROR}: Failed to initialize survey."
         )
@@ -186,11 +210,15 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
     Checks for existing sessions, verifies channel registration with n8n,
     retrieves, filters, and orders steps, then starts the survey by asking the first step.
     """
-    logger.info(f"Starting daily survey for channel {channel_id} (user: {user_id})")
+    log = get_logger(
+        "cmd.survey.start_daily",
+        {"userId": user_id, "channelId": str(channel_id), "sessionId": session_id},
+    )
+    log.info("start")
     # Check for existing survey first
     existing_survey = survey_manager.get_survey(channel_id)
     if existing_survey:
-        logger.info(f"Resuming existing survey in channel {channel_id}")
+        log.info("resuming existing survey")
         step = existing_survey.current_step()
         if existing_survey.active_view:
             existing_survey.active_view.stop()
@@ -200,9 +228,7 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
                 await ask_dynamic_step(bot, channel, existing_survey, step)
                 return
         else:
-            logger.warning(
-                f"Existing survey found for channel {channel_id} but no current step. Ending and starting new."
-            )
+            log.warning("existing survey without current step; restarting")
             await survey_manager.end_survey(channel_id)
 
 
@@ -213,18 +239,14 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
         "sessionId": session_id,
     }
     headers = {}
-    logger.info(
-        f"First check_channel call for channel {channel_id} with payload: {payload}"
-    )
+    log.debug("first check_channel", extra={"payload": payload})
     success, data = await webhook_service.send_webhook_with_retry(
         None, payload, headers
     )
-    logger.info(
-        f"First check_channel webhook response: success={success}, raw_data={data}"
-    )
+    log.info("check_channel response", extra={"success": success})
     resp = data.get("output") if data else None
     if not success or not resp or resp.get("output") is not True:
-        logger.warning(f"Channel {channel_id} not registered for surveys")
+        log.warning("channel not registered for surveys")
         return
 
     # Check channel response data
@@ -232,18 +254,16 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
     # logger.debug(f"Extracted steps from webhook data: {steps}") # Log extracted steps at debug level
     channel = await bot.fetch_channel(channel_id)
     if not channel:
-        logger.warning(f"Channel {channel_id} not found")
+        log.warning("channel not found")
         return
 
     # Handle cases based on received data
     if not steps:
-        logger.info(
-            f"No survey steps provided for channel {channel_id}, finishing survey."
-        )
+        log.info("no steps provided; finishing survey")
         await finish_empty_survey(bot, channel, user_id, channel_id, session_id)
         return
 
-    logger.info(f"Starting survey with steps: {steps}")
+    log.info("starting survey", extra={"steps": steps})
 
     # The step ordering code is not needed and has been removed.
 
@@ -253,13 +273,11 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
     final_steps = [step for step in constants.SURVEY_FLOW if step in steps]
 
     if not final_steps:
-        logger.info(
-            f"No *required* survey steps found for channel {channel_id} after filtering {steps}."
-        )
+        log.info("no required steps after filtering")
         await finish_empty_survey(bot, channel, user_id, channel_id, session_id)
         return
 
-    logger.info(f"Starting new survey for user {user_id} in channel {channel_id} with steps: {final_steps}")
+    log.info("create survey", extra={"steps": final_steps})
 
     # Create the survey object with explicit step models
     step_models = [SurveyStep(name=s) for s in final_steps]
@@ -270,14 +288,14 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
     if first_step:
         channel = await bot.fetch_channel(int(channel_id))
         if channel:
-            logger.info(f"Fetched channel for survey: ID={channel.id}, Name={channel.name} (user: {user_id})") # Added log
+            log.debug("fetched channel for survey", extra={"channel": str(channel.id)})
             await ask_dynamic_step(bot, channel, survey, first_step) # Pass bot instance
         else:
-            logger.error(f"Could not fetch channel {channel_id} to ask first survey step.")
+            log.error("could not fetch channel to ask first step")
             await survey_manager.end_survey(channel_id) # Clean up unusable survey by channel_id
     else:
         # Should not happen if final_steps is not empty, but handle defensively
-        logger.error(f"Survey created for channel {channel_id} but no first step available. Steps: {final_steps}")
+        log.error("survey created but no first step available")
         channel = await bot.fetch_channel(int(channel_id))
         if channel:
             await channel.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}: No steps found.")
@@ -288,6 +306,13 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
     Sends a message with the step question and a 'Ввести' button.
     The button's callback triggers the appropriate survey-specific modal.
     """
+    # Initialize contextual logger for this step
+    log = get_logger(
+        "cmd.survey.ask_step",
+        {"userId": getattr(survey, "user_id", None), "channelId": str(getattr(channel, "id", "")), "sessionId": getattr(survey, "session_id", None)},
+    )
+    logger = log  # Backward-compatible alias within this function
+
     # Validate inputs
     if not channel or not survey or not step_name:
         logger.error(f"Invalid ask_dynamic_step params - channel: {channel}, survey: {survey}, step: {step_name}")
@@ -551,6 +576,11 @@ async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, surv
                 logger.error(f"Error continuing survey after step failure: {e2}")
 async def continue_survey(bot: commands.Bot, channel: discord.TextChannel, survey: SurveyFlow) -> None: # Added bot parameter, Type hint updated
     """Continues the survey to the next step or finishes it."""
+    log = get_logger(
+        "cmd.survey.continue",
+        {"userId": getattr(survey, "user_id", None), "channelId": str(getattr(channel, "id", "")), "sessionId": getattr(survey, "session_id", None)},
+    )
+    logger = log
     logger.info(f"[{survey.session_id}] - Entering continue_survey. is_done(): {survey.is_done()}, Current index: {survey.current_index}, Total steps: {len(survey.steps)}")
     current_survey = survey if str(survey.channel_id) == str(channel.id) else survey_manager.get_survey(str(channel.id))
     if not current_survey:
@@ -583,6 +613,11 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
     and cleans up the survey session.
     """
     # Prefer the provided object; fall back to manager
+    log = get_logger(
+        "cmd.survey.finish",
+        {"userId": getattr(survey, "user_id", None), "channelId": str(getattr(channel, "id", "")), "sessionId": getattr(survey, "session_id", None)},
+    )
+    logger = log
     current_survey = survey if str(survey.channel_id) == str(channel.id) else survey_manager.get_survey(str(channel.id))
     if not current_survey or not current_survey.is_done():
         return
