@@ -137,13 +137,8 @@ async def handle_survey_incomplete(bot: commands.Bot, session_id: str) -> None: 
     except Exception as e:
         logger.error(f"Failed to send timeout message to user {survey.user_id}: {e}")
 
-    # Cleanup UI/messages before removing the survey
-    try:
-        await survey.cleanup()
-    except Exception as e:
-        logger.warning(f"Cleanup failed during incomplete handling for session {session_id}: {e}")
-
-    survey_manager.remove_survey(survey.channel_id) # Remove by channel_id
+    # End survey with cleanup + removal
+    await survey_manager.end_survey(survey.channel_id)
     logger.info(f"Survey for user {survey.session_id} (session {session_id}) timed out with incomplete steps: {incomplete}")
 
 
@@ -206,9 +201,9 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
                 return
         else:
             logger.warning(
-                f"Existing survey found for channel {channel_id} but no current step. Removing and starting new."
+                f"Existing survey found for channel {channel_id} but no current step. Ending and starting new."
             )
-            survey_manager.remove_survey(channel_id)
+            await survey_manager.end_survey(channel_id)
 
 
     # Check if channel is registered
@@ -279,14 +274,14 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
             await ask_dynamic_step(bot, channel, survey, first_step) # Pass bot instance
         else:
             logger.error(f"Could not fetch channel {channel_id} to ask first survey step.")
-            survey_manager.remove_survey(channel_id) # Clean up unusable survey by channel_id
+            await survey_manager.end_survey(channel_id) # Clean up unusable survey by channel_id
     else:
         # Should not happen if final_steps is not empty, but handle defensively
         logger.error(f"Survey created for channel {channel_id} but no first step available. Steps: {final_steps}")
         channel = await bot.fetch_channel(int(channel_id))
         if channel:
             await channel.send(f"<@{user_id}> {Strings.SURVEY_START_ERROR}: No steps found.")
-        survey_manager.remove_survey(channel_id) # Clean up by channel_id
+        await survey_manager.end_survey(channel_id) # Clean up by channel_id
 
 async def ask_dynamic_step(bot: commands.Bot, channel: discord.TextChannel, survey: SurveyFlow, step_name: str) -> None: # Added bot parameter, Type hint updated
     """Asks a single step of the survey.
@@ -659,10 +654,5 @@ async def finish_survey(bot: commands.Bot, channel: discord.TextChannel, survey:
         # Clean up the survey session
         if current_survey:  # Ensure current_survey exists before trying to remove
             # Centralized cleanup to remove buttons/messages
-            try:
-                await current_survey.cleanup()
-            except Exception as e:
-                logger.warning(f"[{current_survey.session_id}] - Survey cleanup failed: {e}")
-
-            survey_manager.remove_survey(current_survey.channel_id)
-            logger.info(f"[{current_survey.session_id}] - Survey session removed for channel {current_survey.channel_id}.")
+            await survey_manager.end_survey(current_survey.channel_id)
+            logger.info(f"[{current_survey.session_id}] - Survey session ended for channel {current_survey.channel_id}.")

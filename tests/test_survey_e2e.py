@@ -127,7 +127,7 @@ async def test_survey_monday_full(monkeypatch):
     p4 = make_payload("Survey Step Submission Payload (Day Off)", "day_off_nextweek")
     r4 = await router.dispatch(p4)
     assert r4 == {"output": "day"}
-    survey_manager.remove_survey("123")
+    await survey_manager.end_survey("123")
     assert survey_manager.get_survey("123") is None
 
 
@@ -174,7 +174,7 @@ async def test_survey_tuesday_missing_nextweek(monkeypatch):
     p4 = make_payload("Survey Step Submission Payload (Day Off)", "day_off_nextweek")
     r = await router.dispatch(p4)
     assert r == {"output": "day"}
-    survey_manager.remove_survey("123")
+    await survey_manager.end_survey("123")
 
 
 @pytest.mark.asyncio
@@ -221,5 +221,5 @@ async def test_survey_friday_full(monkeypatch):
     survey_manager.get_survey("123").next_step()
     r = await router.dispatch(make_payload("Survey Step Submission Payload (Day Off)", "day_off_nextweek"))
     assert r == {"output": "day"}
-    survey_manager.remove_survey("123")
+    await survey_manager.end_survey("123")
     assert survey_manager.get_survey("123") is None

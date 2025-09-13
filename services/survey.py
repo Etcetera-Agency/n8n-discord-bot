@@ -245,6 +245,27 @@ class SurveyManager:
         else:
             logger.warning(f"Attempted to remove survey for channel {key}, but none was found")
 
+    async def end_survey(self, channel_id: str) -> None:
+        """Cleanup UI/messages and remove the survey.
+
+        Ensures cleanup precedes removal so no UI elements are left behind.
+        Safe to call if no survey exists.
+        """
+        key = str(channel_id)
+        survey = self.surveys.get(key)
+        if not survey:
+            logger.debug(f"end_survey: no active survey for channel {key}")
+            return
+        try:
+            await survey.cleanup()
+        except Exception as e:
+            logger.warning(f"end_survey: cleanup failed for channel {key}: {e}")
+        # Stop view if any, then remove from indexes
+        try:
+            self.remove_survey(channel_id)
+        except Exception as e:
+            logger.error(f"end_survey: failed to remove survey for channel {key}: {e}")
+
 
 # Global survey manager instance
 survey_manager = SurveyManager()

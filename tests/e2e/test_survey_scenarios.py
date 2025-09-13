@@ -222,6 +222,6 @@ async def test_survey_scenario(monkeypatch, scenario_path, setup_env):
             if current:
                 current.next_step()
                 if current.is_done():
-                    router.survey_manager.remove_survey("123")
+                    await router.survey_manager.end_survey("123")
     finally:
         log.handlers.clear()

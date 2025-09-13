@@ -156,7 +156,7 @@ async def test_dispatch_survey_end(tmp_path, monkeypatch):
         f.write(f"Output: {result}\n")
     assert result == {"output": "done"}
     assert survey_manager.get_survey("123") is not None
-    survey_manager.remove_survey("123")
+    await survey_manager.end_survey("123")
 
 
 @pytest.mark.asyncio
@@ -186,7 +186,7 @@ async def test_dispatch_day_off_results(tmp_path, monkeypatch):
     lookup = load_notion_lookup()
     assert survey.todo_url == lookup["results"][0]["to_do"]
     assert survey.results["day_off_nextweek"].value == ["2025-09-16", "2025-09-21"]
-    survey_manager.remove_survey("123")
+    await survey_manager.end_survey("123")
 
 
 @pytest.mark.asyncio
