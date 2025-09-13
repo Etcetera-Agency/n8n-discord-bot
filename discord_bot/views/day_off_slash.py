@@ -1,7 +1,19 @@
 import discord # type: ignore
 from typing import Optional
 import datetime
-from config import logger, constants, Strings
+from config import constants, Strings
+from services.logging_utils import get_logger
+
+
+def _log(step: str, *, user_id: str | None = None, channel_id: str | int | None = None, session_id: str | None = None):
+    payload = {}
+    if user_id is not None:
+        payload["userId"] = str(user_id)
+    if channel_id is not None:
+        payload["channelId"] = str(channel_id)
+    if session_id is not None:
+        payload["sessionId"] = str(session_id)
+    return get_logger(step, payload)
 
 class DayOffButton_slash(discord.ui.Button):
     def __init__(self, *, label: str, custom_id: str, cmd_or_step: str):
@@ -14,27 +26,28 @@ class DayOffButton_slash(discord.ui.Button):
         self.is_selected = False
         
     async def callback(self, interaction: discord.Interaction):
+        log = _log("view.day_off_slash", user_id=str(interaction.user.id), channel_id=interaction.channel.id)
         # First, acknowledge the interaction to prevent timeout
-        logger.debug(f"[Channel {interaction.channel.id}] - Attempting to defer interaction response for DayOffButton_slash")
+        log.debug(f"[Channel {interaction.channel.id}] - Attempting to defer interaction response for DayOffButton_slash")
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=False)
-        logger.debug(f"[Channel {interaction.channel.id}] - Interaction response deferred for DayOffButton_slash")
+        log.debug(f"[Channel {interaction.channel.id}] - Interaction response deferred for DayOffButton_slash")
         
         # Get the original message
         message = interaction.message
         if message:
             # Add processing reaction
             try:
-                logger.debug(f"[Channel {interaction.channel.id}] - Attempting to add processing reaction to message {message.id}")
+                log.debug(f"[Channel {interaction.channel.id}] - Attempting to add processing reaction to message {message.id}")
                 await message.add_reaction(Strings.PROCESSING)
-                logger.debug(f"[Channel {interaction.channel.id}] - Added processing reaction to message {message.id}")
+                log.debug(f"[Channel {interaction.channel.id}] - Added processing reaction to message {message.id}")
             except Exception as e:
-                logger.error(f"[Channel {interaction.channel.id}] - Error adding processing reaction to message {message.id}: {e}")
+                log.error(f"[Channel {interaction.channel.id}] - Error adding processing reaction to message {message.id}: {e}")
             
         try:
             # Toggle selection
             self.is_selected = not self.is_selected
-            logger.debug(f"[Channel {interaction.channel.id}] - Button '{self.label}' selection toggled to: {self.is_selected}")
+            log.debug(f"[Channel {interaction.channel.id}] - Button '{self.label}' selection toggled to: {self.is_selected}")
             self.style = discord.ButtonStyle.primary if self.is_selected else discord.ButtonStyle.secondary
             
             # Get parent view and update selected days
@@ -43,26 +56,26 @@ class DayOffButton_slash(discord.ui.Button):
                 if self.is_selected:
                     if self.label not in view.selected_days:
                         view.selected_days.append(self.label)
-                        logger.debug(f"[Channel {interaction.channel.id}] - Added '{self.label}' to selected_days. Current selected_days: {view.selected_days}")
+                        log.debug(f"[Channel {interaction.channel.id}] - Added '{self.label}' to selected_days. Current selected_days: {view.selected_days}")
                 else:
                     if self.label in view.selected_days:
                         view.selected_days.remove(self.label)
-                        logger.debug(f"[Channel {interaction.channel.id}] - Removed '{self.label}' from selected_days. Current selected_days: {view.selected_days}")
+                        log.debug(f"[Channel {interaction.channel.id}] - Removed '{self.label}' from selected_days. Current selected_days: {view.selected_days}")
             
             # Update the message with the new button states
-            logger.debug(f"[Channel {interaction.channel.id}] - Attempting to edit message {interaction.message.id} with updated view")
+            log.debug(f"[Channel {interaction.channel.id}] - Attempting to edit message {interaction.message.id} with updated view")
             await interaction.message.edit(view=self.view)
-            logger.debug(f"[Channel {interaction.channel.id}] - Message {interaction.message.id} edited with updated view")
+            log.debug(f"[Channel {interaction.channel.id}] - Message {interaction.message.id} edited with updated view")
             
             # Show success reaction for survey steps
             if message:
-                logger.debug(f"[Channel {interaction.channel.id}] - Attempting to remove processing reaction from message {message.id}")
+                log.debug(f"[Channel {interaction.channel.id}] - Attempting to remove processing reaction from message {message.id}")
                 await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
-                logger.debug(f"[Channel {interaction.channel.id}] - Removed processing reaction from message {message.id}")
+                log.debug(f"[Channel {interaction.channel.id}] - Removed processing reaction from message {message.id}")
                 
         except Exception as e:
-            logger.error(f"Error in day off button callback: {e}")
-            logger.debug(f"Error details - custom_id: {self.custom_id}, interaction: {interaction.data if interaction else None}")
+            log.error(f"Error in day off button callback: {e}")
+            log.debug(f"Error details - custom_id: {self.custom_id}, interaction: {interaction.data if interaction else None}")
             if message:
                 await message.add_reaction(Strings.ERROR)
                 await message.remove_reaction(Strings.PROCESSING, interaction.client.user)
@@ -82,37 +95,38 @@ class ConfirmButton_slash(discord.ui.Button):
         )
         
     async def callback(self, interaction: discord.Interaction):
+        log = _log("view.day_off_slash", user_id=str(interaction.user.id), channel_id=interaction.channel.id)
         from services import webhook_service
         view = self.view
         if isinstance(view, DayOffView_slash):
             # First, acknowledge the interaction to prevent timeout
-            logger.debug(f"[Channel {interaction.channel.id}]  - Attempting to defer interaction response for ConfirmButton_slash")
+            log.debug(f"[Channel {interaction.channel.id}]  - Attempting to defer interaction response for ConfirmButton_slash")
             if not interaction.response.is_done():
                 await interaction.response.defer(ephemeral=False)
-            logger.debug(f"[Channel {interaction.channel.id}] - Interaction response deferred for ConfirmButton_slash")
+            log.debug(f"[Channel {interaction.channel.id}] - Interaction response deferred for ConfirmButton_slash")
             
             # Delete buttons message
             if view.buttons_msg:
                 try:
-                    logger.debug(f"[Channel {interaction.channel.id}] - Attempting to delete buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
+                    log.debug(f"[Channel {interaction.channel.id}] - Attempting to delete buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
                     await view.buttons_msg.delete()
-                    logger.debug(f"[Channel {interaction.channel.id}] - Deleted buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
+                    log.debug(f"[Channel {interaction.channel.id}] - Deleted buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
                     view.stop() # Stop the view since buttons are gone
                 except Exception as e:
-                    logger.error(f"[Channel {interaction.channel.id}] - Error deleting buttons message {view.buttons_msg.id}: {e}")
+                    log.error(f"[Channel {interaction.channel.id}] - Error deleting buttons message {view.buttons_msg.id}: {e}")
 
             # Add processing reaction to command message
             if view.command_msg:
                 try:
-                    logger.debug(f"[Channel {interaction.channel.id}] - Attempting to add processing reaction to message {view.command_msg.id}")
+                    log.debug(f"[Channel {interaction.channel.id}] - Attempting to add processing reaction to message {view.command_msg.id}")
                     await view.command_msg.add_reaction(Strings.PROCESSING)
-                    logger.debug(f"[Channel {interaction.channel.id}] - Added processing reaction to command message {view.command_msg.id}")
+                    log.debug(f"[Channel {interaction.channel.id}] - Added processing reaction to command message {view.command_msg.id}")
                 except Exception as e:
-                    logger.error(f"[Channel {interaction.channel.id}] - Error adding processing reaction to command message {view.command_msg.id}: {e}")
+                    log.error(f"[Channel {interaction.channel.id}] - Error adding processing reaction to command message {view.command_msg.id}: {e}")
 
             try:
                 # Convert selected days to dates
-                logger.debug(f"[Channel {interaction.channel.id}] - Selected days before processing: {view.selected_days}")
+                log.debug(f"[Channel {interaction.channel.id}] - Selected days before processing: {view.selected_days}")
                 dates = []
                 for day in sorted(view.selected_days, key=lambda x: view.weekday_map[x]):
                     date = view.get_date_for_day(day)
@@ -127,27 +141,27 @@ class ConfirmButton_slash(discord.ui.Button):
                 ]
                 logger.debug(f"[Channel {interaction.channel.id}] - Formatted dates for webhook: {formatted_dates}")
 
-                logger.debug(f"[Channel {interaction.channel.id}] - Attempting to send webhook for regular command (ConfirmButton_slash): {view.cmd_or_step}")
+                log.debug(f"[Channel {interaction.channel.id}] - Attempting to send webhook for regular command (ConfirmButton_slash): {view.cmd_or_step}")
                 success, data = await webhook_service.send_webhook(
                      interaction, # Use interaction directly
                      command=view.cmd_or_step,
                      status="ok",
                      result={"value": formatted_dates}
                  )
-                logger.debug(f"[Channel {interaction.channel.id}] - Webhook response for regular command (ConfirmButton_slash): success={success}, data={data}")
+                log.debug(f"[Channel {interaction.channel.id}] - Webhook response for regular command (ConfirmButton_slash): success={success}, data={data}")
 
                 # Update command message based on webhook response
                 if view.command_msg:
                     try:
                         await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                         if success and data and "output" in data:
-                            logger.debug(f"[Channel {interaction.channel.id}] - Attempting to edit command message {getattr(view.command_msg, 'id', 'N/A')} with output: {data['output']}")
+                            log.debug(f"[Channel {interaction.channel.id}] - Attempting to edit command message {getattr(view.command_msg, 'id', 'N/A')} with output: {data['output']}")
                             output_content = data["output"]
                             if view.selected_days and Strings.MENTION_MESSAGE not in output_content: # Check if any days were selected AND message is not already present
                                 output_content += Strings.MENTION_MESSAGE
                             await view.command_msg.edit(content=output_content)
                         else:
-                            logger.warning(f"[Channel {interaction.channel.id}] - Webhook response indicates failure or no output. Editing command message {view.command_msg.id} with error.")
+                            log.warning(f"[Channel {interaction.channel.id}] - Webhook response indicates failure or no output. Editing command message {view.command_msg.id} with error.")
                             error_msg = Strings.DAYOFF_ERROR.format(
                                 days=', '.join(dates),
                                 error=Strings.GENERAL_ERROR
@@ -155,10 +169,10 @@ class ConfirmButton_slash(discord.ui.Button):
                             await view.command_msg.edit(content=error_msg)
                             await view.command_msg.add_reaction(Strings.ERROR)
                     except Exception as edit_error:
-                        logger.error(f"[Channel {interaction.channel.id}] - Error editing command message {view.command_msg.id}: {edit_error}")
+                        log.error(f"[Channel {interaction.channel.id}] - Error editing command message {view.command_msg.id}: {edit_error}")
 
             except Exception as e:
-                logger.error(f"Error in confirm button: {e}")
+                log.error(f"Error in confirm button: {e}")
                 if view.command_msg:
                     try:
                         await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
@@ -169,7 +183,7 @@ class ConfirmButton_slash(discord.ui.Button):
                         await view.command_msg.edit(content=error_msg)
                         await view.command_msg.add_reaction(Strings.ERROR)
                     except Exception as edit_error:
-                        logger.error(f"[Channel {interaction.channel.id}] - Error editing command message {view.command_msg.id} after exception: {edit_error}")
+                        log.error(f"[Channel {interaction.channel.id}] - Error editing command message {view.command_msg.id} after exception: {edit_error}")
 class DeclineButton_slash(discord.ui.Button):
     def __init__(self):
         super().__init__(
@@ -179,61 +193,62 @@ class DeclineButton_slash(discord.ui.Button):
         )
         
     async def callback(self, interaction: discord.Interaction):
+        log = _log("view.day_off_slash", user_id=str(interaction.user.id), channel_id=interaction.channel.id)
         from services import webhook_service
         view = self.view
         if isinstance(view, DayOffView_slash):
-            logger.info(f"DECLINE BUTTON STARTED - User: {interaction.user}, Command: {view.cmd_or_step}")
-            logger.debug(f"Decline button clicked by {interaction.user}")
-            logger.debug(f"View has_survey: {view.has_survey}, cmd_or_step: {view.cmd_or_step}")
+            log.info(f"DECLINE BUTTON STARTED - User: {interaction.user}, Command: {view.cmd_or_step}")
+            log.debug(f"Decline button clicked by {interaction.user}")
+            log.debug(f"View has_survey: {view.has_survey}, cmd_or_step: {view.cmd_or_step}")
             
             # Immediately respond to interaction
             try:
-                logger.debug(f"[Channel {interaction.channel.id}] - Attempting to defer interaction response for DeclineButton_slash")
+                log.debug(f"[Channel {interaction.channel.id}] - Attempting to defer interaction response for DeclineButton_slash")
                 await interaction.response.defer(ephemeral=False)
-                logger.debug(f"[Channel {interaction.channel.id}] - Interaction deferred for DeclineButton_slash")
+                log.debug(f"[Channel {interaction.channel.id}] - Interaction deferred for DeclineButton_slash")
             except Exception as e:
-                logger.error(f"Failed to defer interaction: {e}")
+                log.error(f"Failed to defer interaction: {e}")
                 return
             # Delete buttons message
             if view.buttons_msg:
                 try:
-                    logger.debug(f"[Channel {interaction.channel.id}] - Attempting to delete buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
+                    log.debug(f"[Channel {interaction.channel.id}] - Attempting to delete buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
                     await view.buttons_msg.delete()
-                    logger.debug(f"[Channel {interaction.channel.id}] - Deleted buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
+                    log.debug(f"[Channel {interaction.channel.id}] - Deleted buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
                     view.stop() # Stop the view since buttons are gone
                 except Exception as e:
-                    logger.error(f"[Channel {interaction.channel.id}] - Error deleting buttons message {view.buttons_msg.id}: {e}")
+                    log.error(f"[Channel {interaction.channel.id}] - Error deleting buttons message {view.buttons_msg.id}: {e}")
 
             # Add processing reaction to command message
             if view.command_msg:
                 try:
-                    logger.debug(f"[Channel {interaction.channel.id}] - Attempting to add processing reaction to message {view.command_msg.id}")
+                    log.debug(f"[Channel {interaction.channel.id}] - Attempting to add processing reaction to message {view.command_msg.id}")
                     await view.command_msg.add_reaction(Strings.PROCESSING)
-                    logger.debug(f"[Channel {interaction.channel.id}] - Added processing reaction to command message {view.command_msg.id}")
+                    log.debug(f"[Channel {interaction.channel.id}] - Added processing reaction to command message {view.command_msg.id}")
                 except Exception as e:
-                    logger.error(f"[Channel {interaction.channel.id}] - Error adding processing reaction to command message {view.command_msg.id}: {e}")
+                    log.error(f"[Channel {interaction.channel.id}] - Error adding processing reaction to command message {view.command_msg.id}: {e}")
 
             try:
-                logger.debug(f"[Channel {interaction.channel.id}] - Attempting to send webhook for declined days (regular command)")
+                log.debug(f"[Channel {interaction.channel.id}] - Attempting to send webhook for declined days (regular command)")
                 success, data = await webhook_service.send_webhook(
                     interaction, # Use interaction directly
                     command=view.cmd_or_step,
                     status="ok",
                     result={"value": "Nothing"} # Send "Nothing" as result
                 )
-                logger.debug(f"[Channel {interaction.channel.id}] - Webhook completed. Success: {success}, Data: {data if data else 'None'}")
+                log.debug(f"[Channel {interaction.channel.id}] - Webhook completed. Success: {success}, Data: {data if data else 'None'}")
                 if not success:
-                    logger.error(f"[Channel {interaction.channel.id}] - Webhook failed for command: {view.cmd_or_step}")
+                    log.error(f"[Channel {interaction.channel.id}] - Webhook failed for command: {view.cmd_or_step}")
 
                 # Update command message based on webhook response
                 if view.command_msg:
                     try:
                         await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
                         if success and data and "output" in data:
-                            logger.debug(f"[Channel {interaction.channel.id}] - Attempting to edit command message {getattr(view.command_msg, 'id', 'N/A')} with output: {data['output']}")
+                            log.debug(f"[Channel {interaction.channel.id}] - Attempting to edit command message {getattr(view.command_msg, 'id', 'N/A')} with output: {data['output']}")
                             await view.command_msg.edit(content=data["output"])
                         else:
-                            logger.warning(f"[Channel {interaction.channel.id}] - Webhook response indicates failure or no output. Editing command message {view.command_msg.id} with error.")
+                            log.warning(f"[Channel {interaction.channel.id}] - Webhook response indicates failure or no output. Editing command message {view.command_msg.id} with error.")
                             error_msg = Strings.DAYOFF_ERROR.format(
                                 days="Відмова від вихідних",
                                 error=Strings.GENERAL_ERROR
@@ -241,10 +256,10 @@ class DeclineButton_slash(discord.ui.Button):
                             await view.command_msg.edit(content=error_msg)
                             await view.command_msg.add_reaction(Strings.ERROR)
                     except Exception as edit_error:
-                        logger.error(f"[Channel {interaction.channel.id}] - Error editing command message {view.command_msg.id}: {edit_error}")
+                        log.error(f"[Channel {interaction.channel.id}] - Error editing command message {view.command_msg.id}: {edit_error}")
 
             except Exception as e:
-                logger.error(f"[Channel {interaction.channel.id}] - Error in decline button: {e}")
+                log.error(f"[Channel {interaction.channel.id}] - Error in decline button: {e}")
                 if view.command_msg:
                     try:
                         await view.command_msg.remove_reaction(Strings.PROCESSING, interaction.client.user)
@@ -255,8 +270,8 @@ class DeclineButton_slash(discord.ui.Button):
                         await view.command_msg.edit(content=error_msg)
                         await view.command_msg.add_reaction(Strings.ERROR)
                     except Exception as edit_error:
-                        logger.error(f"[Channel {interaction.channel.id}] - Error editing command message {view.command_msg.id} after exception: {edit_error}")
-                    logger.debug(f"[Channel {interaction.channel.id}] - Deleted buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
+                        log.error(f"[Channel {interaction.channel.id}] - Error editing command message {view.command_msg.id} after exception: {edit_error}")
+                    log.debug(f"[Channel {interaction.channel.id}] - Deleted buttons message {getattr(view.buttons_msg, 'id', 'N/A')}")
 
 class DayOffView_slash(discord.ui.View):
     def __init__(self, cmd_or_step: str, user_id: str, has_survey: bool = False):
@@ -297,7 +312,7 @@ class DayOffView_slash(discord.ui.View):
     
     async def on_timeout(self):
         channel_id = self.command_msg.channel.id if self.command_msg else "unknown"
-        logger.warning(f"[Channel {channel_id}] DayOffView_slash timed out for user {self.user_id}")
+        _log("view.day_off_slash", user_id=self.user_id, channel_id=channel_id).warning(f"[Channel {channel_id}] DayOffView_slash timed out for user {self.user_id}")
         
         # Update original command message with timeout notification
         if self.command_msg:
@@ -308,7 +323,7 @@ class DayOffView_slash(discord.ui.View):
                     content=f"{self.command_msg.content}\n{timeout_msg}"
                 )
             except Exception as e:
-                logger.error(f"Failed to update command message on timeout: {e}")
+                _log("view.day_off_slash", user_id=self.user_id, channel_id=channel_id).error(f"Failed to update command message on timeout: {e}")
         
         # Clean up buttons message
         if self.buttons_msg:
@@ -325,15 +340,15 @@ def create_day_off_view(
     has_survey: bool = False
 ) -> DayOffView_slash:
     """Create a day off view with buttons."""
-    logger.debug(f"Creating DayOffView_slash for {cmd_or_step}, user {user_id}")
+    _log("view.day_off_slash", user_id=user_id).debug(f"Creating DayOffView_slash for {cmd_or_step}, user {user_id}")
     view = DayOffView_slash(cmd_or_step, user_id, has_survey=has_survey)
     
     # Get current weekday (0 = Monday, 6 = Sunday)
     current_date = datetime.datetime.now()
     current_weekday = current_date.weekday()
     
-    logger.debug(f"Creating day off buttons for cmd_or_step: {cmd_or_step}")
-    logger.debug(f"Creating day off buttons for command: {cmd_or_step}")
+    _log("view.day_off_slash", user_id=user_id).debug(f"Creating day off buttons for cmd_or_step: {cmd_or_step}")
+    _log("view.day_off_slash", user_id=user_id).debug(f"Creating day off buttons for command: {cmd_or_step}")
     # Add day off buttons
     days = [
         "Понеділок",
@@ -345,9 +360,9 @@ def create_day_off_view(
     
     for day in days:
         # For thisweek command, skip days that have already passed
-        logger.debug(f"Processing day: {day}")
+        _log("view.day_off_slash", user_id=user_id).debug(f"Processing day: {day}")
         if "day_off_thisweek" in cmd_or_step and view.weekday_map[day] < current_weekday:
-            logger.debug(f"Skipping {day} - already passed this week")
+            _log("view.day_off_slash", user_id=user_id).debug(f"Skipping {day} - already passed this week")
             continue
             
         custom_id = f"day_off_button_{day}_{cmd_or_step}_{user_id}"

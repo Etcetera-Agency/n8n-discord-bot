@@ -14,7 +14,7 @@ Use this checklist to track progress. Each item links to a detailed task.
 - [x] 10 — Split slash commands into cogs (refactoring_tasks/tasks_10.md)
 - [ ] 11 — Views safety and minimal helpers (refactoring_tasks/tasks_11.md)
 - [ ] 12 — Centralize strings/i18n (refactoring_tasks/tasks_12.md)
-- [ ] 13 — Single survey state source (refactoring_tasks/tasks_13.md)
+- [x] 13 — Single survey state source (refactoring_tasks/tasks_13.md)
 - [x] 14 — Explicit survey models (refactoring_tasks/tasks_14.md)
 - [x] 15 — Timeout/cleanup centralization (refactoring_tasks/tasks_15.md)
 - [x] 16 — Typed payload/response models (refactoring_tasks/tasks_16.md)
