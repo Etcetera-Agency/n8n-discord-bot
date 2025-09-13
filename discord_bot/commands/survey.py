@@ -172,38 +172,34 @@ async def finish_empty_survey(
     user_id: str,
     channel_id: str,
     session_id: str,
-) -> None:
-    """Create and immediately finish a survey with no steps."""
-    log = get_logger(
-        "cmd.survey.finish_empty",
-        {"userId": user_id, "channelId": channel_id, "sessionId": session_id},
-    )
-    if not channel:
-        log.warning("channel not found while finishing empty survey")
-        return
-    try:
+    ) -> None:
+        """Create and immediately finish a survey with no steps."""
+        log = get_logger(
+            "cmd.survey.finish_empty",
+            {"userId": user_id, "channelId": channel_id, "sessionId": session_id},
+        )
+        if not channel:
+            log.warning("channel not found while finishing empty survey")
+            return
         try:
             minimal = survey_manager.create_survey(user_id, channel_id, [], session_id, client=bot)
-        except TypeError:
-            # Backward-compatible path for test stubs without client kwarg
-            minimal = survey_manager.create_survey(user_id, channel_id, [], session_id)
-        # Second check_channel call to populate survey.todo_url before finishing
-        payload = {
-            "command": "check_channel",
-            "channelId": channel_id,
-            "sessionId": session_id,
-        }
-        try:
-            await webhook_service.send_webhook_with_retry(None, payload, {})
-        except Exception as e:
-            log.warning("check_channel failed to refresh todo_url", extra={"error": str(e)})
-        minimal.current_index = len(minimal.steps)
-        await finish_survey(bot, channel, minimal)
-    except ValueError:
-        log.exception("failed to create minimal survey")
-        await channel.send(
-            f"<@{user_id}> {Strings.SURVEY_START_ERROR}: Failed to initialize survey."
-        )
+            # Second check_channel call to populate survey.todo_url before finishing
+            payload = {
+                "command": "check_channel",
+                "channelId": channel_id,
+                "sessionId": session_id,
+            }
+            try:
+                await webhook_service.send_webhook_with_retry(None, payload, {})
+            except Exception as e:
+                log.warning("check_channel failed to refresh todo_url", extra={"error": str(e)})
+            minimal.current_index = len(minimal.steps)
+            await finish_survey(bot, channel, minimal)
+        except ValueError:
+            log.exception("failed to create minimal survey")
+            await channel.send(
+                f"<@{user_id}> {Strings.SURVEY_START_ERROR}: Failed to initialize survey."
+            )
 
 async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id: str, session_id: str) -> None: # Added bot parameter
     """Initiates or resumes the daily survey for a channel.
