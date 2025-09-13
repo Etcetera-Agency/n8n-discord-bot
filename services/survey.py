@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Any
 import discord
 from config import logger
+from services.survey_models import SurveyStep, SurveyResult
 
 class SurveyFlow:
     """
@@ -11,7 +12,7 @@ class SurveyFlow:
     convenience lookups during cleanup (fetching the channel to
     delete prior messages). It is not required for core state logic.
     """
-    def __init__(self, channel_id: str, steps: List[str], user_id: str, session_id: str, client: Optional[discord.Client] = None):
+    def __init__(self, channel_id: str, steps: List[SurveyStep], user_id: str, session_id: str, client: Optional[discord.Client] = None):
         # Existing properties
         self.active_view: Optional[discord.ui.View] = None  # Add this
         """Initialize survey with required IDs:
@@ -27,10 +28,11 @@ class SurveyFlow:
 
         self.user_id = user_id
         self.channel_id = channel_id
-        self.steps = steps
+        # Store explicit step models
+        self.steps: List[SurveyStep] = list(steps)
         self.session_id = session_id
         self.current_index = 0
-        self.results: Dict[str, Any] = {}
+        self.results: Dict[str, SurveyResult] = {}
         self.current_message: Optional[discord.Message] = None # Store the current message object
         self.buttons_message: Optional[discord.Message] = None
         self.start_message: Optional[discord.Message] = None
@@ -101,7 +103,7 @@ class SurveyFlow:
             The current step name or None if all steps are completed
         """
         if self.current_index < len(self.steps):
-            return self.steps[self.current_index]
+            return self.steps[self.current_index].name
         return None
 
     def next_step(self) -> None:
@@ -125,7 +127,9 @@ class SurveyFlow:
         Returns:
             List of step names that are not yet completed
         """
-        return self.steps[self.current_index:] if not self.is_done() else []
+        if self.is_done():
+            return []
+        return [s.name for s in self.steps[self.current_index:]]
 
     def add_result(self, step_name: str, value: Any) -> None:
         """ # Add a result for a step.
@@ -135,7 +139,7 @@ class SurveyFlow:
             step_name: The step name
             value: The result value
         """
-        self.results[step_name] = value
+        self.results[step_name] = SurveyResult(step_name=step_name, value=value)
         logger.debug(f"Added result for step {step_name} for user {self.user_id}") # Change to DEBUG
 
 
@@ -148,7 +152,7 @@ class SurveyManager:
         self.surveys: Dict[str, SurveyFlow] = {}  # Use channel_id as key
         self.sessions: Dict[str, SurveyFlow] = {}  # Map session_id -> SurveyFlow
 
-    def create_survey(self, user_id: str, channel_id: str, steps: List[str], session_id: str, client: Optional[discord.Client] = None) -> SurveyFlow:
+    def create_survey(self, user_id: str, channel_id: str, steps: List[SurveyStep], session_id: str, client: Optional[discord.Client] = None) -> SurveyFlow:
         """Create and track a new survey instance.
 
         Args:

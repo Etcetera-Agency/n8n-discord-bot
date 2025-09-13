@@ -2,6 +2,7 @@ import discord # type: ignore
 from discord.ext import commands # type: ignore # Import commands for bot type hinting
 import json # Added for Notion ToDo JSON parsing
 from config import logger, Strings, constants # Added constants
+from services.survey_models import SurveyStep
 from services import survey_manager, webhook_service
 from services.notion_todos import Notion_todos # Added for Notion ToDo fetching
 from services.survey import SurveyFlow # Added import
@@ -265,11 +266,9 @@ async def handle_start_daily_survey(bot: commands.Bot, user_id: str, channel_id:
 
     logger.info(f"Starting new survey for user {user_id} in channel {channel_id} with steps: {final_steps}")
 
-    # Create the survey object
-    try:
-        survey = survey_manager.create_survey(user_id, channel_id, final_steps, session_id, client=bot) # Create survey with client for cleanup
-    except TypeError:
-        survey = survey_manager.create_survey(user_id, channel_id, final_steps, session_id)
+    # Create the survey object with explicit step models
+    step_models = [SurveyStep(name=s) for s in final_steps]
+    survey = survey_manager.create_survey(user_id, channel_id, step_models, session_id, client=bot)
 
     # Ask the first step
     first_step = survey.current_step()

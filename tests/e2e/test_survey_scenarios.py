@@ -198,8 +198,11 @@ async def test_survey_scenario(monkeypatch, scenario_path, setup_env):
         start_resp = await router.dispatch(check)
         log.debug("dispatch response", extra={"response": start_resp})
         log.info("step done", extra={"step": "check_channel"})
+        from services.survey_models import SurveyStep
         start_steps = start_resp.get("output", {}).get("steps", [])
-        router.survey_manager.create_survey("321", "123", start_steps, "123_321")
+        router.survey_manager.create_survey(
+            "321", "123", [SurveyStep(name=s) for s in start_steps], "123_321"
+        )
 
         for step in steps:
             payload = load_payload_example(step["title"])

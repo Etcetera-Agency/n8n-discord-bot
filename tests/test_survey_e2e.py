@@ -45,6 +45,7 @@ sys.modules["google.oauth2"] = oauth2
 sys.modules["google.oauth2.service_account"] = service_account
 
 import router
+from services.survey_models import SurveyStep
 
 survey_manager = router.survey_manager
 
@@ -99,7 +100,12 @@ async def test_survey_monday_full(monkeypatch):
     survey_manager.create_survey(
         "321",
         "123",
-        ["workload_today", "workload_nextweek", "connects_thisweek", "day_off_nextweek"],
+        [
+            SurveyStep(name="workload_today"),
+            SurveyStep(name="workload_nextweek"),
+            SurveyStep(name="connects_thisweek"),
+            SurveyStep(name="day_off_nextweek"),
+        ],
         "sess",
     )
 
@@ -148,7 +154,12 @@ async def test_survey_tuesday_missing_nextweek(monkeypatch):
     survey_manager.create_survey(
         "321",
         "123",
-        ["workload_today", "workload_nextweek", "connects_thisweek", "day_off_nextweek"],
+        [
+            SurveyStep(name="workload_today"),
+            SurveyStep(name="workload_nextweek"),
+            SurveyStep(name="connects_thisweek"),
+            SurveyStep(name="day_off_nextweek"),
+        ],
         "sess2",
     )
 
@@ -193,7 +204,12 @@ async def test_survey_friday_full(monkeypatch):
     survey_manager.create_survey(
         "321",
         "123",
-        ["workload_today", "workload_nextweek", "connects_thisweek", "day_off_nextweek"],
+        [
+            SurveyStep(name="workload_today"),
+            SurveyStep(name="workload_nextweek"),
+            SurveyStep(name="connects_thisweek"),
+            SurveyStep(name="day_off_nextweek"),
+        ],
         "sess3",
     )
 

@@ -72,6 +72,7 @@ sys.modules["config"] = types.SimpleNamespace(
 )
 
 import router
+from services.survey_models import SurveyStep
 from services.cmd import unregister as unregister_cmd
 
 survey_manager = router.survey_manager
@@ -140,7 +141,7 @@ async def test_dispatch_survey_end(tmp_path, monkeypatch):
 
     monkeypatch.setattr(router._notio, "find_team_directory_by_channel", fake_lookup)
     monkeypatch.setitem(router.HANDLERS, "step1", step1)
-    survey_manager.create_survey("321", "123", ["step1"], "sess")
+    survey_manager.create_survey("321", "123", [SurveyStep(name="step1")], "sess")
     payload = load_payload_example("Survey Step Submission Payload (Workload)")
     payload.update({"command": "survey"})
     payload["result"]["stepName"] = "step1"
@@ -171,7 +172,7 @@ async def test_dispatch_day_off_results(tmp_path, monkeypatch):
 
     monkeypatch.setattr(router._notio, "find_team_directory_by_channel", fake_lookup)
     monkeypatch.setitem(router.HANDLERS, "day_off_nextweek", day)
-    survey_manager.create_survey("321", "123", ["day_off_nextweek"], "sess")
+    survey_manager.create_survey("321", "123", [SurveyStep(name="day_off_nextweek")], "sess")
     payload = load_payload_example("Survey Step Submission Payload (Day Off)")
     payload["channelId"] = "123"
     payload["userId"] = "321"
@@ -184,7 +185,7 @@ async def test_dispatch_day_off_results(tmp_path, monkeypatch):
     survey = survey_manager.get_survey("123")
     lookup = load_notion_lookup()
     assert survey.todo_url == lookup["results"][0]["to_do"]
-    assert survey.results["day_off_nextweek"] == ["2025-09-16", "2025-09-21"]
+    assert survey.results["day_off_nextweek"].value == ["2025-09-16", "2025-09-21"]
     survey_manager.remove_survey("123")
 
 
@@ -205,7 +206,7 @@ async def test_dispatch_survey_continue(tmp_path, monkeypatch):
     monkeypatch.setattr(router._notio, "find_team_directory_by_channel", fake_lookup)
     monkeypatch.setitem(router.HANDLERS, "step1", step1)
     monkeypatch.setitem(router.HANDLERS, "step2", step2)
-    survey_manager.create_survey("321", "123", ["step1", "step2"], "sess")
+    survey_manager.create_survey("321", "123", [SurveyStep(name="step1"), SurveyStep(name="step2")], "sess")
     payload = load_payload_example("Survey Step Submission Payload (Workload)")
     payload.update({"command": "survey"})
     payload["result"]["stepName"] = "step1"
