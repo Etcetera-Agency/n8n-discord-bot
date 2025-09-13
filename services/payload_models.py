@@ -22,20 +22,58 @@ class BotRequestPayload:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "BotRequestPayload":
-        # Minimal validation of required fields
-        channel_id = data.get("channelId")
+        """Validate and construct BotRequestPayload from a raw dict.
+
+        Required fields depending on intent:
+        - channelId: always required
+        - command: required for command-driven payloads (most cases). If type=="mention"
+          and command is missing, default to "mention" for routing convenience.
+        - userId and sessionId: required for command payloads; sessionId must be a non-empty string.
+          The session format is typically "{channelId}_{userId}" but we only warn via ValueError
+          if it is missing; format enforcement should be done at the producer boundary.
+        """
+        # channelId is always required
+        channel_id_raw = data.get("channelId")
+        channel_id = str(channel_id_raw) if channel_id_raw is not None else ""
         if not channel_id:
             raise ValueError("channelId is required")
-        # Fill defaults for optional fields
+
+        # Determine command/type intent
+        cmd = data.get("command")
+        typ = data.get("type")
+        if not cmd and typ == "mention":
+            # Allow mention via type and normalize to a command for routing
+            cmd = "mention"
+
+        # For most payloads a command must be present
+        if not cmd or not isinstance(cmd, str) or not cmd.strip():
+            raise ValueError("command is required")
+
+        # Require userId and sessionId for command payloads
+        user_id_raw = data.get("userId")
+        user_id = str(user_id_raw) if user_id_raw is not None else ""
+        if not user_id:
+            raise ValueError("userId is required")
+
+        session_id_raw = data.get("sessionId")
+        session_id = str(session_id_raw) if session_id_raw is not None else ""
+        if not session_id:
+            raise ValueError("sessionId is required")
+
+        # Coerce/validate optional fields
+        result = data.get("result") or {}
+        if not isinstance(result, dict):
+            raise ValueError("result must be an object")
+
         return cls(
-            channelId=str(channel_id),
-            userId=data.get("userId"),
-            sessionId=data.get("sessionId"),
-            command=data.get("command"),
-            type=data.get("type"),
+            channelId=channel_id,
+            userId=user_id,
+            sessionId=session_id,
+            command=cmd,
+            type=typ,
             status=data.get("status"),
             message=data.get("message"),
-            result=data.get("result") or {},
+            result=result,
             author=data.get("author"),
             channelName=data.get("channelName"),
             timestamp=data.get("timestamp"),
@@ -60,4 +98,3 @@ class RouterResponse:
         if self.message is not None:
             data["message"] = self.message
         return data
-

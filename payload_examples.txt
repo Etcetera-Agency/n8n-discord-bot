@@ -289,3 +289,71 @@ This file provides examples of the JSON payloads sent by the Discord bot to the 
   "timestamp": 1678886400
 }
 ```
+
+## Invalid/Missing Data Examples
+
+### Invalid Payload — Missing channelId
+
+```json
+{
+  "command": "workload_today",
+  "status": "ok",
+  "message": "",
+  "result": {"value": 20},
+  "userId": "YOUR_USER_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+```
+
+Expected RouterResponse:
+
+```json
+{ "output": "Спробуй трохи піздніше. Я тут пораюсь по хаті." }
+```
+
+### Invalid Payload — Missing userId
+
+```json
+{
+  "command": "workload_today",
+  "status": "ok",
+  "message": "",
+  "result": {"value": 20},
+  "channelId": "YOUR_CHANNEL_ID",
+  "sessionId": "YOUR_CHANNEL_ID_YOUR_USER_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+```
+
+Expected RouterResponse:
+
+```json
+{ "output": "Спробуй трохи піздніше. Я тут пораюсь по хаті." }
+```
+
+### Invalid Payload — Missing sessionId
+
+```json
+{
+  "command": "workload_today",
+  "status": "ok",
+  "message": "",
+  "result": {"value": 20},
+  "userId": "YOUR_USER_ID",
+  "channelId": "YOUR_CHANNEL_ID",
+  "author": "YourUsername#Discriminator",
+  "channelName": "channel-name",
+  "timestamp": 1678886400
+}
+```
+
+Expected RouterResponse:
+
+```json
+{ "output": "Спробуй трохи піздніше. Я тут пораюсь по хаті." }
+```
