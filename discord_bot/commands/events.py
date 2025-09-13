@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from services.webhook import WebhookService
-from config.logger import logger
+from services.logging_utils import get_logger
 
 class EventHandlers:
     def __init__(self, bot):
@@ -15,22 +15,24 @@ class EventHandlers:
         # Ensure on_message listener is NOT added here
 
     async def on_ready(self):
-        logger.info(f"Bot connected as {self.bot.user}")
+        get_logger("bot.events").info("ready", extra={"bot_user": str(self.bot.user)})
         # Initialize WebhookService and assign to bot
         self.bot.webhook_service = WebhookService()
 
         try:
             await self.bot.tree.sync()
-            logger.info("Slash commands synced!")
-        except Exception as e:
-            logger.error(f"Error syncing slash commands: {e}")
+            get_logger("bot.events").info("slash synced")
+        except Exception:
+            get_logger("bot.events").exception("slash sync failed")
 
     async def on_close(self):
-        logger.info("Bot shutting down, cleaning up resources")
+        get_logger("bot.events").info("closing")
     @commands.Cog.listener()
     async def on_member_join(self, member):
         """Assign a specific role to new members joining the server."""
-        logger.info(f"Member {member.name} ({member.id}) joined the server {member.guild.name} ({member.guild.id}).")
+        get_logger("bot.events.member_join", {"userId": str(member.id)}).info(
+            "member joined", extra={"member": member.name, "guild": getattr(member.guild, "name", None)}
+        )
         role_id = 1347214463199215637  # Replace with your actual role ID
         guild = member.guild
 
@@ -39,15 +41,21 @@ class EventHandlers:
             if role:
                 try:
                     await member.add_roles(role)
-                    logger.info(f"Assigned role {role.name} ({role.id}) to member {member.name} ({member.id}).")
+                    get_logger("bot.events.member_join", {"userId": str(member.id)}).info(
+                        "role assigned", extra={"role": role.name}
+                    )
                 except discord.Forbidden:
-                    logger.error(f"Bot does not have permissions to assign role {role.name} ({role.id}) in guild {guild.name} ({guild.id}).")
-                except Exception as e:
-                    logger.error(f"Error assigning role to member {member.name} ({member.id}): {e}")
+                    get_logger("bot.events.member_join", {"userId": str(member.id)}).error(
+                        "no permission to assign role", extra={"role": role.name}
+                    )
+                except Exception:
+                    get_logger("bot.events.member_join", {"userId": str(member.id)}).exception(
+                        "error assigning role"
+                    )
             else:
-                logger.warning(f"Role with ID {role_id} not found in guild {guild.name} ({guild.id}).")
+                get_logger("bot.events.member_join").warning("role not found", extra={"role_id": role_id})
         else:
-            logger.warning(f"Guild not found for member {member.name} ({member.id}).")
+            get_logger("bot.events.member_join").warning("guild not found")
 
     # Removed the on_message handler from this class to avoid duplication
     # The primary on_message handler is now in bot.py

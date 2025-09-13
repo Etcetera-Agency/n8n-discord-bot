@@ -1,5 +1,5 @@
 from discord.ext import commands
-from config import logger
+from services.logging_utils import get_logger
 
 def create_bot() -> commands.Bot:
     """Return the shared bot instance constructed in bot.py.
@@ -10,5 +10,5 @@ def create_bot() -> commands.Bot:
     # Import lazily to avoid circular imports at module import time
     from bot import bot as _bot
 
-    logger.info("create_bot: returning bot instance from bot.py")
+    get_logger("bot.client").info("create_bot: return shared instance")
     return _bot

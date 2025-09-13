@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from services import webhook_service
-from config import logger
+from services.logging_utils import get_logger
 
 class PrefixCommands:
     """
@@ -16,29 +16,31 @@ class PrefixCommands:
         Args:
             bot: Discord bot instance
         """
-        logger.info("Initializing PrefixCommands...") # Added log for initialization check
+        get_logger("cmd.prefix").info("init")
         self.bot = bot
         # Removed self.register_commands() as commands are now methods
 
     async def register_cmd(self, ctx: commands.Context, full_command_text: str, text: str = ""):
-        logger.info(f"register_cmd function entered with full_command_text: '{full_command_text}', text: '{text}' for message: {ctx.message.content}")
-        logger.info(f"Register command used in channel: {ctx.channel.name} (ID: {ctx.channel.id})") # Log channel info
+        payload = {"userId": str(ctx.author.id), "channelId": str(ctx.channel.id), "sessionId": f"{ctx.channel.id}_{ctx.author.id}"}
+        log = get_logger("cmd.prefix.register", payload)
+        log.info("entered", extra={"full_text": full_command_text, "text": text})
+        log.info("channel", extra={"channel_name": ctx.channel.name})
         # await ctx.defer() # Defer only if proceeding to webhook
 
         if not text:
-            logger.info(f"Text argument is empty for register command from {ctx.author}. Sending usage message.")
+            log.info("empty text arg")
             # Use ctx.send for immediate error feedback, no defer needed here.
             await ctx.send("Потрібний формат !register Name Surname as in Team Directory")
-            logger.warning(f"Register command failed: text argument missing from {ctx.author}")
+            log.warning("missing text argument")
             return
 
         # Grant channel permissions before webhook call
         try:
-            logger.info("Attempting to set permissions...")
+            log.info("attempting to set permissions")
             # Set all permissions to True by default, then explicitly set excluded ones to False
-            logger.info("Creating PermissionOverwrite object...")
+            log.info("creating PermissionOverwrite")
             overwrite = discord.PermissionOverwrite()
-            logger.info("PermissionOverwrite object created. Setting permissions...")
+            log.info("setting permissions on overwrite")
 
             # Explicitly set excluded permissions to False
             overwrite.manage_channels = False
@@ -63,28 +65,28 @@ class PrefixCommands:
             overwrite.add_reactions = True
             # Add any other permissions that should be True here
 
-            logger.info("Permissions set in overwrite object. Calling set_permissions...")
+            log.info("calling set_permissions")
             await ctx.channel.set_permissions(ctx.author, overwrite=overwrite)
-            logger.info(f"Successfully granted specific permissions to {ctx.author} in channel {ctx.channel.name}")
+            log.info("granted permissions", extra={"channel": ctx.channel.name})
 
             # Make the channel private by denying read_messages for @everyone
             try:
-                logger.info(f"Attempting to make channel {ctx.channel.name} private...")
+                log.info("making channel private", extra={"channel": ctx.channel.name})
                 await ctx.channel.set_permissions(ctx.guild.default_role, read_messages=False)
-                logger.info(f"Successfully made channel {ctx.channel.name} private.")
+                log.info("made channel private")
             except discord.Forbidden:
-                logger.error(f"Bot lacks permissions to set permissions for @everyone in channel {ctx.channel.name}")
+                log.error("no permission to set @everyone perms")
             except discord.HTTPException as e:
-                logger.error(f"HTTP error setting permissions for @everyone in channel {ctx.channel.name}: {e}")
+                log.exception("http error setting @everyone perms")
 
         except discord.Forbidden:
-            logger.error(f"Bot lacks permissions to set permissions for {ctx.author} in channel {ctx.channel.name}")
+            log.error("no permission to set perms for author")
             # permission_granted remains False
         except discord.HTTPException as e:
-            logger.error(f"HTTP error setting permissions for {ctx.author} in channel {ctx.channel.name}: {e}")
+            log.exception("http error setting perms for author")
             # permission_granted remains False
         except Exception as e:
-            logger.error(f"Unexpected error setting permissions for {ctx.author} in channel {ctx.channel.name}: {e}", exc_info=True)
+            log.exception("unexpected error setting perms for author")
             # permission_granted remains False
 
         # Send placeholder message before webhook call
@@ -97,7 +99,7 @@ class PrefixCommands:
             ctx: Command context
             text: Registration text (extracted manually)
         """
-        logger.info(f"Register command from {ctx.author}: {text}. Attempting to send webhook...")
+        log.info("sending webhook", extra={"author": str(ctx.author), "text": text})
         try:
             success, data = await webhook_service.send_webhook(
                 ctx, # Pass context for user/channel info extraction
@@ -105,27 +107,27 @@ class PrefixCommands:
                 message=full_command_text,
                 result={"text": text}
             )
-            logger.info(f"Webhook send_webhook returned success: {success}, data: {data}")
+            log.info("webhook returned", extra={"success": success})
             # Check if data is a dictionary and contains 'output'
             # Check if data is a dictionary with 'output' or a list containing one
             output_message = None
             if success and data:
                 if isinstance(data, dict) and "output" in data:
                     output_message = str(data["output"])
-                    logger.info(f"Webhook for register command succeeded for {ctx.author} with dictionary response.")
+                    log.info("webhook success: dict response")
                 elif isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "output" in data[0]:
                     output_message = str(data[0]["output"])
-                    logger.info(f"Webhook for register command succeeded for {ctx.author} with list response.")
+                    log.info("webhook success: list response")
 
             # Determine final content based on webhook result
             webhook_status_message = None
             if output_message:
                webhook_status_message = output_message
             elif success:
-               logger.info(f"Webhook succeeded but no valid output found in response from {ctx.author}")
+               log.info("webhook success but no output")
                webhook_status_message = f"Registration attempt for '{text}' processed, {ctx.author.mention}."
             else:
-               logger.warning(f"Webhook for register command failed for {ctx.author}. Success: {success}, Data: {data}")
+               log.warning("webhook failed", extra={"success": success})
                error_detail = f" (Error: {data})" if data else ""
                webhook_status_message = f"Registration attempt for '{text}' failed, {ctx.author.mention}.{error_detail}"
 
@@ -134,7 +136,7 @@ class PrefixCommands:
             await placeholder_message.edit(content=final_content)
 
         except Exception as e:
-            logger.error(f"Error sending webhook for register command for {ctx.author}: {e}", exc_info=True)
+            log.exception("error sending webhook")
             # Edit placeholder with error message if possible
             if placeholder_message:
                  await placeholder_message.edit(content=f"An error occurred during registration for '{text}', {ctx.author.mention}.")

@@ -14,7 +14,7 @@ from discord_bot.views.start_survey import StartSurveyView  # Import the new per
 ###############################################################################
 # Logging configuration
 ###############################################################################
-from config import logger
+from services.logging_utils import get_logger
 
 ###############################################################################
 # Load environment variables handled in config/config.py
@@ -85,24 +85,24 @@ logger.info("Bot instance created and handlers initialized in bot.py")
 #############################################################################
 @bot.event
 async def on_ready():
-    logger.info(f"Bot connected as {bot.user}")
-    logger.info("Prefix commands should be registered now.")
+    get_logger("bot.on_ready").info("connected", extra={"bot_user": str(bot.user)})
+    get_logger("bot.on_ready").info("prefix commands registered")
     bot.add_view(StartSurveyView())
-    logger.info("Persistent views added.")
+    get_logger("bot.on_ready").info("persistent views added")
     # Note: Slash commands are synced separately, usually in on_ready or a setup cog
     # Load slash command cogs
     try:
         await setup_slash_cogs(bot)
         await bot.tree.sync()
-        logger.info("Slash command cogs loaded and command tree synced.")
-    except Exception as e:
-        logger.error(f"Failed to load slash cogs: {e}")
+        get_logger("bot.on_ready").info("slash cogs loaded and tree synced")
+    except Exception:
+        get_logger("bot.on_ready").exception("failed to load slash cogs")
 
     # Survey continuation handled in Discord handlers; no initializer required
 
 @bot.event
 async def on_close():
-    logger.info("Bot shutting down, cleaning up resources")
+    get_logger("bot.on_close").info("shutting down, cleaning up resources")
     # Add any necessary cleanup here
 
 ###############################################################################
