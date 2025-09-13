@@ -1,5 +1,5 @@
 import asyncio
-from config.logger import logger
+from services.logging_utils import get_logger
 import os
 import re
 import json
@@ -55,7 +55,7 @@ class Notion_todos:
             # Run blocking Notion API call in a separate thread
             await asyncio.to_thread(self.client.blocks.retrieve, self.block_id)
         except Exception as e:
-            logger.error(f"Failed to fetch Notion page: {e}")
+            get_logger("notion.todos").exception("failed to fetch page")
             raise ConnectionError(f"Failed to fetch Notion page (ID: {self.block_id}) from URL {self.todo_url}. Error: {e}")
 
         todos = await self._extract_todos(self.block_id, only_unchecked=only_unchecked, start_date=start_date, end_date=end_date)
@@ -93,6 +93,9 @@ class Notion_todos:
                     # Recursively call the async version
                     todos.extend(await self._extract_todos(child['id'], only_unchecked=only_unchecked, start_date=start_date, end_date=end_date))
             except Exception as block_process_e: # Catch exceptions during block processing
-                logger.warning(f"[{block_id}] - Failed to process block {child.get('id', 'N/A')}: {block_process_e}", exc_info=True)
+                get_logger("notion.todos", {"userId": user_id if 'user_id' in locals() else None}).warning(
+                    f"[{block_id}] - Failed to process block {child.get('id', 'N/A')}: {block_process_e}",
+                    extra={"block_id": child.get('id', 'N/A'), "root_block": block_id},
+                )
                 continue # Continue to the next block on error
         return todos

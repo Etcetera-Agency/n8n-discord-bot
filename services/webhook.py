@@ -1,7 +1,8 @@
 import discord
 from typing import Dict, Any, Tuple, Optional, Union
 from discord.ext import commands
-from config import logger, Strings
+from config import Strings
+from services.logging_utils import get_logger
 from services.survey import survey_manager
 from . import router
 from services.payload_models import BotRequestPayload
@@ -16,7 +17,7 @@ class WebhookService:
     """Service for handling internal webhook dispatch."""
 
     def __init__(self):
-        logger.info("Initializing WebhookService")
+        get_logger("webhook.init").info("initialized")
 
     def build_payload(
         self,
@@ -114,7 +115,10 @@ class WebhookService:
         Returns:
             Tuple of (success, response_data)
         """
-        logger.info(f"send_webhook called with command: {command}, status: {status}, result: {result}") # Changed to INFO
+        get_logger("webhook.send_webhook").info(
+            "invoke",
+            extra={"command": command, "status": status},
+        )
 
         user_id = None
         channel_id = None
@@ -149,11 +153,15 @@ class WebhookService:
             # user_id, author, timestamp would be None unless explicitly passed
 
         if not user_id and not isinstance(target, discord.TextChannel):
-             logger.warning(f"send_webhook called without user_id for target type {type(target)}. Target: {target}") # Added target to log
+             get_logger("webhook.send_webhook", {"channelId": channel_id}).warning(
+                 "missing user id", extra={"target_type": str(type(target))}
+             )
              # Proceed but log a warning. build_payload will raise error if user_id is required.
 
         if not channel_id:
-             logger.warning(f"send_webhook called without channel_id for target type {type(target)}. Target: {target}") # Added target to log
+             get_logger("webhook.send_webhook", {"userId": user_id}).warning(
+                 "missing channel id", extra={"target_type": str(type(target))}
+             )
              # Proceed but log a warning. build_payload will raise error if channel_id is required.
 
         # Build the payload using the unified builder
@@ -169,14 +177,15 @@ class WebhookService:
             timestamp=timestamp # Pass timestamp
         )
 
-        logger.info(f"Dispatching payload via router for command: {command}")
+        log = get_logger("webhook.send_webhook", payload)
+        log.info("dispatching")
         # Enforce payload validation at entry point
         model = BotRequestPayload.from_dict(payload)
         resp = await router.dispatch(model)
         data = resp.to_dict() if resp else None
         success = data is not None
-        logger.info(f"router.dispatch returned: {data}")
-        logger.info(f"send_webhook returning: success={success}, data={data}") # Log at INFO level
+        log.debug("response", extra={"output": data})
+        log.info("done", extra={"success": success})
         return success, data
 
     async def send_interaction_response(
@@ -243,8 +252,12 @@ class WebhookService:
                 await response_message.edit(content=error_msg)
                 await response_message.add_reaction(Strings.ERROR)  # Show error
 
-        except Exception as e:
-            logger.error(f"Error in send_interaction_response: {e}")
+        except Exception:
+            get_logger(
+                "webhook.send_interaction_response",
+                {"userId": str(getattr(getattr(interaction, "user", None), "id", "")),
+                 "channelId": str(getattr(getattr(interaction, "channel", None), "id", ""))},
+            ).exception("failed")
             if not interaction.response.is_done():
                 message = await interaction.response.send_message(
                     "Помилка: Не вдалося обробити команду.",
@@ -338,8 +351,10 @@ class WebhookService:
             channel_id = str(interaction.channel.id)
             try:
                 survey = survey_manager.get_survey(channel_id)
-            except Exception as e:
-                logger.error(f"survey lookup failed for channel {channel_id}: {e}")
+            except Exception:
+                get_logger("webhook.button_info", {"channelId": channel_id}).exception(
+                    "survey lookup failed"
+                )
 
         # Only use survey format if we're in an active survey AND the button is a workload button
         if survey and custom_id and custom_id.startswith('workload_button_'):

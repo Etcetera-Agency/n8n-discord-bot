@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Any
 import discord
-from config import logger
+from services.logging_utils import get_logger
 from services.survey_models import SurveyStep, SurveyResult
 
 class SurveyFlow:
@@ -21,9 +21,13 @@ class SurveyFlow:
         - user_id: Discord user ID participating in survey
         - session_id: Combined channel.user ID from initial request
         """
-        logger.debug(f"[{user_id}] - SurveyFlow.__init__ called for user {user_id}, channel {channel_id}, session {session_id} with steps: {steps}") # Added log
+        get_logger("survey.flow", {"userId": user_id, "channelId": channel_id, "sessionId": session_id}).debug(
+            "init", extra={"steps": [s.name for s in steps]}
+        )
         if not channel_id or not user_id or not session_id: # Validate required IDs
-            logger.error(f"[{user_id}] - Missing required IDs during SurveyFlow initialization.") # Added log
+            get_logger("survey.flow", {"userId": user_id, "channelId": channel_id, "sessionId": session_id}).error(
+                "missing required ids"
+            )
             raise ValueError("channel_id, user_id and session_id are required")
 
         self.user_id = user_id
@@ -39,7 +43,7 @@ class SurveyFlow:
         self.current_question_message_id: Optional[int] = None
         self.todo_url: Optional[str] = None
         self.client: Optional[discord.Client] = client
-        logger.info(f"[{user_id}] - Created survey flow for user {user_id} with steps: {steps}") # Modified log
+        self._log().info("created", extra={"steps": [s.name for s in steps]})
 
     async def cleanup(self) -> None:
         """
@@ -74,11 +78,11 @@ class SurveyFlow:
             except discord.NotFound:
                 pass # Message was already deleted
             except discord.Forbidden: # Log permission errors
-                logger.warning(f"No permissions to delete message {msg_type}")
-            except discord.HTTPException as e: # Log HTTP errors
-                logger.error(f"HTTP error deleting {msg_type}: {e}")
-            except Exception as e: # Catch any other exceptions
-                logger.error(f"Unexpected error cleaning up {msg_type}: {e}")
+                self._log().warning("no permissions to delete", extra={"message_type": msg_type})
+            except discord.HTTPException:
+                self._log().exception("http error deleting", extra={"message_type": msg_type})
+            except Exception:
+                self._log().exception("unexpected cleanup error", extra={"message_type": msg_type})
 
     def _get_channel(self) -> Optional[discord.TextChannel]:
         """Get the Discord channel if possible"""
@@ -109,7 +113,7 @@ class SurveyFlow:
     def next_step(self) -> None:
         """Advance to the next step in the survey."""
         self.current_index += 1
-        logger.info(f"Advanced to step {self.current_index} for user {self.user_id}")
+        self._log().info("advanced", extra={"current_index": self.current_index})
 
     def is_done(self) -> bool:
         """
@@ -140,7 +144,14 @@ class SurveyFlow:
             value: The result value
         """
         self.results[step_name] = SurveyResult(step_name=step_name, value=value)
-        logger.debug(f"Added result for step {step_name} for user {self.user_id}") # Change to DEBUG
+        self._log().debug("added result", extra={"step": step_name})
+
+    # Internal: get contextual logger for this survey flow instance
+    def _log(self):
+        return get_logger(
+            "survey.flow",
+            {"userId": self.user_id, "channelId": self.channel_id, "sessionId": self.session_id},
+        )
 
 
 class SurveyManager:
@@ -175,10 +186,14 @@ class SurveyManager:
             survey = SurveyFlow(channel_id, steps, user_id, session_id, client=client)
             self.surveys[str(channel_id)] = survey  # Use channel_id as key
             self.sessions[str(session_id)] = survey  # Index by session for O(1) lookup
-            logger.info(f"Created new survey for channel {channel_id}") # Log survey creation
+            get_logger("survey.manager", {"channelId": channel_id, "sessionId": session_id, "userId": user_id}).info(
+                "created"
+            )
             return survey
         except Exception as e:
-            logger.error(f"Failed to create survey: {e}")
+            get_logger("survey.manager", {"channelId": channel_id, "userId": user_id}).exception(
+                "failed to create survey"
+            )
             raise ValueError("Survey creation failed") from e
 
     def get_survey(self, channel_id: str) -> Optional[SurveyFlow]:
@@ -191,9 +206,9 @@ class SurveyManager:
         key = str(channel_id)
         survey = self.surveys.get(key)
         if survey:
-            logger.debug(f"Found survey for channel {key}")
+            get_logger("survey.manager", {"channelId": key}).debug("found survey")
         else:
-            logger.debug(f"No active survey for channel {key}")
+            get_logger("survey.manager", {"channelId": key}).debug("no active survey")
         return survey
 
     def get_survey_by_session(self, session_id: str) -> Optional[SurveyFlow]:
@@ -201,7 +216,7 @@ class SurveyManager:
         # O(1) lookup using session index
         survey = self.sessions.get(str(session_id))
         if not survey:
-            logger.debug(f"No active survey for session {session_id}")
+            get_logger("survey.manager", {"sessionId": session_id}).debug("no active survey")
         return survey
 
     def record_step_result(self, channel_id: str, step_name: str, value: Any) -> None:
@@ -214,14 +229,15 @@ class SurveyManager:
         """
         survey = self.get_survey(channel_id)
         if not survey:
-            logger.debug(f"record_step_result: no survey for channel {channel_id}; step={step_name}")
+            get_logger("survey.manager", {"channelId": channel_id}).debug(
+                "no survey for channel", extra={"step": step_name}
+            )
             return
         try:
             survey.add_result(step_name, value)
-        except Exception as e:
-            logger.error(
-                f"Failed to record result for channel {channel_id}, step {step_name}, value={value}: {e}",
-                exc_info=True,
+        except Exception:
+            get_logger("survey.manager", {"channelId": channel_id}).exception(
+                "failed to record result", extra={"step": step_name}
             )
 
     def remove_survey(self, channel_id: str) -> None:
@@ -240,10 +256,10 @@ class SurveyManager:
             try:
                 self.sessions.pop(str(survey.session_id), None)
             except Exception:
-                logger.warning(f"Failed to remove session index for channel {key}")
-            logger.info(f"Removed survey for channel {key}") # Log survey removal
+                get_logger("survey.manager", {"channelId": key}).warning("failed to remove session index")
+            get_logger("survey.manager", {"channelId": key}).info("removed")
         else:
-            logger.warning(f"Attempted to remove survey for channel {key}, but none was found")
+            get_logger("survey.manager", {"channelId": key}).warning("remove called but none exists")
 
     async def end_survey(self, channel_id: str) -> None:
         """Cleanup UI/messages and remove the survey.
@@ -254,17 +270,17 @@ class SurveyManager:
         key = str(channel_id)
         survey = self.surveys.get(key)
         if not survey:
-            logger.debug(f"end_survey: no active survey for channel {key}")
+            get_logger("survey.manager", {"channelId": key}).debug("end: no active survey")
             return
         try:
             await survey.cleanup()
-        except Exception as e:
-            logger.warning(f"end_survey: cleanup failed for channel {key}: {e}")
+        except Exception:
+            get_logger("survey.manager", {"channelId": key}).exception("end: cleanup failed")
         # Stop view if any, then remove from indexes
         try:
             self.remove_survey(channel_id)
-        except Exception as e:
-            logger.error(f"end_survey: failed to remove survey for channel {key}: {e}")
+        except Exception:
+            get_logger("survey.manager", {"channelId": key}).exception("end: failed to remove survey")
 
 
 # Global survey manager instance

@@ -1,6 +1,7 @@
 import ssl
 from aiohttp import web
-from config import Config, logger, Strings
+from config import Config, Strings
+from services.logging_utils import get_logger
 
 class WebServer:
     def __init__(self, bot):
@@ -24,47 +25,48 @@ class WebServer:
         try:
             # Minimal auth
             if not self._is_authorized(request):
-                logger.warning("Unauthorized request to /start_survey")
+                get_logger("web.start_survey").warning("unauthorized", extra={"path": "/start_survey"})
                 return web.json_response({"error": "Unauthorized"}, status=401)
-            logger.info("Received request to /start_survey")
+            get_logger("web.start_survey").info("request received")
 
             # Parse JSON payload
             data = await request.json()
-            logger.info(f"Parsed JSON payload: {data}")
+            log = get_logger("web.start_survey", data)
+            log.debug("payload", extra={"payload": data})
             user_id = data.get("userId")
             channel_id = data.get("channelId")
 
             # Validate IDs are strings and not empty
             if not isinstance(user_id, str) or not user_id.strip():
-                logger.error(f"Invalid user ID: {user_id}")
+                log.error("invalid user id", extra={"user": user_id})
                 return web.json_response({"error": "Invalid user ID"}, status=400)
 
             try:
                 channel_id = str(int(channel_id))  # Ensure numeric string format
             except (ValueError, TypeError):
-                logger.error(f"Invalid channel ID: {channel_id}")
+                log.error("invalid channel id", extra={"channel": channel_id})
                 return web.json_response({"error": "Invalid channel ID"}, status=400)
 
             # Create consistent session ID format
             try:
                 channel = await self.bot.fetch_channel(channel_id)
-                logger.info(f"Attempting to send greeting message to channel {channel_id} for user {user_id}")
+                log.info("sending greeting")
                 from discord_bot.views.start_survey import StartSurveyView
                 await channel.send(f"<@{user_id}> {Strings.SURVEY_GREETING}", view=StartSurveyView())
-                logger.info("Greeting message sent successfully")
+                log.info("greeting sent")
                 return web.json_response({"status": "Greeting message sent"})
             except Exception as e:
-                logger.error(f"Failed to send button: {str(e)}")
+                log.exception("failed to send greeting")
                 return web.json_response({"error": "Failed to initialize survey"}, status=500)
 
         except Exception as e:
-            logger.error(f"Server error: {str(e)}")
+            get_logger("web.start_survey").exception("server error")
             return web.json_response({"error": "Internal server error"}, status=500)
 
     async def debug_log_handler(self, request):
         """Handle requests to view the debug log file."""
         if not self._is_authorized(request):
-            logger.warning("Unauthorized request to /debug_log")
+            get_logger("web.debug_log").warning("unauthorized")
             return web.Response(text="Unauthorized", status=401)
         log_file_path = "/app/logs/register_debug.log" # Updated path
         try:
@@ -74,7 +76,7 @@ class WebServer:
         except FileNotFoundError:
             return web.Response(text=f"Debug log file not found at {log_file_path}", status=404)
         except Exception as e:
-            logger.error(f"Error reading debug log file: {e}")
+            get_logger("web.debug_log").exception("read error")
             return web.Response(text=f"Error reading debug log file: {e}", status=500)
 
     @staticmethod
@@ -104,7 +106,7 @@ class WebServer:
         await runner.setup()
         site = web.TCPSite(runner, host, port, ssl_context=ssl_context)
         await site.start()
-        logger.info(f"Server started on {host}:{port}")
+        get_logger("web.server").info("server started", extra={"host": host, "port": port})
 
 async def create_and_start_server(bot):
     """Wrapper function to maintain backward compatibility"""

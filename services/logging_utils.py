@@ -5,6 +5,15 @@ from typing import Any, Callable, Awaitable, Dict
 
 from config import logger as base_logger
 
+# Standardized context keys expected across logs
+# These keys should be populated whenever possible via get_logger
+EXPECTED_CONTEXT_KEYS = (
+    "session_id",  # Combined or generated session identifier
+    "user",        # Discord user ID
+    "channel",     # Discord channel ID
+    "step_name",   # Logical step or handler name
+)
+
 # Context variable to store logging context across async calls
 current_context: contextvars.ContextVar[Dict[str, Any]] = contextvars.ContextVar(
     "current_context", default={}
