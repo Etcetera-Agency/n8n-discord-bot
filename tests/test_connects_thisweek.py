@@ -13,6 +13,8 @@ sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "services" / "cmd"))
 
 import connects_thisweek
+from services.survey_models import SurveyEvent, SurveyStep, SurveyResult
+from services.payload_models import BotRequestPayload
 
 # Load payload examples and responses once
 payload_text = (ROOT / "payload_examples.txt").read_text()
@@ -79,7 +81,12 @@ async def test_profile_exists(monkeypatch, tmp_path):
     monkeypatch.setattr(connects_thisweek, "NotionConnector", lambda: fake_notion)
     monkeypatch.setattr(connects_thisweek, "SurveyStepsDB", FakeDB)
 
-    result = await connects_thisweek.handle(COMMAND_PAYLOAD)
+    event = SurveyEvent(
+        step=SurveyStep(name="connects_thisweek"),
+        result=SurveyResult(step_name="connects_thisweek", value=COMMAND_PAYLOAD["result"].get("connects") or COMMAND_PAYLOAD["result"].get("value")),
+        payload=BotRequestPayload.from_dict(COMMAND_PAYLOAD),
+    )
+    result = await connects_thisweek.handle(event)
 
     with open(log_file, "a") as f:
         f.write("Step: handle called\n")
@@ -110,7 +117,12 @@ async def test_no_profile(monkeypatch, tmp_path):
     monkeypatch.setattr(connects_thisweek, "NotionConnector", lambda: fake_notion)
     monkeypatch.setattr(connects_thisweek, "SurveyStepsDB", FakeDB)
 
-    result = await connects_thisweek.handle(COMMAND_PAYLOAD)
+    event = SurveyEvent(
+        step=SurveyStep(name="connects_thisweek"),
+        result=SurveyResult(step_name="connects_thisweek", value=COMMAND_PAYLOAD["result"].get("connects") or COMMAND_PAYLOAD["result"].get("value")),
+        payload=BotRequestPayload.from_dict(COMMAND_PAYLOAD),
+    )
+    result = await connects_thisweek.handle(event)
 
     with open(log_file, "a") as f:
         f.write("Step: handle called\n")
@@ -136,7 +148,12 @@ async def test_database_error(monkeypatch, tmp_path):
     monkeypatch.setattr(connects_thisweek, "NotionConnector", lambda: fake_notion)
     monkeypatch.setattr(connects_thisweek, "SurveyStepsDB", FakeDB)
 
-    result = await connects_thisweek.handle(COMMAND_PAYLOAD)
+    event = SurveyEvent(
+        step=SurveyStep(name="connects_thisweek"),
+        result=SurveyResult(step_name="connects_thisweek", value=COMMAND_PAYLOAD["result"].get("connects") or COMMAND_PAYLOAD["result"].get("value")),
+        payload=BotRequestPayload.from_dict(COMMAND_PAYLOAD),
+    )
+    result = await connects_thisweek.handle(event)
 
     with open(log_file, "a") as f:
         f.write("Step: handle called\n")
@@ -163,7 +180,13 @@ async def test_end_to_end(monkeypatch, tmp_path):
     monkeypatch.setattr(connects_thisweek, "NotionConnector", lambda: fake_notion)
     monkeypatch.setattr(connects_thisweek, "SurveyStepsDB", FakeDB)
 
-    result = await connects_thisweek.handle(COMMAND_PAYLOAD.copy())
+    cp = COMMAND_PAYLOAD.copy()
+    event = SurveyEvent(
+        step=SurveyStep(name="connects_thisweek"),
+        result=SurveyResult(step_name="connects_thisweek", value=cp["result"].get("connects") or cp["result"].get("value")),
+        payload=BotRequestPayload.from_dict(cp),
+    )
+    result = await connects_thisweek.handle(event)
 
     with open(log_file, "a") as f:
         f.write("Step: handle called\n")

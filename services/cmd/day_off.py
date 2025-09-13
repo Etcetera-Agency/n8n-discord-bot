@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Any, Dict
 
 from config import Config, Strings
 from services.calendar_connector import CalendarConnector, CalendarError
@@ -8,7 +7,6 @@ from services.logging_utils import get_logger
 from services.survey_steps_db import SurveyStepsDB
 from services.date_utils import format_date_ua, is_valid_iso_date
 from services.survey_models import SurveyEvent
-from typing import Union
 from services.error_utils import handle_exception
 
 calendar = CalendarConnector()
@@ -31,22 +29,11 @@ async def _mark_step(channel_id: str, step: str) -> None:
     await db.upsert_step(channel_id, step, True)
 
 
-async def handle(event: Union[SurveyEvent, Dict[str, Any]]) -> str:
+async def handle(event: SurveyEvent) -> str:
     """Record day-off dates for the current or next week."""
-
-    if isinstance(event, dict):
-        payload = event
-        value = (
-            payload.get("result", {}).get("value")
-            or payload.get("result", {}).get("daysSelected")
-        )
-        step = payload.get("command")
-        if step == "survey":
-            step = payload.get("result", {}).get("stepName")
-    else:
-        payload = event.payload.to_dict()
-        value = event.result.value
-        step = event.step.name
+    payload = event.payload.to_dict()
+    value = event.result.value
+    step = event.step.name
     log = get_logger("day_off", payload)
     log.info("start")
     try:

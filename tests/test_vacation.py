@@ -52,6 +52,8 @@ sys.modules["config"] = types.SimpleNamespace(
 )
 
 from services.cmd import vacation
+from services.survey_models import SurveyEvent, SurveyStep, SurveyResult
+from services.payload_models import BotRequestPayload
 
 
 class FakeDB:
@@ -107,7 +109,12 @@ async def test_handle_vacation_success(tmp_path, monkeypatch):
 
     with open(log, "a") as f:
         f.write("Step: handle\n")
-    result = await vacation.handle(payload)
+    event = SurveyEvent(
+        step=SurveyStep(name="vacation"),
+        result=SurveyResult(step_name="vacation", value=payload["result"]),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    result = await vacation.handle(event)
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
 
@@ -148,7 +155,12 @@ async def test_handle_vacation_calendar_error(tmp_path, monkeypatch):
 
     with open(log, "a") as f:
         f.write("Step: handle\n")
-    result = await vacation.handle(payload)
+    event = SurveyEvent(
+        step=SurveyStep(name="vacation"),
+        result=SurveyResult(step_name="vacation", value=payload["result"]),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    result = await vacation.handle(event)
     with open(log, "a") as f:
         f.write(f"Output: {result}\n")
 
@@ -230,7 +242,12 @@ async def test_handle_vacation_records_step(monkeypatch, tmp_path):
         vacation, "calendar", types.SimpleNamespace(create_vacation_event=fake_create)
     )
 
-    result = await vacation.handle(payload)
+    event = SurveyEvent(
+        step=SurveyStep(name="vacation"),
+        result=SurveyResult(step_name="vacation", value=payload["result"]),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    result = await vacation.handle(event)
     with open(log, "a") as f:
         f.write("Step: handle\n")
         f.write(f"Output: {result}\n")

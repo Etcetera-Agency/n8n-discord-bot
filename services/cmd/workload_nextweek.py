@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Union
+from typing import Optional, Union
 from services.notion_connector import NotionConnector, NotionError
 from config import Config, Strings
 from services.logging_utils import get_logger
@@ -27,19 +27,13 @@ def template(hours: Union[int, float]) -> str:
     return f"Записав! \nЗаплановане навантаження на наступний тиждень: {hours} год."
 
 
-async def handle(event: Union[SurveyEvent, Dict[str, Any]]) -> str:
+async def handle(event: SurveyEvent) -> str:
     """Handle the `workload_nextweek` command."""
     log = get_logger()
     try:
-        if isinstance(event, dict):
-            result = event.get("result", {})
-            hours_raw = result.get("value", result.get("workload"))
-            author = event.get("author")
-            channel_id = event.get("channelId")
-        else:
-            hours_raw = event.result.value
-            author = event.payload.author
-            channel_id = event.payload.channelId
+        hours_raw = event.result.value
+        author = event.payload.author
+        channel_id = event.payload.channelId
         hours = int(hours_raw)
         log.debug("parsed hours", extra={"hours": hours})
         page_data = await _notion.get_workload_page_by_name(author)

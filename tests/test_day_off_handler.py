@@ -52,6 +52,8 @@ config_mod = types.SimpleNamespace(
 sys.modules["config"] = config_mod
 
 import services.cmd.day_off as day_off
+from services.survey_models import SurveyEvent, SurveyStep, SurveyResult
+from services.payload_models import BotRequestPayload
 from services.date_utils import format_date_ua
 
 
@@ -117,7 +119,13 @@ async def test_no_dates(tmp_path, monkeypatch):
 
     with open(log, "a") as f:
         f.write("Step: handle\n")
-    out = await day_off.handle(payload)
+    value = payload["result"].get("value") or payload["result"].get("daysSelected")
+    event = SurveyEvent(
+        step=SurveyStep(name=payload["command"]),
+        result=SurveyResult(step_name=payload["command"], value=value),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    out = await day_off.handle(event)
     with open(log, "a") as f:
         f.write(f"Output: {out}\n")
 
@@ -144,7 +152,13 @@ async def test_list_with_nothing(tmp_path, monkeypatch):
 
     with open(log, "a") as f:
         f.write("Step: handle\n")
-    out = await day_off.handle(payload)
+    value = payload["result"].get("value") or payload["result"].get("daysSelected")
+    event = SurveyEvent(
+        step=SurveyStep(name=payload["command"]),
+        result=SurveyResult(step_name=payload["command"], value=value),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    out = await day_off.handle(event)
     with open(log, "a") as f:
         f.write(f"Output: {out}\n")
 
@@ -171,7 +185,13 @@ async def test_one_date(tmp_path, monkeypatch):
 
     with open(log, "a") as f:
         f.write("Step: handle\n")
-    out = await day_off.handle(payload)
+    value = payload["result"].get("value") or payload["result"].get("daysSelected")
+    event = SurveyEvent(
+        step=SurveyStep(name=payload["command"]),
+        result=SurveyResult(step_name=payload["command"], value=value),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    out = await day_off.handle(event)
     with open(log, "a") as f:
         f.write(f"Output: {out}\n")
 
@@ -202,7 +222,13 @@ async def test_many_dates(tmp_path, monkeypatch):
 
     with open(log, "a") as f:
         f.write("Step: handle\n")
-    out = await day_off.handle(payload)
+    value = payload["result"].get("value") or payload["result"].get("daysSelected")
+    event = SurveyEvent(
+        step=SurveyStep(name=payload["command"]),
+        result=SurveyResult(step_name=payload["command"], value=value),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    out = await day_off.handle(event)
     with open(log, "a") as f:
         f.write(f"Output: {out}\n")
 
@@ -240,7 +266,13 @@ async def test_calendar_error(tmp_path, monkeypatch):
 
     with open(log, "a") as f:
         f.write("Step: handle\n")
-    out = await day_off.handle(payload)
+    value = payload["result"].get("value") or payload["result"].get("daysSelected")
+    event = SurveyEvent(
+        step=SurveyStep(name=payload["command"]),
+        result=SurveyResult(step_name=payload["command"], value=value),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    out = await day_off.handle(event)
     with open(log, "a") as f:
         f.write(f"Output: {out}\n")
 
@@ -267,7 +299,13 @@ async def test_single_string_value(tmp_path, monkeypatch):
 
     with open(log, "a") as f:
         f.write("Step: handle\n")
-    out = await day_off.handle(payload)
+    value = payload["result"].get("value") or payload["result"].get("daysSelected")
+    event = SurveyEvent(
+        step=SurveyStep(name=payload["command"]),
+        result=SurveyResult(step_name=payload["command"], value=value),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    out = await day_off.handle(event)
     with open(log, "a") as f:
         f.write(f"Output: {out}\n")
 
@@ -299,7 +337,13 @@ async def test_days_selected_key(tmp_path, monkeypatch):
 
     with open(log, "a") as f:
         f.write("Step: handle\n")
-    out = await day_off.handle(payload)
+    value = payload["result"].get("value") or payload["result"].get("daysSelected")
+    event = SurveyEvent(
+        step=SurveyStep(name=payload["command"]),
+        result=SurveyResult(step_name=payload["command"], value=value),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    out = await day_off.handle(event)
     with open(log, "a") as f:
         f.write(f"Output: {out}\n")
 
@@ -337,7 +381,13 @@ async def test_invalid_date_format(tmp_path, monkeypatch):
 
     with open(log, "a") as f:
         f.write("Step: handle\n")
-    out = await day_off.handle(payload)
+    value = payload["result"].get("value") or payload["result"].get("daysSelected")
+    event = SurveyEvent(
+        step=SurveyStep(name=payload["command"]),
+        result=SurveyResult(step_name=payload["command"], value=value),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    out = await day_off.handle(event)
     with open(log, "a") as f:
         f.write(f"Output: {out}\n")
 

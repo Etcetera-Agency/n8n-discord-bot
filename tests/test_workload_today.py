@@ -14,6 +14,8 @@ sys.path.append(str(ROOT / "services"))
 import router
 from services.cmd import workload_today
 from services.notion_connector import NotionError
+from services.survey_models import SurveyEvent, SurveyStep, SurveyResult
+from services.payload_models import BotRequestPayload
 
 
 def load_payload_example(title: str) -> dict:
@@ -81,7 +83,12 @@ async def test_handle_workload_today_success(tmp_path, monkeypatch, hours_key):
         workload_today, "_steps_db", types.SimpleNamespace(upsert_step=fake_upsert)
     )
 
-    result = await workload_today.handle(payload)
+    event = SurveyEvent(
+        step=SurveyStep(name="workload_today"),
+        result=SurveyResult(step_name="workload_today", value=value),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    result = await workload_today.handle(event)
 
     with open(log, "a") as f:
         f.write("Step: handle\n")
@@ -157,7 +164,12 @@ async def test_handle_workload_today_error(tmp_path, monkeypatch):
         types.SimpleNamespace(DATABASE_URL="sqlite://", NOTION_WORKLOAD_DB_ID="db"),
     )
 
-    result = await workload_today.handle(payload)
+    event = SurveyEvent(
+        step=SurveyStep(name="workload_today"),
+        result=SurveyResult(step_name="workload_today", value=payload["result"].get("value")),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    result = await workload_today.handle(event)
 
     with open(log, "a") as f:
         f.write("Step: handle\n")
@@ -191,7 +203,12 @@ async def test_handle_workload_today_user_not_found(tmp_path, monkeypatch):
         types.SimpleNamespace(DATABASE_URL="sqlite://", NOTION_WORKLOAD_DB_ID="db"),
     )
 
-    result = await workload_today.handle(payload)
+    event = SurveyEvent(
+        step=SurveyStep(name="workload_today"),
+        result=SurveyResult(step_name="workload_today", value=payload["result"].get("value")),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    result = await workload_today.handle(event)
 
     with open(log, "a") as f:
         f.write("Step: handle\n")

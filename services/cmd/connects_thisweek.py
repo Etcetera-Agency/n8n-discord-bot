@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
 
 import aiohttp
 
@@ -11,25 +10,19 @@ from services.notion_connector import NotionConnector, NotionError
 from services.logging_utils import get_logger
 from services.survey_steps_db import SurveyStepsDB
 from services.survey_models import SurveyEvent
-from typing import Union
 from services.error_utils import handle_exception
 
 
 ERROR_MESSAGE = Strings.TRY_AGAIN_LATER
 
 
-async def handle(event: Union[SurveyEvent, Dict[str, Any]]) -> str:
+async def handle(event: SurveyEvent) -> str:
     """Record weekly connects and update optional profile stats."""
     log = get_logger()
     try:
-        if isinstance(event, dict):
-            connects = int(event.get("result", {}).get("connects") or event.get("result", {}).get("value"))
-            author = event.get("author")
-            channel_id = event.get("channelId")
-        else:
-            connects = int(event.result.value)
-            author = event.payload.author
-            channel_id = event.payload.channelId
+        connects = int(event.result.value)
+        author = event.payload.author
+        channel_id = event.payload.channelId
         log.debug("parsed connects", extra={"connects": connects})
 
         # mark survey step as completed using channel id as session id

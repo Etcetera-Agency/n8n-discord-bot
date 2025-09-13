@@ -32,6 +32,8 @@ sys.modules["config"] = types.SimpleNamespace(
 
 import router
 from services.cmd import workload_nextweek
+from services.survey_models import SurveyEvent, SurveyStep, SurveyResult
+from services.payload_models import BotRequestPayload
 
 
 def load_payload_example(title: str) -> dict:
@@ -86,7 +88,12 @@ async def test_handle_valid_write(monkeypatch, tmp_path, hours_key):
         types.SimpleNamespace(upsert_step=steps_mock),
     )
 
-    result = await workload_nextweek.handle(payload)
+    event = SurveyEvent(
+        step=SurveyStep(name="workload_nextweek"),
+        result=SurveyResult(step_name="workload_nextweek", value=value),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    result = await workload_nextweek.handle(event)
     with open(log_file, "a") as f:
         f.write("Step: handle\n")
         f.write(f"Output: {result}\n")
@@ -125,7 +132,12 @@ async def test_handle_notion_failure(monkeypatch, tmp_path):
         types.SimpleNamespace(upsert_step=AsyncMock()),
     )
 
-    result = await workload_nextweek.handle(payload)
+    event = SurveyEvent(
+        step=SurveyStep(name="workload_nextweek"),
+        result=SurveyResult(step_name="workload_nextweek", value=payload["result"].get("value")),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    result = await workload_nextweek.handle(event)
     with open(log_file, "a") as f:
         f.write("Step: handle error\n")
         f.write(f"Output: {result}\n")
@@ -159,7 +171,12 @@ async def test_handle_user_not_found(monkeypatch, tmp_path):
         types.SimpleNamespace(upsert_step=steps_mock),
     )
 
-    result = await workload_nextweek.handle(payload)
+    event = SurveyEvent(
+        step=SurveyStep(name="workload_nextweek"),
+        result=SurveyResult(step_name="workload_nextweek", value=payload["result"].get("value")),
+        payload=BotRequestPayload.from_dict(payload),
+    )
+    result = await workload_nextweek.handle(event)
     with open(log_file, "a") as f:
         f.write("Step: handle missing user\n")
         f.write(f"Output: {result}\n")

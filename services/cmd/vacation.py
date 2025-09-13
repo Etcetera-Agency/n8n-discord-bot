@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
 from datetime import datetime
 
 from config import Config
@@ -11,7 +10,6 @@ from services.logging_utils import get_logger
 from services.error_utils import handle_exception
 from services.survey_steps_db import SurveyStepsDB
 from services.survey_models import SurveyEvent
-from typing import Union
 
 # Reusable calendar connector instance
 calendar = CalendarConnector()
@@ -49,22 +47,15 @@ def _fmt(date_str: str) -> str:
     return f"{weekday} {dt.day:02d} {month} {dt.year}"
 
 
-async def handle(event: Union[SurveyEvent, Dict[str, Any]]) -> str:
+async def handle(event: SurveyEvent) -> str:
     """Handle the vacation command."""
     log = get_logger()
     try:
-        if isinstance(event, dict):
-            result = event.get("result", {})
-            start_raw = result["start_date"]
-            end_raw = result["end_date"]
-            author = event.get("author", "")
-            channel_id = str(event.get("channelId"))
-        else:
-            result = event.result.value or {}
-            start_raw = result["start_date"]
-            end_raw = result["end_date"]
-            author = event.payload.author or ""
-            channel_id = str(event.payload.channelId)
+        result = event.result.value or {}
+        start_raw = result["start_date"]
+        end_raw = result["end_date"]
+        author = event.payload.author or ""
+        channel_id = str(event.payload.channelId)
         log.debug("dates parsed", extra={"start": start_raw, "end": end_raw})
 
         # Payload dates may include a time component, but the calendar
